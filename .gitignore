@@ -10,7 +10,29 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+build
+coverage
 *.local
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local database and runtime files
+*.sqlite3
+*.pid
 
 # Editor directories and files
 .vscode/*

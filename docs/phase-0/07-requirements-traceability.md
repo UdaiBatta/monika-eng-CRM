@@ -33,15 +33,15 @@ Completion here means the baseline artifact exists; business review is still req
 
 | ID | Requirement section | Phase | Status | Evidence / next gate |
 |---|---|---:|---|---|
-| R-000 | Primary objective | All | NOT STARTED | Production ERP not yet implemented |
-| R-001 | Technology architecture | 1 | IN DEVELOPMENT | Architecture baseline defined; backend/deployment not scaffolded |
-| R-002 | System architecture principles | 1 | IN DEVELOPMENT | Modular-monolith boundaries defined |
+| R-000 | Primary objective | All | IN DEVELOPMENT | Production foundation complete; operational ERP/CRM modules remain phased |
+| R-001 | Technology architecture | 1 | COMPLETE | React/Django/PostgreSQL/Redis/Celery workspace and Docker services implemented |
+| R-002 | System architecture principles | 1 | COMPLETE | Modular-monolith boundaries, versioned API and separate frontend implemented |
 | R-003 | Controlled state transitions | 1+ | NOT STARTED | Service/API command tests required |
-| R-004 | User, employee and organization foundation | 1 | NOT STARTED | Identity policy confirmation required |
-| R-005 | RBAC framework | 1 | NOT STARTED | Configurable engine; roles still awaiting input |
-| R-006 | Common data model | 1 | NOT STARTED | Physical base models/migrations required |
-| R-007 | Numbering engine | 1 | NOT STARTED | Numbering conventions required |
-| R-008 | Master data | 1+ | NOT STARTED | Master ownership and initial values required |
+| R-004 | User, employee and organization foundation | 1 | COMPLETE | Separate User/Employee and organization models, APIs, UI and tests implemented |
+| R-005 | RBAC framework | 1 | COMPLETE | Data-driven roles, scoped assignments, allow/deny overrides and tests implemented; business roles intentionally unseeded |
+| R-006 | Common data model | 1 | COMPLETE | UUID/timestamp base models and Django migrations implemented |
+| R-007 | Numbering engine | 1 | COMPLETE | Atomic row-locked sequence service and non-consuming preview tested on PostgreSQL |
+| R-008 | Master data | 1+ | IN DEVELOPMENT | Currency, UOM, tax, payment and delivery foundation masters complete; downstream masters remain phased |
 | R-009 | CRM module | 2 | NOT STARTED | Customer workflow confirmation required |
 | R-010 | Enquiry/RFQ management | 2 | NOT STARTED | Sales process workshop required |
 | R-011 | Engineering feasibility review | 2 | NOT STARTED | Sales/engineering handoff confirmation required |
@@ -129,21 +129,21 @@ Completion here means the baseline artifact exists; business review is still req
 | R-093 | Serial traceability | 5-9 | NOT STARTED | Material tracking policy required |
 | R-094 | Batch traceability | 5 | NOT STARTED | Batch policy required |
 | R-095 | Barcode/QR readiness | 14 | NOT STARTED | Data/API readiness planned |
-| R-096 | Responsive web application | 1+ | IN DEVELOPMENT | Axis mockup tested on desktop/mobile; production app pending |
-| R-097 | Human-readable error handling | 1+ | NOT STARTED | API convention documented |
-| R-098 | Concurrency protection | 1+ | NOT STARTED | Lock/version tests required |
-| R-099 | Server-side data validation | 1+ | NOT STARTED | Domain validation tests required |
-| R-100 | Transaction safety | 1+ | NOT STARTED | Atomic workflow tests required |
-| R-101 | Security | 1+ | NOT STARTED | Threat model and implementation required |
-| R-102 | Login security | 1 | NOT STARTED | Policy decisions required |
+| R-096 | Responsive web application | 1+ | COMPLETE | Production Axis foundation app browser-tested on desktop and mobile |
+| R-097 | Human-readable error handling | 1+ | COMPLETE | Shared API error envelope and typed frontend normalization implemented and tested |
+| R-098 | Concurrency protection | 1+ | IN DEVELOPMENT | Numbering row locks complete; future mutable workflows require their own concurrency rules |
+| R-099 | Server-side data validation | 1+ | COMPLETE | Foundation serializers/models reject invalid and cross-company relationships |
+| R-100 | Transaction safety | 1+ | COMPLETE | Foundation numbering consumption is atomic and lock protected |
+| R-101 | Security | 1+ | IN DEVELOPMENT | Session/CSRF/RBAC/settings baseline complete; production threat review remains a go-live gate |
+| R-102 | Login security | 1 | COMPLETE | Django password framework, generic failures, CSRF, sessions and login throttling tested |
 | R-103 | Backups | 1/Go-live | NOT STARTED | Destination and restore test required |
 | R-104 | Disaster recovery | Go-live | NOT STARTED | Runbooks and exercise required |
 | R-105 | Logging | 1 | NOT STARTED | Log routing/retention required |
 | R-106 | Performance | All | NOT STARTED | Load targets and tests required |
 | R-107 | Database indexing | Each phase | NOT STARTED | Query plans reviewed per module |
-| R-108 | Versioned API/OpenAPI | 1+ | IN DEVELOPMENT | API plan complete; implementation pending |
-| R-109 | Enterprise frontend design | 1+ | IN DEVELOPMENT | Axis CRM declared visual source of truth |
-| R-110 | Permission-aware navigation | 1+ | IN DEVELOPMENT | Mockup navigation exists; RBAC integration pending |
+| R-108 | Versioned API/OpenAPI | 1+ | IN DEVELOPMENT | `/api/v1/` implemented and documented; generated OpenAPI schema remains pending |
+| R-109 | Enterprise frontend design | 1+ | COMPLETE | Axis CRM visual system applied to live production foundation routes |
+| R-110 | Permission-aware navigation | 1+ | COMPLETE | Navigation consumes effective permission codes while APIs enforce authorization independently |
 | R-111 | Project 360 view | 3 | IN DEVELOPMENT | Axis UI proof-of-concept exists; production data/actions pending |
 | R-112 | Customer 360 view | 2 | NOT STARTED | UI/data contract required |
 | R-113 | Material 360 view | 5 | NOT STARTED | UI/data contract required |
@@ -151,27 +151,27 @@ Completion here means the baseline artifact exists; business review is still req
 | R-115 | Activity timelines | 2+ | IN DEVELOPMENT | UI abstraction exists; audited event source pending |
 | R-116 | Comments/internal notes | 2+ | NOT STARTED | Visibility/attachment policy required |
 | R-117 | Tasks/follow-ups | 2+ | NOT STARTED | Lifecycle/notification policy required |
-| R-118 | UTC and timezone handling | 1 | NOT STARTED | Architecture baseline defined |
-| R-119 | Decimal currency/INR | 1+ | NOT STARTED | Model implementation required |
+| R-118 | UTC and timezone handling | 1 | COMPLETE | Django timezone-aware UTC storage with Asia/Kolkata presentation setting |
+| R-119 | Decimal currency/INR | 1+ | COMPLETE | Decimal financial master fields and INR seed implemented |
 | R-120 | Decimal quantity precision | 3+ | NOT STARTED | Precision policy required |
-| R-121 | Configurable taxes | 1/2+ | NOT STARTED | Finance masters required |
+| R-121 | Configurable taxes | 1/2+ | COMPLETE | Company-scoped TaxRate master and administration UI implemented |
 | R-122 | Controlled data import | Each launch | NOT STARTED | Staging/preview plan documented |
 | R-123 | Opening inventory | 5 | NOT STARTED | Cutover process required |
 | R-124 | Migration strategy | All | IN DEVELOPMENT | Baseline documented; data discovery pending |
-| R-125 | Company configuration | 1 | NOT STARTED | Settings values required |
-| R-126 | Feature flags | 1 | NOT STARTED | Initial flags identified |
-| R-127 | Testing | Every phase | IN DEVELOPMENT | Gates documented; production suites pending |
-| R-128 | Permission testing | 1+ | NOT STARTED | Role definitions pending |
-| R-129 | Seed/demo data | 1+ | NOT STARTED | Environment segregation required |
-| R-130 | Django migrations only | 1+ | NOT STARTED | Backend not scaffolded |
-| R-131 | One-command development environment | 1 | IN DEVELOPMENT | Frontend runs locally; Docker stack pending |
+| R-125 | Company configuration | 1 | COMPLETE | Automatic CompanySettings with editable India/INR defaults implemented |
+| R-126 | Feature flags | 1 | COMPLETE | Company-scoped feature flag model, API and UI implemented |
+| R-127 | Testing | Every phase | COMPLETE | Phase 1 backend/frontend suites, checks, builds and browser QA pass |
+| R-128 | Permission testing | 1+ | COMPLETE | Grants, scopes, overrides, deny precedence and scoped querysets tested |
+| R-129 | Seed/demo data | 1+ | COMPLETE | Explicit environment-gated debug-only seed command; no production demo migration |
+| R-130 | Django migrations only | 1+ | COMPLETE | All database schema and seed changes use reviewed Django migrations |
+| R-131 | One-command development environment | 1 | COMPLETE | Docker Compose starts PostgreSQL, Redis, Django and Celery with health checks |
 | R-132 | Ubuntu VPS production deployment | Go-live | NOT STARTED | Hosting decision pending |
-| R-133 | Maintained documentation | All | IN DEVELOPMENT | Phase 0 documentation created |
+| R-133 | Maintained documentation | All | COMPLETE | README, seven Phase 1 guides and this traceability update maintained with code |
 | R-134 | Change management | All | IN DEVELOPMENT | Process documented; enforcement pending |
 | R-135 | Future architecture readiness | All | IN DEVELOPMENT | Boundaries documented; features not implemented |
 | R-136 | Prohibited practices | All | IN DEVELOPMENT | Architectural guardrails documented |
-| R-137 | Development order | All | IN DEVELOPMENT | Phased plan documented; Phase 1 not started |
-| R-138 | Definition of Done | Every module | IN DEVELOPMENT | Gates documented; no production module complete |
+| R-137 | Development order | All | IN DEVELOPMENT | Phase 1A-D completed in order and stopped before Phase 1E-H |
+| R-138 | Definition of Done | Every module | IN DEVELOPMENT | Phase 1A-D gates satisfied; future modules retain independent gates |
 | R-139 | Requirement traceability | All | COMPLETE | This register covers sections 0-140 |
 | R-140 | Final engineering principle | Every workflow | IN DEVELOPMENT | Mandatory design questions adopted |
 
@@ -182,6 +182,21 @@ Before a phase begins, each section assigned to that phase is decomposed into ac
 ## 5. Deferral register
 
 No requirement is currently marked DEFERRED WITH EXPLICIT APPROVAL.
+
+## 6. Phase 1A-D acceptance evidence
+
+| ID | Scope | Status | Evidence |
+|---|---|---|---|
+| P1-AUTH | Session authentication and User/Employee separation | COMPLETE | `docs/phase-1/02-authentication.md`, backend authentication tests |
+| P1-ORG | Company organization and cross-company integrity | COMPLETE | `docs/phase-1/04-organization-model.md`, organization tests |
+| P1-RBAC | Permission catalog, scoped roles and deny precedence | COMPLETE | `docs/phase-1/03-rbac.md`, RBAC tests |
+| P1-CONFIG | Company settings and feature flags | COMPLETE | Live CRUD API/UI and browser QA |
+| P1-MASTER | Currency, UOM, TaxRate, PaymentTerm, DeliveryTerm | COMPLETE | Django models/migrations/API and tabbed Axis UI |
+| P1-NUMBER | Transaction-safe numbering foundation | COMPLETE | `docs/phase-1/05-numbering-engine.md`, PostgreSQL locking tests |
+| P1-UI | Axis production foundation application | COMPLETE | `/app` plus desktop/mobile browser verification; mockup routes preserved |
+| P1-OPS | PostgreSQL, Redis, Django and Celery local stack | COMPLETE | Docker health checks and `/api/v1/health/` |
+
+No later module is marked complete merely because these foundations can support it. CRM, Project 360, drawing/BOM and other operational domains retain their original phase status.
 
 Every future deferral must include requirement ID, scope, reason, impact, approving person, approval date, target reconsideration phase and any architectural compatibility work retained.
 

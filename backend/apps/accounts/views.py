@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
+from apps.rbac.services import effective_permission_codes
 
 from .models import User
 from .serializers import ChangePasswordSerializer, LoginSerializer, UserSerializer
@@ -89,6 +90,7 @@ class MeView(APIView):
                 "designation_id": employee.designation_id,
             }
         )
+        data["permissions"] = effective_permission_codes(request.user)
         return Response(data)
 
 

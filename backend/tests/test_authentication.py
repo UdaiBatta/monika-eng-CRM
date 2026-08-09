@@ -19,7 +19,9 @@ def test_login_requires_csrf_and_uses_session(user):
     )
     assert accepted.status_code == 200
     assert accepted.data["email"] == user.email
-    assert client.get(reverse("me")).status_code == 200
+    me = client.get(reverse("me"))
+    assert me.status_code == 200
+    assert me.data["permissions"] == []
 
 
 @pytest.mark.django_db

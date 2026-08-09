@@ -1,0 +1,140 @@
+import { useQueries, useQuery } from "@tanstack/react-query"
+import { ArrowRight, Building2, DatabaseZap, FileKey2, PencilRuler, ServerCog, ShieldCheck, Users } from "lucide-react"
+import { Link } from "react-router-dom"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Skeleton } from "@/components/ui/skeleton"
+import { apiGet } from "@/production/lib/api"
+import { hasPermission, useCurrentUser } from "@/production/lib/auth"
+import type { FoundationRecord, Paginated } from "@/production/lib/types"
+
+const metrics = [
+  { label: "Employees", endpoint: "/employees/?page_size=1", permission: "organization.employee.view", icon: Users, href: "/app/employees" },
+  { label: "Companies", endpoint: "/companies/?page_size=1", permission: "organization.company.view", icon: Building2, href: "/app/organization/companies" },
+  { label: "Roles", endpoint: "/roles/?page_size=1", permission: "rbac.role.view", icon: ShieldCheck, href: "/app/access/roles" },
+  { label: "Sequences", endpoint: "/document-sequences/?page_size=1", permission: "numbering.sequence.view", icon: DatabaseZap, href: "/app/settings/numbering" },
+]
+
+export default function DashboardPage() {
+  const { data: user } = useCurrentUser()
+  const health = useQuery({ queryKey: ["health"], queryFn: () => apiGet<{ status: string; database: string; cache: string }>("/health/") })
+  const visibleMetrics = metrics.filter((metric) => hasPermission(user, metric.permission))
+  const metricQueries = useQueries({
+    queries: visibleMetrics.map((metric) => ({
+      queryKey: ["metric", metric.endpoint],
+      queryFn: () => apiGet<Paginated<FoundationRecord>>(metric.endpoint),
+    })),
+  })
+
+  return (
+    <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
+      <section className="grid gap-4 xl:grid-cols-[1.5fr_0.8fr]">
+        <Card className="overflow-hidden border-erp-sidebar/20">
+          <CardHeader className="bg-erp-sidebar text-white">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <Badge variant="secondary" className="mb-3">Phase 1 production foundation</Badge>
+                <CardTitle className="text-2xl">Good to see you, {user?.employee?.display_name || user?.first_name || "administrator"}.</CardTitle>
+                <CardDescription className="mt-2 max-w-2xl text-white/60">
+                  Identity, organization, scoped access, configuration, masters, and safe numbering are connected to live services.
+                </CardDescription>
+              </div>
+              <ServerCog aria-hidden="true" className="opacity-40" />
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-4 pt-5 sm:grid-cols-3">
+            {[
+              ["Django API", health.data?.status === "ok" ? "Operational" : "Checking"],
+              ["PostgreSQL", health.data?.database === "ok" ? "Connected" : "Checking"],
+              ["Redis", health.data?.cache === "ok" ? "Connected" : "Checking"],
+            ].map(([label, value]) => (
+              <div key={label} className="border-l-2 border-primary pl-4">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+                <p className="mt-1 font-semibold">{value}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Foundation readiness</CardTitle><CardDescription>Current delivery boundary</CardDescription></CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div><div className="mb-2 flex justify-between text-sm"><span>Phase 1A–D</span><span>Implemented</span></div><Progress value={100} /></div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="border p-3"><p className="font-semibold">In scope</p><p className="text-muted-foreground">Foundation administration</p></div>
+              <div className="border p-3"><p className="font-semibold">Gated</p><p className="text-muted-foreground">CRM & operations</p></div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {health.isError ? <Alert variant="destructive"><AlertTitle>Health check failed</AlertTitle><AlertDescription>{health.error.message}</AlertDescription></Alert> : null}
+
+      <section aria-labelledby="foundation-metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <h2 id="foundation-metrics" className="sr-only">Foundation metrics</h2>
+        {visibleMetrics.map((metric, index) => {
+          const Icon = metric.icon
+          const query = metricQueries[index]
+          return (
+            <Card key={metric.label}>
+              <CardHeader className="flex-row items-start justify-between">
+                <div><CardDescription>{metric.label}</CardDescription><CardTitle className="mt-2 text-3xl">{query.data?.pagination.count ?? (query.isPending ? "—" : 0)}</CardTitle></div>
+                <Icon aria-hidden="true" className="text-primary" />
+              </CardHeader>
+              <CardContent>
+                {query.isPending ? <Skeleton className="h-8 w-full" /> : (
+                  <Button variant="ghost" render={<Link to={metric.href} />} nativeButton={false} className="w-full justify-between">
+                    Open register<ArrowRight data-icon="inline-end" />
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <div><CardTitle>Engineering canvas</CardTitle><CardDescription>Drawing and BOM experience direction</CardDescription></div>
+              <PencilRuler aria-hidden="true" className="text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid min-h-56 place-items-center border bg-muted/30 p-8 text-center">
+              <div className="max-w-lg">
+                <PencilRuler aria-hidden="true" className="mx-auto mb-4 text-primary" />
+                <h3 className="font-semibold">Drawing intelligence stays central to the product vision.</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  The integrated drawing/BOM viewer from the approved Project 360 concept will be built after foundation sign-off. It is intentionally not simulated with fake files in Phase 1A–D.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Access posture</CardTitle><CardDescription>What this session can administer</CardDescription></CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {[
+              ["Employee register", hasPermission(user, "organization.employee.manage")],
+              ["Role and scope design", hasPermission(user, "rbac.role.manage")],
+              ["Company configuration", hasPermission(user, "configuration.settings.manage")],
+              ["Document numbering", hasPermission(user, "numbering.sequence.manage")],
+            ].map(([label, allowed]) => (
+              <div key={String(label)} className="flex items-center justify-between border-b pb-3 text-sm">
+                <span>{String(label)}</span><Badge variant={allowed ? "default" : "outline"}>{allowed ? "Manage" : "View only"}</Badge>
+              </div>
+            ))}
+            <Button variant="outline" render={<Link to="/app/access/roles" />} nativeButton={false}><FileKey2 data-icon="inline-start" />Review access model</Button>
+          </CardContent>
+        </Card>
+      </section>
+    </div>
+  )
+}

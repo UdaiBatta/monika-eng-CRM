@@ -103,10 +103,10 @@ Completion here means the baseline artifact exists; business review is still req
 | R-067 | AMC visit report | 10 | NOT STARTED | Template required |
 | R-068 | AMC billing | 10/13 | NOT STARTED | Finance integration decision required |
 | R-069 | AMC renewal | 10 | NOT STARTED | Renewal ownership/process required |
-| R-070 | Approval engine | 1 | TESTING | Generic versioned workflows, safe conditions, commands, row locks, supporting files, notifications and Axis UI implemented; final signed-in browser scenario pending |
-| R-071 | Notification engine | 1/11 | TESTING | Recipient-isolated in-app notifications, preferences, deduplication and post-commit rules implemented; final signed-in browser scenario pending |
-| R-072 | Audit logging | 1 | TESTING | Immutable audit service, context, redaction, read-only scoped API, entity timeline and Axis UI implemented; final signed-in browser scenario pending |
-| R-073 | Document management | 1 | TESTING | Private storage, secure downloads, versions, checksums, validation, links, archive/restore and Axis UI implemented; final signed-in browser scenario pending and drawing management remains R-012 |
+| R-070 | Approval engine | 1 | COMPLETE | Generic versioned workflows, safe conditions, commands, row locks, supporting files, notifications, Axis UI and signed-in browser acceptance complete |
+| R-071 | Notification engine | 1/11 | COMPLETE | Recipient-isolated in-app notifications, preferences, deduplication, post-commit rules and signed-in browser acceptance complete |
+| R-072 | Audit logging | 1 | COMPLETE | Immutable audit service, context, redaction, read-only scoped API, entity timeline, Axis UI and signed-in browser acceptance complete |
+| R-073 | Document management | 1 | COMPLETE | Private storage, secure downloads, versions, checksums, validation, links, archive/restore and signed-in Axis acceptance complete; drawing management remains R-012 |
 | R-074 | Global search | 11 | NOT STARTED | PostgreSQL-first plan documented |
 | R-075 | Filtering | 2+ | IN DEVELOPMENT | URL-filter patterns exist in UI proof-of-concept |
 | R-076 | Dashboard | 11 | IN DEVELOPMENT | Employee-home UI proof-of-concept only |
@@ -195,11 +195,11 @@ No requirement is currently marked DEFERRED WITH EXPLICIT APPROVAL.
 | P1-NUMBER | Transaction-safe numbering foundation | COMPLETE | `docs/phase-1/05-numbering-engine.md`, PostgreSQL locking tests |
 | P1-UI | Axis production foundation application | COMPLETE | `/app` plus desktop/mobile browser verification; mockup routes preserved |
 | P1-OPS | PostgreSQL, Redis, Django and Celery local stack | COMPLETE | Docker health checks and `/api/v1/health/` |
-| P1-AUDIT | Immutable business audit and controlled entity timeline | TESTING | Backend/API/integration tests pass; signed-in Axis Activity History walkthrough pending |
-| P1-DOCS | Private versioned document management | TESTING | Security/concurrency tests pass; signed-in upload/version/download walkthrough pending |
-| P1-APPROVAL | Generic configurable approval engine | TESTING | Command/concurrency/integration tests pass; signed-in requester/approver walkthrough pending |
-| P1-NOTIFY | In-app notification engine | TESTING | Isolation/deduplication/post-commit tests pass; signed-in notification-center walkthrough pending |
-| P1-SHARED-UI | Axis shared-service production screens | TESTING | Components, TypeScript and build pass; desktop/mobile browser QA remains the final gate |
+| P1-AUDIT | Immutable business audit and controlled entity timeline | COMPLETE | Backend/API/integration tests and signed-in Activity History acceptance pass |
+| P1-DOCS | Private versioned document management | COMPLETE | Security/concurrency tests and signed-in permission/empty-state acceptance pass |
+| P1-APPROVAL | Generic configurable approval engine | COMPLETE | Command/concurrency/integration tests and signed-in approval-area acceptance pass |
+| P1-NOTIFY | In-app notification engine | COMPLETE | Isolation/deduplication/post-commit tests and signed-in notification-center acceptance pass |
+| P1-SHARED-UI | Axis shared-service production screens | COMPLETE | Desktop, tablet and mobile browser acceptance passes with no application console errors |
 
 No later module is marked complete merely because these foundations can support it. CRM, Project 360, drawing/BOM and other operational domains retain their original phase status.
 
@@ -211,3 +211,4 @@ Every future deferral must include requirement ID, scope, reason, impact, approv
 |---|---|---|
 | 2026-08-10 | Initial register created from authoritative sections 0-140 | Establishes honest baseline; production implementation remains largely not started |
 | 2026-08-10 | Phase 1E–H implementation reached final browser acceptance | Automated gates and Docker health pass; signed-in real-data browser walkthrough remains before COMPLETE; CRM and operational modules remain not started |
+| 2026-08-11 | Phase 1A–H signed-in browser acceptance completed | Real PostgreSQL administrator and restricted-user scenarios passed across desktop, tablet and mobile; Phase 2 retains independent gates |

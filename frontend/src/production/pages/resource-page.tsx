@@ -1,0 +1,336 @@
+import { useMemo, useState } from "react"
+import { Controller, useForm } from "react-hook-form"
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Pencil, Plus, Search } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
+import { Switch } from "@/components/ui/switch"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
+import { ApiError, apiGet, apiPatch, apiPost } from "@/production/lib/api"
+import { hasPermission, useCurrentUser } from "@/production/lib/auth"
+import { resourceConfigs, type ResourceConfig, type ResourceField } from "@/production/lib/resource-config"
+import type { FoundationRecord, Paginated } from "@/production/lib/types"
+
+type FormValues = Record<string, unknown>
+
+function recordValue(record: FoundationRecord | undefined, field: ResourceField) {
+  if (!record) return field.defaultValue ?? (field.type === "boolean" ? false : field.type === "multi-relation" ? [] : "")
+  if (field.name === "permission_ids") {
+    return ((record.permission_details as FoundationRecord[] | undefined) ?? []).map((item) => String(item.id))
+  }
+  const value = record[field.name]
+  return value ?? (field.type === "boolean" ? false : field.type === "multi-relation" ? [] : "")
+}
+
+function relationLabel(record: FoundationRecord, fields: string[]) {
+  return fields.map((field) => record[field]).filter(Boolean).join(" · ") || String(record.id)
+}
+
+function cleanValues(config: ResourceConfig, values: FormValues) {
+  return Object.fromEntries(config.fields.map((field) => {
+    const value = values[field.name]
+    if (field.type === "number") return [field.name, value === "" ? null : Number(value)]
+    if (field.type === "relation") return [field.name, value || null]
+    if (field.type === "multi-relation") return [field.name, Array.isArray(value) ? value : []]
+    return [field.name, value]
+  }))
+}
+
+function errorMessages(error: unknown) {
+  if (!(error instanceof ApiError) || !error.details || typeof error.details !== "object") return {}
+  return error.details as Record<string, string[] | string>
+}
+
+export function ResourceRecordForm({
+  config,
+  record,
+  onSuccess,
+  submitLabel,
+}: {
+  config: ResourceConfig
+  record?: FoundationRecord
+  onSuccess: (record: FoundationRecord) => void
+  submitLabel?: string
+}) {
+  const queryClient = useQueryClient()
+  const relationFields = config.fields.filter((field) => field.relation)
+  const relationQueries = useQueries({
+    queries: relationFields.map((field) => ({
+      queryKey: ["options", field.relation?.endpoint],
+      queryFn: () => apiGet<Paginated<FoundationRecord>>(`${field.relation?.endpoint}?page_size=100`),
+      staleTime: 60_000,
+    })),
+  })
+  const defaultValues = useMemo(
+    () => Object.fromEntries(config.fields.map((field) => [field.name, recordValue(record, field)])),
+    [config, record],
+  )
+  const form = useForm<FormValues>({ defaultValues })
+  const mutation = useMutation({
+    mutationFn: (values: FormValues) => record
+      ? apiPatch<FoundationRecord>(`${config.endpoint}${record.id}/`, cleanValues(config, values))
+      : apiPost<FoundationRecord>(config.endpoint, cleanValues(config, values)),
+    onSuccess: (saved) => {
+      queryClient.invalidateQueries({ queryKey: ["resource", config.key] })
+      toast.success(`${config.singular[0].toUpperCase()}${config.singular.slice(1)} saved.`)
+      onSuccess(saved)
+    },
+  })
+  const serverErrors = errorMessages(mutation.error)
+
+  return (
+    <form onSubmit={form.handleSubmit((values) => mutation.mutate(values))}>
+      <FieldGroup>
+        {mutation.error ? (
+          <Alert variant="destructive">
+            <AlertTitle>Could not save {config.singular}</AlertTitle>
+            <AlertDescription>{mutation.error.message}</AlertDescription>
+          </Alert>
+        ) : null}
+        {config.fields.map((field) => {
+          const fieldError = form.formState.errors[field.name]?.message
+          const apiFieldError = serverErrors[field.name]
+          const error = fieldError || (Array.isArray(apiFieldError) ? apiFieldError[0] : apiFieldError)
+          const relationIndex = relationFields.indexOf(field)
+          const relationOptions = relationIndex >= 0 ? relationQueries[relationIndex]?.data?.results ?? [] : []
+
+          if (field.type === "boolean") {
+            return (
+              <Controller
+                key={field.name}
+                name={field.name}
+                control={form.control}
+                render={({ field: controlled }) => (
+                  <Field orientation="horizontal">
+                    <div className="flex-1">
+                      <FieldLabel htmlFor={field.name}>{field.label}</FieldLabel>
+                      {field.help ? <FieldDescription>{field.help}</FieldDescription> : null}
+                    </div>
+                    <Switch id={field.name} checked={Boolean(controlled.value)} onCheckedChange={controlled.onChange} />
+                  </Field>
+                )}
+              />
+            )
+          }
+
+          if (field.type === "select" || field.type === "relation" || field.type === "multi-relation") {
+            return (
+              <Field key={field.name} data-invalid={Boolean(error)}>
+                <FieldLabel htmlFor={field.name}>{field.label}</FieldLabel>
+                <Controller
+                  name={field.name}
+                  control={form.control}
+                  rules={{ required: field.required ? `${field.label} is required.` : false }}
+                  render={({ field: controlled }) => (
+                    <NativeSelect
+                      id={field.name}
+                      className="w-full"
+                      multiple={field.type === "multi-relation"}
+                      value={field.type === "multi-relation" ? (controlled.value as string[]) : String(controlled.value ?? "")}
+                      onChange={(event) => controlled.onChange(
+                        field.type === "multi-relation"
+                          ? Array.from(event.currentTarget.selectedOptions, (option) => option.value)
+                          : event.currentTarget.value,
+                      )}
+                      aria-invalid={Boolean(error)}
+                    >
+                      {field.type !== "multi-relation" ? <NativeSelectOption value="">Select {field.label.toLowerCase()}</NativeSelectOption> : null}
+                      {(field.options ?? []).map((option) => <NativeSelectOption key={option.value} value={option.value}>{option.label}</NativeSelectOption>)}
+                      {relationOptions.map((option) => (
+                        <NativeSelectOption key={String(option.id)} value={String(option.id)}>
+                          {relationLabel(option, field.relation?.labelFields ?? [])}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  )}
+                />
+                {field.help ? <FieldDescription>{field.help}</FieldDescription> : null}
+                <FieldError>{error}</FieldError>
+              </Field>
+            )
+          }
+
+          if (field.type === "textarea") {
+            return (
+              <Field key={field.name} data-invalid={Boolean(error)}>
+                <FieldLabel htmlFor={field.name}>{field.label}</FieldLabel>
+                <Textarea id={field.name} placeholder={field.placeholder} aria-invalid={Boolean(error)} {...form.register(field.name, { required: field.required ? `${field.label} is required.` : false })} />
+                {field.help ? <FieldDescription>{field.help}</FieldDescription> : null}
+                <FieldError>{error}</FieldError>
+              </Field>
+            )
+          }
+
+          return (
+            <Field key={field.name} data-invalid={Boolean(error)}>
+              <FieldLabel htmlFor={field.name}>{field.label}</FieldLabel>
+              <Input
+                id={field.name}
+                type={field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "email" ? "email" : "text"}
+                step={field.type === "number" ? "any" : undefined}
+                placeholder={field.placeholder}
+                aria-invalid={Boolean(error)}
+                {...form.register(field.name, { required: field.required ? `${field.label} is required.` : false })}
+              />
+              {field.help ? <FieldDescription>{field.help}</FieldDescription> : null}
+              <FieldError>{error}</FieldError>
+            </Field>
+          )
+        })}
+        <Button type="submit" size="lg" disabled={mutation.isPending}>
+          {mutation.isPending ? <Spinner data-icon="inline-start" /> : null}
+          {mutation.isPending ? "Saving…" : submitLabel ?? `Save ${config.singular}`}
+        </Button>
+      </FieldGroup>
+    </form>
+  )
+}
+
+function displayValue(value: unknown) {
+  if (typeof value === "boolean") return <Badge variant={value ? "default" : "outline"}>{value ? "Yes" : "No"}</Badge>
+  if (value === null || value === undefined || value === "") return <span className="text-muted-foreground">—</span>
+  const text = String(value)
+  if (["ACTIVE", "ALLOW", "ENABLED"].includes(text)) return <Badge>{text.replaceAll("_", " ")}</Badge>
+  if (["INACTIVE", "DENY"].includes(text)) return <Badge variant="destructive">{text}</Badge>
+  return text.replaceAll("_", " ")
+}
+
+export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
+  const config = resourceConfigs[resourceKey]
+  const { data: user } = useCurrentUser()
+  const navigate = useNavigate()
+  const [page, setPage] = useState(1)
+  const [searchInput, setSearchInput] = useState("")
+  const [search, setSearch] = useState("")
+  const [ordering, setOrdering] = useState("")
+  const [formRecord, setFormRecord] = useState<FoundationRecord | null | undefined>(undefined)
+  const canManage = hasPermission(user, config.managePermission)
+  const query = useQuery({
+    queryKey: ["resource", config.key, page, search, ordering],
+    queryFn: () => {
+      const params = new URLSearchParams({ page: String(page) })
+      if (search) params.set("search", search)
+      if (ordering) params.set("ordering", ordering)
+      return apiGet<Paginated<FoundationRecord>>(`${config.endpoint}?${params}`)
+    },
+  })
+
+  function openCreate() {
+    if (config.dedicatedEmployeeRoutes) navigate("/app/employees/new")
+    else setFormRecord(null)
+  }
+
+  function openRecord(record: FoundationRecord) {
+    if (config.dedicatedEmployeeRoutes) navigate(`/app/employees/${record.id}`)
+    else setFormRecord(record)
+  }
+
+  function changeOrdering(key: string) {
+    setOrdering((current) => current === key ? `-${key}` : key)
+    setPage(1)
+  }
+
+  return (
+    <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+        <div><h2 className="text-2xl font-semibold tracking-tight">{config.title}</h2><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{config.description}</p></div>
+        {canManage ? <Button onClick={openCreate}><Plus data-icon="inline-start" />New {config.singular}</Button> : null}
+      </div>
+
+      <Card>
+        <CardHeader className="gap-4 md:flex-row md:items-end md:justify-between">
+          <div><CardTitle>Register</CardTitle><CardDescription>{query.data?.pagination.count ?? 0} records</CardDescription></div>
+          <form
+            className="flex w-full max-w-md gap-2"
+            onSubmit={(event) => { event.preventDefault(); setSearch(searchInput); setPage(1) }}
+          >
+            <Field>
+              <FieldLabel htmlFor={`${config.key}-search`} className="sr-only">Search {config.title}</FieldLabel>
+              <Input id={`${config.key}-search`} value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={config.searchPlaceholder ?? `Search ${config.title.toLowerCase()}`} />
+            </Field>
+            <Button type="submit" variant="outline"><Search data-icon="inline-start" />Search</Button>
+          </form>
+        </CardHeader>
+        <CardContent>
+          {query.isPending ? (
+            <div className="flex flex-col gap-3">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-11 w-full" />)}</div>
+          ) : query.isError ? (
+            <Alert variant="destructive"><AlertTitle>Could not load register</AlertTitle><AlertDescription>{query.error.message}</AlertDescription></Alert>
+          ) : query.data.results.length === 0 ? (
+            <Empty>
+              <EmptyHeader><EmptyMedia variant="icon"><Search /></EmptyMedia><EmptyTitle>No {config.title.toLowerCase()} found</EmptyTitle><EmptyDescription>Adjust the search or create the first record when permitted.</EmptyDescription></EmptyHeader>
+              {canManage ? <EmptyContent><Button onClick={openCreate}><Plus data-icon="inline-start" />New {config.singular}</Button></EmptyContent> : null}
+            </Empty>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow>
+                  {config.columns.map((column) => (
+                    <TableHead key={column.key}>
+                      <Button variant="ghost" size="sm" onClick={() => changeOrdering(column.key)}>
+                        {column.label}
+                        {ordering.replace("-", "") === column.key ? (ordering.startsWith("-") ? <ArrowDown data-icon="inline-end" /> : <ArrowUp data-icon="inline-end" />) : null}
+                      </Button>
+                    </TableHead>
+                  ))}
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>{query.data.results.map((record) => (
+                  <TableRow key={String(record.id)}>
+                    {config.columns.map((column) => <TableCell key={column.key}>{displayValue(record[column.key])}</TableCell>)}
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => openRecord(record)}>
+                        {canManage && !config.dedicatedEmployeeRoutes ? <Pencil data-icon="inline-start" /> : null}
+                        {config.dedicatedEmployeeRoutes ? "Open" : canManage ? "Edit" : "View"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}</TableBody>
+              </Table>
+            </div>
+          )}
+
+          {query.data && query.data.pagination.pages > 1 ? (
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <span className="mr-2 text-sm text-muted-foreground">Page {page} of {query.data.pagination.pages}</span>
+              <Button aria-label="Previous page" variant="outline" size="icon" disabled={!query.data.pagination.previous} onClick={() => setPage((value) => value - 1)}><ChevronLeft /></Button>
+              <Button aria-label="Next page" variant="outline" size="icon" disabled={!query.data.pagination.next} onClick={() => setPage((value) => value + 1)}><ChevronRight /></Button>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Sheet open={formRecord !== undefined} onOpenChange={(open) => { if (!open) setFormRecord(undefined) }}>
+        <SheetContent className="axis-erp w-full overflow-y-auto sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>{formRecord ? `Edit ${config.singular}` : `New ${config.singular}`}</SheetTitle>
+            <SheetDescription>{config.description}</SheetDescription>
+          </SheetHeader>
+          <div className="mt-6">
+            {formRecord !== undefined ? (
+              <ResourceRecordForm
+                key={formRecord?.id ? String(formRecord.id) : "new"}
+                config={config}
+                record={formRecord ?? undefined}
+                onSuccess={() => setFormRecord(undefined)}
+              />
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}

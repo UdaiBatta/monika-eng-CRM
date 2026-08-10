@@ -6,6 +6,7 @@ from apps.accounts.views import UserViewSet
 from apps.audit.views import AuditEventViewSet
 from apps.configuration.views import CompanySettingsViewSet, FeatureFlagViewSet
 from apps.core.views import HealthView
+from apps.documents.views import DocumentCategoryViewSet, DocumentViewSet
 from apps.masters.views import (
     CurrencyViewSet,
     DeliveryTermViewSet,
@@ -52,6 +53,8 @@ router.register("payment-terms", PaymentTermViewSet)
 router.register("delivery-terms", DeliveryTermViewSet)
 router.register("document-sequences", DocumentSequenceViewSet)
 router.register("audit/events", AuditEventViewSet, basename="audit-event")
+router.register("document-categories", DocumentCategoryViewSet)
+router.register("documents", DocumentViewSet, basename="document")
 
 urlpatterns = [
     path("admin/", admin.site.urls),

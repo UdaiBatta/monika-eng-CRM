@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "apps.configuration",
     "apps.numbering",
     "apps.audit.apps.AuditConfig",
+    "apps.documents.apps.DocumentsConfig",
 ]
 
 MIDDLEWARE = [
@@ -124,3 +125,19 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_RESULT_SERIALIZER = "json"
 LOGIN_FAILURE_LIMIT = int(os.getenv("LOGIN_FAILURE_LIMIT", "5"))
 LOGIN_FAILURE_WINDOW_SECONDS = int(os.getenv("LOGIN_FAILURE_WINDOW_SECONDS", "900"))
+
+DOCUMENT_STORAGE_BACKEND = os.getenv(
+    "DOCUMENT_STORAGE_BACKEND",
+    "apps.documents.storage.LocalPrivateStorageBackend",
+)
+LOCAL_PRIVATE_STORAGE_ROOT = os.getenv(
+    "LOCAL_PRIVATE_STORAGE_ROOT",
+    str(BASE_DIR / "private_storage"),
+)
+DOCUMENT_ALLOWED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg", "csv", "docx", "xlsx"]
+DOCUMENT_MAX_UPLOAD_SIZE_MB = int(os.getenv("DOCUMENT_MAX_UPLOAD_SIZE_MB", "50"))
+R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL", "")
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "")
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "")
+R2_REGION = os.getenv("R2_REGION", "auto")

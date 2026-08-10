@@ -3,6 +3,13 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.accounts.views import UserViewSet
+from apps.approvals.views import (
+    ApprovalConditionViewSet,
+    ApprovalRequestViewSet,
+    ApprovalStepDefinitionViewSet,
+    ApprovalWorkflowVersionViewSet,
+    ApprovalWorkflowViewSet,
+)
 from apps.audit.views import AuditEventViewSet
 from apps.configuration.views import CompanySettingsViewSet, FeatureFlagViewSet
 from apps.core.views import HealthView
@@ -55,6 +62,11 @@ router.register("document-sequences", DocumentSequenceViewSet)
 router.register("audit/events", AuditEventViewSet, basename="audit-event")
 router.register("document-categories", DocumentCategoryViewSet)
 router.register("documents", DocumentViewSet, basename="document")
+router.register("approval-workflows", ApprovalWorkflowViewSet)
+router.register("approval-workflow-versions", ApprovalWorkflowVersionViewSet)
+router.register("approval-step-definitions", ApprovalStepDefinitionViewSet)
+router.register("approval-conditions", ApprovalConditionViewSet)
+router.register("approvals/requests", ApprovalRequestViewSet, basename="approval-request")
 
 urlpatterns = [
     path("admin/", admin.site.urls),

@@ -1,10 +1,16 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date
 
 import pytest
 from django.db import close_old_connections, connections
 
 from apps.numbering.models import DocumentSequence
-from apps.numbering.services import allocate_number, financial_year_label, preview_number
+from apps.numbering.services import (
+    allocate_company_number,
+    allocate_number,
+    financial_year_label,
+    preview_number,
+)
 
 
 @pytest.fixture
@@ -28,10 +34,19 @@ def test_preview_does_not_consume_number(sequence):
 
 @pytest.mark.django_db
 def test_financial_year_uses_company_start_month(company):
-    from datetime import date
-
     assert financial_year_label(company, date(2026, 3, 31)) == "2025-26"
     assert financial_year_label(company, date(2026, 4, 1)) == "2026-27"
+
+
+@pytest.mark.django_db
+def test_allocate_company_number_resolves_company_financial_year(sequence):
+    allocated = allocate_company_number(
+        company=sequence.company,
+        code="ENQ",
+        on_date=date(2026, 4, 1),
+    )
+
+    assert allocated == "METEST/ENQ/2026-27/0001"
 
 
 @pytest.mark.django_db(transaction=True)

@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "apps.documents.apps.DocumentsConfig",
     "apps.approvals.apps.ApprovalsConfig",
     "apps.notifications.apps.NotificationsConfig",
+    "apps.crm.apps.CrmConfig",
 ]
 
 MIDDLEWARE = [

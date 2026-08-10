@@ -19,6 +19,7 @@ from apps.approvals.services import (
     clone_workflow_version,
     create_approval_request,
     create_workflow,
+    reassign_request,
     reject_request,
     return_request,
 )
@@ -266,6 +267,64 @@ def test_cancel_self_approval_unauthorized_and_double_decision_guards(
 
 
 @pytest.mark.django_db
+def test_admin_can_reassign_inactive_pending_approver_and_preserve_history(
+    company,
+    branch,
+    department,
+    admin,
+    tmp_path,
+):
+    original = make_employee_user(company, branch, department, 31)
+    replacement = make_employee_user(company, branch, department, 32)
+    grant(replacement, company, "approvals.request.approve")
+    item = workflow(company, admin, [original])
+    request = submit(item, drawing(company, admin, tmp_path), admin)
+    assignment = request.current_step.assignments.get(approver=original)
+
+    original.is_active = False
+    original.save(update_fields=["is_active"])
+    original.employee.employment_status = Employee.EmploymentStatus.INACTIVE
+    original.employee.save(update_fields=["employment_status", "updated_at"])
+
+    updated = reassign_request(
+        request_id=request.pk,
+        assignment_id=assignment.pk,
+        approver_id=replacement.pk,
+        actor=admin,
+        reason="Original approver left the company.",
+    )
+
+    assignment.refresh_from_db()
+    assert assignment.status == assignment.Status.SKIPPED
+    assert assignment.approver_name == "Approver 31"
+    assert updated.current_step.assignments.filter(
+        approver=replacement,
+        status="PENDING",
+    ).exists()
+    assert AuditEvent.objects.filter(event_type="approval.assignment_reassigned").exists()
+
+
+@pytest.mark.django_db
+def test_approval_api_preserves_business_error_code(
+    api_client,
+    company,
+    user,
+    employee,
+    admin,
+    tmp_path,
+):
+    grant(user, company, "approvals.request.submit", "approvals.request.approve")
+    item = workflow(company, admin, [user])
+    request = submit(item, drawing(company, admin, tmp_path), user)
+    api_client.force_authenticate(user)
+
+    response = api_client.post(f"/api/v1/approvals/requests/{request.pk}/approve/", {})
+
+    assert response.status_code == 403
+    assert response.data["error"]["code"] == "SELF_APPROVAL_NOT_ALLOWED"
+
+
+@pytest.mark.django_db
 def test_cross_company_workflow_is_rejected(company, admin, tmp_path):
     other = Company.objects.create(name="Other Approval Company", code="OTHER-APP")
     item = create_workflow(
@@ -400,3 +459,30 @@ def test_approval_uses_shared_documents_with_independent_download_permission(
     assert request.entity_id == str(document.pk)
     assert request.steps.count() == 1
     assert document.links.filter(entity_type="approval_request", entity_id=str(request.pk)).exists()
+
+
+@pytest.mark.django_db
+def test_submit_can_atomically_link_supporting_document(
+    company,
+    branch,
+    department,
+    admin,
+    tmp_path,
+):
+    approver = make_employee_user(company, branch, department, 81)
+    item = workflow(company, admin, [approver])
+    document = drawing(company, admin, tmp_path, title="Drawing submitted for approval")
+
+    request = create_approval_request(
+        workflow_id=item.pk,
+        entity_type="document",
+        entity_id=document.pk,
+        supporting_document_ids=[document.pk],
+        actor=admin,
+    )
+
+    assert document.links.filter(
+        entity_type="approval_request",
+        entity_id=str(request.pk),
+        relationship_type="SUPPORTING",
+    ).exists()

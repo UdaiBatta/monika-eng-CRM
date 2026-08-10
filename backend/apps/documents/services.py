@@ -107,9 +107,13 @@ def create_document(*, category, title, file_object, actor, description="", note
         raise
 
 
-def prepare_download(*, document, actor):
+def prepare_download(*, document, actor, version_id=None):
     _require(actor, "documents.document.download", document)
-    version = document.current_version
+    version = (
+        document.versions.filter(pk=version_id).first()
+        if version_id
+        else document.current_version
+    )
     if version is None:
         raise ValidationError("This document does not have a downloadable version.")
     storage = get_storage()

@@ -235,6 +235,7 @@ def create_approval_request(
     actor,
     submission_comment="",
     snapshot_metadata=None,
+    supporting_document_ids=None,
 ):
     entity = resolve_entity(entity_type, entity_id, "approvals")
     workflow = ApprovalWorkflow.objects.select_related("current_version", "company").get(pk=workflow_id)
@@ -311,6 +312,25 @@ def create_approval_request(
                 },
             )
         )
+        if supporting_document_ids:
+            from apps.documents.models import Document
+            from apps.documents.services import link_document
+
+            documents = Document.objects.filter(pk__in=supporting_document_ids)
+            if documents.count() != len(set(supporting_document_ids)):
+                raise ValidationError({"supporting_document_ids": ["Choose valid documents."]})
+            for document in documents:
+                if document.company_id != request.company_id:
+                    raise ValidationError(
+                        {"supporting_document_ids": ["Supporting documents must use the same company."]}
+                    )
+                link_document(
+                    document=document,
+                    entity_type="approval_request",
+                    entity_id=request.pk,
+                    relationship_type="SUPPORTING",
+                    actor=actor,
+                )
         return request
 
 
@@ -518,6 +538,91 @@ def cancel_request(*, request_id, actor, comment=""):
                 "CANCEL",
                 f"Approval cancelled for {request.entity_reference}",
                 metadata={"comment": comment},
+            )
+        )
+        return request
+
+
+def reassign_request(*, request_id, assignment_id, approver_id, actor, reason):
+    """Move one pending assignment while preserving its former assignee in history."""
+    if not reason.strip():
+        raise ValidationError({"reason": ["Explain why this approval is being reassigned."]})
+
+    from apps.accounts.models import User
+    from apps.organization.models import Employee
+
+    with transaction.atomic():
+        try:
+            request = ApprovalRequest.objects.select_for_update().get(pk=request_id)
+        except ApprovalRequest.DoesNotExist as exc:
+            raise NotFound("Approval request not found.") from exc
+        require(actor, "approvals.workflow.manage", request)
+        if request.status != ApprovalRequest.Status.IN_PROGRESS or not request.current_step_id:
+            raise ValidationError(
+                "Only an active approval assignment can be reassigned.",
+                code="INVALID_APPROVAL_TRANSITION",
+            )
+        try:
+            assignment = ApprovalAssignment.objects.select_for_update().get(
+                pk=assignment_id,
+                step_id=request.current_step_id,
+                status=ApprovalAssignment.Status.PENDING,
+            )
+        except ApprovalAssignment.DoesNotExist as exc:
+            raise ValidationError(
+                "Choose a pending assignment from the current approval step.",
+                code="APPROVAL_ASSIGNMENT_NOT_PENDING",
+            ) from exc
+        try:
+            approver = User.objects.select_related("employee").get(pk=approver_id, is_active=True)
+            employee = approver.employee
+        except (User.DoesNotExist, Employee.DoesNotExist) as exc:
+            raise ValidationError(
+                "Choose an active employee with a user account.",
+                code="INACTIVE_APPROVER",
+            ) from exc
+        if (
+            employee.company_id != request.company_id
+            or employee.employment_status == Employee.EmploymentStatus.INACTIVE
+        ):
+            raise ValidationError(
+                "Choose an active employee from the same company.",
+                code="INACTIVE_APPROVER",
+            )
+        if assignment.approver_id == approver.pk:
+            raise ValidationError("Choose a different employee.")
+        if assignment.step.assignments.filter(approver=approver).exists():
+            raise ValidationError("That employee already appears in this approval step.")
+        if not has_permission(approver, "approvals.request.approve", request):
+            raise ValidationError(
+                "Choose an employee who is authorized to approve requests for this company."
+            )
+
+        previous_name = assignment.approver_name
+        assignment.status = ApprovalAssignment.Status.SKIPPED
+        assignment.save(update_fields=["status", "updated_at"])
+        replacement = ApprovalAssignment.objects.create(
+            step=assignment.step,
+            approver=approver,
+            approver_name=display_name(approver),
+        )
+        publish(
+            approval_event(
+                "approval.assignment_reassigned",
+                request,
+                actor,
+                "ASSIGN",
+                (
+                    f"{request.entity_reference} reassigned from {previous_name} "
+                    f"to {replacement.approver_name}"
+                ),
+                metadata={
+                    "step": assignment.step.step_name,
+                    "previous_approver": previous_name,
+                    "new_approver": replacement.approver_name,
+                    "approver_user_ids": [str(approver.pk)],
+                    "reason": reason,
+                },
             )
         )
         return request

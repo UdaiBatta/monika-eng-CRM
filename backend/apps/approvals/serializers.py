@@ -90,6 +90,7 @@ class ApprovalWorkflowVersionSerializer(serializers.ModelSerializer):
 
 
 class ApprovalWorkflowSerializer(serializers.ModelSerializer):
+    company_name = serializers.CharField(source="company.name", read_only=True)
     current_version_number = serializers.IntegerField(
         source="current_version.version_number",
         read_only=True,
@@ -149,6 +150,11 @@ class ApprovalRequestCreateSerializer(serializers.Serializer):
     entity_id = serializers.CharField(max_length=100)
     submission_comment = serializers.CharField(required=False, allow_blank=True)
     snapshot_metadata = serializers.JSONField(required=False)
+    supporting_document_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        allow_empty=True,
+    )
 
     def create(self, validated_data):
         return create_approval_request(actor=self.context["request"].user, **validated_data)
@@ -164,3 +170,9 @@ class ApprovalRequiredCommentSerializer(serializers.Serializer):
 
 class ApprovalCancelSerializer(serializers.Serializer):
     comment = serializers.CharField(required=False, allow_blank=True)
+
+
+class ApprovalReassignSerializer(serializers.Serializer):
+    assignment_id = serializers.UUIDField()
+    approver_id = serializers.UUIDField()
+    reason = serializers.CharField(max_length=500)

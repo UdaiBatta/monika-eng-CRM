@@ -47,7 +47,7 @@ def _notify_requester(event, *, title, severity):
 
 
 def handle_domain_event(event):
-    if event.event_name == "approval.step_opened":
+    if event.event_name in {"approval.step_opened", "approval.assignment_reassigned"}:
         _notify_approvers(event)
     elif event.event_name == "approval.request_approved":
         _notify_requester(

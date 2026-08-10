@@ -63,6 +63,7 @@ class DocumentViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyModelViewSet):
         "create": "documents.document.upload",
         "add_version": "documents.document.version_add",
         "download": "documents.document.download",
+        "download_version": "documents.document.download",
         "archive": "documents.document.archive",
         "restore": "documents.document.restore",
         "link": "documents.document.upload",
@@ -100,6 +101,24 @@ class DocumentViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyModelViewSet):
     def download(self, request, pk=None):
         document = self.get_object()
         storage_backend, version = prepare_download(document=document, actor=request.user)
+        return self.download_response(storage_backend, version)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path=r"versions/(?P<version_id>[^/.]+)/download",
+    )
+    def download_version(self, request, pk=None, version_id=None):
+        document = self.get_object()
+        storage_backend, version = prepare_download(
+            document=document,
+            actor=request.user,
+            version_id=version_id,
+        )
+        return self.download_response(storage_backend, version)
+
+    @staticmethod
+    def download_response(storage_backend, version):
         signed_url = storage_backend.generate_download_access(version.storage_key)
         if signed_url:
             return HttpResponseRedirect(signed_url)

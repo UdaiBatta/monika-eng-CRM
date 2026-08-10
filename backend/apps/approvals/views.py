@@ -5,6 +5,9 @@ from rest_framework.response import Response
 
 from apps.core.domain_events import publish
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
+from apps.documents.models import Document
+from apps.documents.serializers import DocumentSerializer
+from apps.rbac.services import authorized_queryset
 
 from .models import (
     ApprovalCondition,
@@ -17,6 +20,7 @@ from .serializers import (
     ApprovalCancelSerializer,
     ApprovalConditionSerializer,
     ApprovalDecisionCommandSerializer,
+    ApprovalReassignSerializer,
     ApprovalRequestCreateSerializer,
     ApprovalRequestSerializer,
     ApprovalRequiredCommentSerializer,
@@ -29,6 +33,7 @@ from .services import (
     approve_request,
     cancel_request,
     clone_workflow_version,
+    reassign_request,
     reject_request,
     return_request,
     workflow_event,
@@ -187,6 +192,8 @@ class ApprovalRequestViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyModelViewSet)
         "reject": "approvals.request.reject",
         "return_for_changes": "approvals.request.return",
         "cancel": "approvals.request.cancel",
+        "reassign": "approvals.workflow.manage",
+        "supporting_documents": "approvals.request.view",
         "default": "approvals.request.view",
     }
     search_fields = [
@@ -246,3 +253,29 @@ class ApprovalRequestViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyModelViewSet)
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         return self.command(request, ApprovalCancelSerializer, cancel_request)
+
+    @action(detail=True, methods=["post"])
+    def reassign(self, request, pk=None):
+        serializer = ApprovalReassignSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        approval_request = reassign_request(
+            request_id=self.get_object().pk,
+            actor=request.user,
+            **serializer.validated_data,
+        )
+        return Response(self.get_serializer(approval_request).data)
+
+    @action(detail=True, methods=["get"], url_path="supporting-documents")
+    def supporting_documents(self, request, pk=None):
+        approval_request = self.get_object()
+        queryset = Document.objects.filter(
+            links__entity_type="approval_request",
+            links__entity_id=str(approval_request.pk),
+        ).select_related("company", "category", "current_version")
+        if not request.user.is_superuser:
+            queryset = authorized_queryset(
+                request.user,
+                "documents.document.view",
+                queryset,
+            )
+        return Response(DocumentSerializer(queryset.distinct(), many=True).data)

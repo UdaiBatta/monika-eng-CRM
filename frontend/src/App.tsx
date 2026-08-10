@@ -13,6 +13,13 @@ const ResourcePage = lazy(() => import("@/production/pages/resource-page"))
 const EmployeeDetailPage = lazy(() => import("@/production/pages/employee-detail-page"))
 const EmployeeFormPage = lazy(() => import("@/production/pages/employee-form-page"))
 const MasterDataPage = lazy(() => import("@/production/pages/master-data-page"))
+const DocumentsPage = lazy(() => import("@/production/pages/documents-page"))
+const DocumentDetailPage = lazy(() => import("@/production/pages/document-detail-page"))
+const ApprovalsPage = lazy(() => import("@/production/pages/approvals-page"))
+const ApprovalDetailPage = lazy(() => import("@/production/pages/approval-detail-page"))
+const ActivityHistoryPage = lazy(() => import("@/production/pages/activity-history-page"))
+const ApprovalWorkflowsPage = lazy(() => import("@/production/pages/approval-workflows-page"))
+const NotificationSettingsPage = lazy(() => import("@/production/pages/notification-settings-page"))
 
 function PageLoading() {
   return (
@@ -39,6 +46,11 @@ export default function App() {
               <Route path="employees/new" element={<EmployeeFormPage />} />
               <Route path="employees/:employeeId" element={<EmployeeDetailPage />} />
               <Route path="employees/:employeeId/edit" element={<EmployeeFormPage />} />
+              <Route path="documents" element={<DocumentsPage />} />
+              <Route path="documents/:documentId" element={<DocumentDetailPage />} />
+              <Route path="approvals" element={<ApprovalsPage />} />
+              <Route path="approvals/:approvalId" element={<ApprovalDetailPage />} />
+              <Route path="activity-history" element={<ActivityHistoryPage />} />
 
               <Route path="organization" element={<Navigate to="companies" replace />} />
               <Route path="organization/companies" element={<ResourcePage resourceKey="companies" />} />
@@ -58,6 +70,9 @@ export default function App() {
               <Route path="settings/features" element={<ResourcePage resourceKey="feature-flags" />} />
               <Route path="settings/numbering" element={<ResourcePage resourceKey="document-sequences" />} />
               <Route path="settings/masters" element={<MasterDataPage />} />
+              <Route path="settings/document-categories" element={<ResourcePage resourceKey="document-categories" />} />
+              <Route path="settings/approval-workflows" element={<ApprovalWorkflowsPage />} />
+              <Route path="settings/notifications" element={<NotificationSettingsPage />} />
             </Route>
           </Route>
 

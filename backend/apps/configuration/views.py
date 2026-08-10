@@ -1,12 +1,13 @@
 from rest_framework import viewsets
 
+from apps.audit.mixins import AuditModelViewSetMixin
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 
 from .models import CompanySettings, FeatureFlag
 from .serializers import CompanySettingsSerializer, FeatureFlagSerializer
 
 
-class CompanySettingsViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class CompanySettingsViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = CompanySettings.objects.select_related("company", "default_currency")
     serializer_class = CompanySettingsSerializer
     permission_classes = [HasFoundationPermission]
@@ -18,7 +19,7 @@ class CompanySettingsViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     filterset_fields = ["company"]
 
 
-class FeatureFlagViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class FeatureFlagViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = FeatureFlag.objects.select_related("company")
     serializer_class = FeatureFlagSerializer
     permission_classes = [HasFoundationPermission]

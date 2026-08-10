@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 
+from apps.audit.mixins import AuditModelViewSetMixin
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 
 from .models import Currency, DeliveryTerm, PaymentTerm, TaxRate, UnitOfMeasure
@@ -12,7 +13,7 @@ from .serializers import (
 )
 
 
-class MasterViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class MasterViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     permission_classes = [HasFoundationPermission]
     permission_map = {"list": "masters.view", "retrieve": "masters.view", "default": "masters.manage"}
     search_fields = ["code", "name"]

@@ -2,6 +2,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.audit.mixins import AuditModelViewSetMixin
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 
 from .models import DocumentSequence
@@ -9,7 +10,7 @@ from .serializers import DocumentSequenceSerializer
 from .services import preview_number
 
 
-class DocumentSequenceViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class DocumentSequenceViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = DocumentSequence.objects.select_related("company", "branch")
     serializer_class = DocumentSequenceSerializer
     permission_classes = [HasFoundationPermission]

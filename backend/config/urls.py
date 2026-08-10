@@ -3,6 +3,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.accounts.views import UserViewSet
+from apps.audit.views import AuditEventViewSet
 from apps.configuration.views import CompanySettingsViewSet, FeatureFlagViewSet
 from apps.core.views import HealthView
 from apps.masters.views import (
@@ -50,6 +51,7 @@ router.register("tax-rates", TaxRateViewSet)
 router.register("payment-terms", PaymentTermViewSet)
 router.register("delivery-terms", DeliveryTermViewSet)
 router.register("document-sequences", DocumentSequenceViewSet)
+router.register("audit/events", AuditEventViewSet, basename="audit-event")
 
 urlpatterns = [
     path("admin/", admin.site.urls),

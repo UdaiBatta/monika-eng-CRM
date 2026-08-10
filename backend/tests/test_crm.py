@@ -1,13 +1,16 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
-from apps.crm.models import Customer, CustomerContact, CustomerSite
+from apps.crm.models import CrmActivity, Customer, CustomerContact, CustomerSite
+from apps.crm.tasks import notify_due_follow_ups
 from apps.masters.models import Currency
+from apps.notifications.models import Notification
 from apps.numbering.models import DocumentSequence
 from apps.numbering.services import financial_year_label
 from apps.organization.models import Company, Employee
@@ -237,3 +240,93 @@ def test_company_scoped_creator_cannot_create_cross_company_customer(
     )
 
     assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_follow_up_create_notifies_owner_and_complete_is_explicit(
+    api_client,
+    admin,
+    employee,
+    customer,
+    django_capture_on_commit_callbacks,
+):
+    api_client.force_authenticate(admin)
+    with django_capture_on_commit_callbacks(execute=True):
+        created = api_client.post(
+            "/api/v1/crm-activities/",
+            {
+                "customer": str(customer.pk),
+                "activity_type": CrmActivity.ActivityType.FOLLOW_UP,
+                "subject": "Confirm technical clarification",
+                "next_follow_up_at": (timezone.now() + timedelta(days=1)).isoformat(),
+                "follow_up_owner": str(employee.pk),
+                "priority": CrmActivity.Priority.HIGH,
+            },
+            format="json",
+        )
+
+    assert created.status_code == 201, created.data
+    assert created.data["status"] == CrmActivity.Status.OPEN
+    assert Notification.objects.filter(
+        recipient_user=employee.user,
+        notification_type="FOLLOW_UP_ASSIGNED",
+    ).exists()
+
+    completed = api_client.post(
+        f"/api/v1/crm-activities/{created.data['id']}/complete/",
+        {},
+        format="json",
+    )
+    assert completed.status_code == 200
+    assert completed.data["status"] == CrmActivity.Status.COMPLETED
+    assert completed.data["completed_at"]
+
+
+@pytest.mark.django_db
+def test_due_follow_up_reminder_is_deduplicated(employee, customer, admin):
+    follow_up = CrmActivity.objects.create(
+        company=customer.company,
+        customer=customer,
+        activity_type=CrmActivity.ActivityType.FOLLOW_UP,
+        subject="Overdue quotation response",
+        activity_date=timezone.now() - timedelta(days=2),
+        next_follow_up_at=timezone.now() - timedelta(hours=3),
+        follow_up_owner=employee,
+        priority=CrmActivity.Priority.URGENT,
+        status=CrmActivity.Status.OPEN,
+        created_by=admin,
+    )
+
+    notify_due_follow_ups()
+    notify_due_follow_ups()
+
+    assert Notification.objects.filter(
+        recipient_user=employee.user,
+        entity_type="crm_activity",
+        entity_id=str(follow_up.pk),
+        notification_type="FOLLOW_UP_OVERDUE",
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_customer_360_returns_real_activity_and_follow_up_data(
+    api_client, admin, employee, customer
+):
+    CrmActivity.objects.create(
+        company=customer.company,
+        customer=customer,
+        activity_type=CrmActivity.ActivityType.FOLLOW_UP,
+        subject="Review enquiry response",
+        next_follow_up_at=timezone.now() + timedelta(hours=2),
+        follow_up_owner=employee,
+        status=CrmActivity.Status.OPEN,
+        created_by=admin,
+    )
+    api_client.force_authenticate(admin)
+
+    response = api_client.get(f"/api/v1/customers/{customer.pk}/360/")
+
+    assert response.status_code == 200, response.data
+    assert response.data["overview"]["open_follow_ups"] == 1
+    assert response.data["open_follow_ups"][0]["subject"] == "Review enquiry response"
+    assert response.data["timeline"][0]["kind"] == "CRM_ACTIVITY"

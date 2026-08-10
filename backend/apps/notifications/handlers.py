@@ -47,7 +47,22 @@ def _notify_requester(event, *, title, severity):
 
 
 def handle_domain_event(event):
-    if event.event_name in {"approval.step_opened", "approval.assignment_reassigned"}:
+    if event.event_name == "crm.follow_up.assigned":
+        recipient = _user(event.metadata.get("recipient_user_id"))
+        if recipient:
+            notify(
+                recipient=recipient,
+                company=event.company_id,
+                notification_type="FOLLOW_UP_ASSIGNED",
+                severity=Notification.Severity.ACTION_REQUIRED,
+                title="New follow-up assigned",
+                message=event.summary,
+                entity_type=event.entity_type,
+                entity_id=event.entity_id,
+                action_url="/app/follow-ups",
+                deduplication_key=f"{event.correlation_id}:{recipient.pk}:follow-up-assigned",
+            )
+    elif event.event_name in {"approval.step_opened", "approval.assignment_reassigned"}:
         _notify_approvers(event)
     elif event.event_name == "approval.request_approved":
         _notify_requester(

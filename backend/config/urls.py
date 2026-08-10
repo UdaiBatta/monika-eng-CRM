@@ -13,7 +13,12 @@ from apps.approvals.views import (
 from apps.audit.views import AuditEventViewSet
 from apps.configuration.views import CompanySettingsViewSet, FeatureFlagViewSet
 from apps.core.views import HealthView
-from apps.crm.views import CustomerContactViewSet, CustomerSiteViewSet, CustomerViewSet
+from apps.crm.views import (
+    CrmActivityViewSet,
+    CustomerContactViewSet,
+    CustomerSiteViewSet,
+    CustomerViewSet,
+)
 from apps.documents.views import DocumentCategoryViewSet, DocumentViewSet
 from apps.masters.views import (
     CurrencyViewSet,
@@ -73,6 +78,7 @@ router.register("notifications", NotificationViewSet, basename="notification")
 router.register("customers", CustomerViewSet)
 router.register("customer-contacts", CustomerContactViewSet)
 router.register("customer-sites", CustomerSiteViewSet)
+router.register("crm-activities", CrmActivityViewSet)
 router.register(
     "notification-preferences",
     NotificationPreferenceViewSet,

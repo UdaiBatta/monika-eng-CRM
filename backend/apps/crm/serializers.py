@@ -1,11 +1,12 @@
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
+from apps.core.domain_events import publish
 from apps.numbering.services import allocate_company_number
 from apps.rbac.services import has_permission
 
-from .models import Customer, CustomerContact, CustomerSite
-from .services import find_customer_duplicates
+from .models import CrmActivity, Customer, CustomerContact, CustomerSite
+from .services import _activity_event, find_customer_duplicates
 
 
 class CleanModelSerializer(serializers.ModelSerializer):
@@ -16,9 +17,10 @@ class CleanModelSerializer(serializers.ModelSerializer):
         instance = self.instance or self.Meta.model()
         for field, value in attrs.items():
             setattr(instance, field, value)
-        if isinstance(instance, Customer) and not self.instance:
+        if not self.instance and hasattr(instance, "created_by_id"):
             actor = self.context["request"].user
             instance.created_by = actor
+        if isinstance(instance, Customer) and not self.instance:
             instance.updated_by = actor
         instance.full_clean(exclude=["customer_code"] if isinstance(instance, Customer) else None)
         return attrs
@@ -152,6 +154,9 @@ class CustomerSerializer(CleanModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get("request")
+        if request and not has_permission(request.user, "crm.contact.view", instance):
+            data.pop("contacts", None)
+            data.pop("primary_contact", None)
         if request and not has_permission(request.user, "crm.customer.view_sensitive", instance):
             for field in ("gstin", "pan", "cin", "credit_limit", "payment_term", "default_tax"):
                 data.pop(field, None)
@@ -169,3 +174,62 @@ class CustomerDuplicateCheckSerializer(serializers.Serializer):
 
 class CustomerStatusCommandSerializer(serializers.Serializer):
     reason = serializers.CharField(required=False, allow_blank=True, max_length=500)
+
+
+class CrmActivitySerializer(CleanModelSerializer):
+    customer_code = serializers.CharField(source="customer.customer_code", read_only=True)
+    customer_name = serializers.CharField(source="customer.legal_name", read_only=True)
+    contact_name = serializers.CharField(source="contact.display_name", read_only=True)
+    follow_up_owner_name = serializers.CharField(source="follow_up_owner.display_name", read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+    is_overdue = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = CrmActivity
+        fields = "__all__"
+        read_only_fields = [
+            "id",
+            "company",
+            "created_by",
+            "status",
+            "completed_at",
+            "completed_by",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_created_by_name(self, obj):
+        employee = getattr(obj.created_by, "employee", None)
+        return employee.display_name if employee else getattr(obj.created_by, "email", "")
+
+    def validate(self, attrs):
+        customer = attrs.get("customer", getattr(self.instance, "customer", None))
+        permission = "crm.activity.edit" if self.instance else "crm.activity.create"
+        if not has_permission(self.context["request"].user, permission, customer):
+            raise PermissionDenied("You cannot manage activities for this customer.")
+        if self.instance and "customer" in attrs and customer.pk != self.instance.customer_id:
+            raise serializers.ValidationError({"customer": "Activity customer cannot be changed."})
+        activity_type = attrs.get("activity_type", getattr(self.instance, "activity_type", None))
+        if not self.instance:
+            attrs["company"] = customer.company
+            attrs["status"] = (
+                CrmActivity.Status.OPEN
+                if activity_type == CrmActivity.ActivityType.FOLLOW_UP
+                else CrmActivity.Status.COMPLETED
+            )
+        return super().validate(attrs)
+
+    def create(self, validated_data):
+        actor = self.context["request"].user
+        activity = CrmActivity.objects.create(**validated_data, created_by=actor)
+        if activity.activity_type == CrmActivity.ActivityType.FOLLOW_UP:
+            publish(
+                _activity_event(
+                    activity,
+                    actor,
+                    "crm.follow_up.assigned",
+                    "ASSIGN",
+                    f"Follow-up assigned: {activity.subject}",
+                )
+            )
+        return activity

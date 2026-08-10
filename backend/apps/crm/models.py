@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import TimeStampedModel
 from apps.masters.models import Currency, PaymentTerm, TaxRate
@@ -256,3 +257,111 @@ class CustomerSite(ValidatedModel):
 
     def __str__(self):
         return f"{self.customer.legal_name} - {self.label}"
+
+
+class CrmActivity(ValidatedModel):
+    class ActivityType(models.TextChoices):
+        CALL = "CALL", "Call"
+        EMAIL = "EMAIL", "Email"
+        MEETING = "MEETING", "Meeting"
+        WHATSAPP = "WHATSAPP", "WhatsApp"
+        SITE_VISIT = "SITE_VISIT", "Site visit"
+        NOTE = "NOTE", "Note"
+        FOLLOW_UP = "FOLLOW_UP", "Follow-up"
+        OTHER = "OTHER", "Other"
+
+    class Priority(models.TextChoices):
+        LOW = "LOW", "Low"
+        NORMAL = "NORMAL", "Normal"
+        HIGH = "HIGH", "High"
+        URGENT = "URGENT", "Urgent"
+
+    class Status(models.TextChoices):
+        OPEN = "OPEN", "Open"
+        COMPLETED = "COMPLETED", "Completed"
+        CANCELLED = "CANCELLED", "Cancelled"
+
+    company = models.ForeignKey(Company, on_delete=models.PROTECT, related_name="crm_activities")
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="activities")
+    contact = models.ForeignKey(
+        CustomerContact,
+        on_delete=models.PROTECT,
+        related_name="activities",
+        null=True,
+        blank=True,
+    )
+    activity_type = models.CharField(max_length=20, choices=ActivityType.choices)
+    subject = models.CharField(max_length=250)
+    description = models.TextField(blank=True)
+    activity_date = models.DateTimeField(default=timezone.now)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="crm_activities",
+        null=True,
+    )
+    next_follow_up_at = models.DateTimeField(null=True, blank=True)
+    follow_up_owner = models.ForeignKey(
+        Employee,
+        on_delete=models.PROTECT,
+        related_name="crm_follow_ups",
+        null=True,
+        blank=True,
+    )
+    priority = models.CharField(max_length=20, choices=Priority.choices, default=Priority.NORMAL)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.COMPLETED)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="completed_crm_activities",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["-activity_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["company", "-activity_date"], name="crm_activity_company_idx"),
+            models.Index(
+                fields=["follow_up_owner", "status", "next_follow_up_at"],
+                name="crm_followup_queue_idx",
+            ),
+            models.Index(fields=["customer", "-activity_date"], name="crm_activity_customer_idx"),
+        ]
+
+    @property
+    def is_overdue(self):
+        return bool(
+            self.activity_type == self.ActivityType.FOLLOW_UP
+            and self.status == self.Status.OPEN
+            and self.next_follow_up_at
+            and self.next_follow_up_at < timezone.now()
+        )
+
+    def clean(self):
+        errors = {}
+        if self.customer_id and self.customer.company_id != self.company_id:
+            errors["customer"] = "Customer must belong to the selected company."
+        if self.contact_id and self.contact.customer_id != self.customer_id:
+            errors["contact"] = "Contact must belong to this customer."
+        if self.follow_up_owner_id and self.follow_up_owner.company_id != self.company_id:
+            errors["follow_up_owner"] = "Follow-up owner must belong to the selected company."
+        if self.follow_up_owner_id and (
+            not self.follow_up_owner.user_id
+            or self.follow_up_owner.employment_status != Employee.EmploymentStatus.ACTIVE
+            or not self.follow_up_owner.user.is_active
+        ):
+            errors["follow_up_owner"] = "Assign an active employee with a user account."
+        if self.activity_type == self.ActivityType.FOLLOW_UP:
+            if not self.next_follow_up_at:
+                errors["next_follow_up_at"] = "Add the follow-up due date and time."
+            if not self.follow_up_owner_id:
+                errors["follow_up_owner"] = "Assign the follow-up to an employee."
+        elif self.status == self.Status.OPEN:
+            errors["status"] = "Only follow-up activities can remain open."
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        return f"{self.get_activity_type_display()} - {self.subject}"

@@ -26,3 +26,9 @@ class CrmConfig(AppConfig):
             {"audit"},
             {"address_type", "is_default", "is_active"},
         )
+        register_entity(
+            "crm_activity",
+            lambda: apps.get_model("crm", "CrmActivity"),
+            {"audit", "notifications"},
+            {"activity_type", "status", "priority", "follow_up_owner_id"},
+        )

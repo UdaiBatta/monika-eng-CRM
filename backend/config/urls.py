@@ -21,6 +21,7 @@ from apps.masters.views import (
     TaxRateViewSet,
     UnitOfMeasureViewSet,
 )
+from apps.notifications.views import NotificationPreferenceViewSet, NotificationViewSet
 from apps.numbering.views import DocumentSequenceViewSet
 from apps.organization.views import (
     BranchViewSet,
@@ -67,6 +68,12 @@ router.register("approval-workflow-versions", ApprovalWorkflowVersionViewSet)
 router.register("approval-step-definitions", ApprovalStepDefinitionViewSet)
 router.register("approval-conditions", ApprovalConditionViewSet)
 router.register("approvals/requests", ApprovalRequestViewSet, basename="approval-request")
+router.register("notifications", NotificationViewSet, basename="notification")
+router.register(
+    "notification-preferences",
+    NotificationPreferenceViewSet,
+    basename="notification-preference",
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),

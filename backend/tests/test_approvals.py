@@ -24,7 +24,7 @@ from apps.approvals.services import (
 )
 from apps.audit.models import AuditEvent
 from apps.documents.models import DocumentCategory
-from apps.documents.services import create_document
+from apps.documents.services import add_version, create_document, link_document
 from apps.organization.models import Company, Employee
 from apps.rbac.models import Permission, Role, RoleAssignment, RolePermission, ScopeType
 
@@ -347,3 +347,56 @@ def test_request_status_cannot_be_patched(api_client, company, admin, tmp_path):
         format="json",
     )
     assert response.status_code == 405
+
+
+@pytest.mark.django_db
+def test_approval_uses_shared_documents_with_independent_download_permission(
+    api_client,
+    company,
+    branch,
+    department,
+    admin,
+    tmp_path,
+):
+    from django.test import override_settings
+
+    approver = make_employee_user(company, branch, department, 71)
+    outsider = make_employee_user(company, branch, department, 72)
+    grant(
+        approver,
+        company,
+        "approvals.request.approve",
+        "documents.document.view",
+        "documents.document.download",
+    )
+    grant(outsider, company, "approvals.request.view")
+    item = workflow(company, admin, [approver])
+    with override_settings(LOCAL_PRIVATE_STORAGE_ROOT=tmp_path):
+        document = drawing(company, admin, tmp_path, title="Linked approval document")
+        request = submit(item, document, admin)
+        link_document(
+            document=document,
+            entity_type="approval_request",
+            entity_id=request.pk,
+            relationship_type="SUPPORTING",
+            actor=admin,
+        )
+
+        api_client.force_authenticate(approver)
+        response = api_client.get(f"/api/v1/documents/{document.pk}/download/")
+        assert response.status_code == 200
+        b"".join(response.streaming_content)
+
+        api_client.force_authenticate(outsider)
+        assert api_client.get(f"/api/v1/documents/{document.pk}/download/").status_code == 403
+
+        add_version(
+            document_id=document.pk,
+            file_object=pdf(name="drawing-rev-2.pdf", marker=b"revision two"),
+            actor=admin,
+        )
+
+    request.refresh_from_db()
+    assert request.entity_id == str(document.pk)
+    assert request.steps.count() == 1
+    assert document.links.filter(entity_type="approval_request", entity_id=str(request.pk)).exists()

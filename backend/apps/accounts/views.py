@@ -3,6 +3,7 @@ import hashlib
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Q
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
@@ -14,6 +15,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.audit.mixins import AuditModelViewSetMixin
+from apps.audit.models import AuditEvent
+from apps.audit.services import record_event
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 from apps.rbac.services import effective_permission_codes
 
@@ -60,6 +64,15 @@ class LoginView(APIView):
             raise AuthenticationFailed("Invalid sign-in details.")
         cache.delete(key)
         login(request, user)
+        employee = getattr(user, "employee", None)
+        record_event(
+            actor=user,
+            company=getattr(employee, "company", None),
+            action=AuditEvent.Action.LOGIN,
+            entity=user,
+            summary=f"{user.email} signed in",
+            module="accounts",
+        )
         return Response(UserSerializer(user).data)
 
 
@@ -67,6 +80,15 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        employee = getattr(request.user, "employee", None)
+        record_event(
+            actor=request.user,
+            company=getattr(employee, "company", None),
+            action=AuditEvent.Action.LOGOUT,
+            entity=request.user,
+            summary=f"{request.user.email} signed out",
+            module="accounts",
+        )
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -104,11 +126,20 @@ class ChangePasswordView(APIView):
             raise ValidationError({"current_password": ["Current password is incorrect."]})
         request.user.set_password(serializer.validated_data["new_password"])
         request.user.save(update_fields=["password"])
+        employee = getattr(request.user, "employee", None)
+        record_event(
+            actor=request.user,
+            company=getattr(employee, "company", None),
+            action=AuditEvent.Action.UPDATE,
+            entity=request.user,
+            summary="Password changed",
+            module="accounts",
+        )
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class UserViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class UserViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("email")
     serializer_class = UserSerializer
     permission_classes = [HasFoundationPermission]
@@ -126,17 +157,37 @@ class UserViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     ordering_fields = ["email", "date_joined", "last_login"]
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def activate(self, request, pk=None):
         user = self.get_object()
         user.is_active = True
         user.save(update_fields=["is_active"])
+        employee = getattr(user, "employee", None)
+        record_event(
+            actor=request.user,
+            company=getattr(employee, "company", None),
+            action=AuditEvent.Action.ACTIVATE,
+            entity=user,
+            summary=f"User activated: {user.email}",
+            changes={"is_active": {"old": False, "new": True}},
+        )
         return Response(self.get_serializer(user).data)
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def deactivate(self, request, pk=None):
         user = self.get_object()
         if user == request.user:
             raise ValidationError("You cannot deactivate your own account.")
         user.is_active = False
         user.save(update_fields=["is_active"])
+        employee = getattr(user, "employee", None)
+        record_event(
+            actor=request.user,
+            company=getattr(employee, "company", None),
+            action=AuditEvent.Action.DEACTIVATE,
+            entity=user,
+            summary=f"User deactivated: {user.email}",
+            changes={"is_active": {"old": True, "new": False}},
+        )
         return Response(self.get_serializer(user).data)

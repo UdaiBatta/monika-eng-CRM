@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 
+from apps.audit.mixins import AuditModelViewSetMixin
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 
 from .models import Branch, Company, Department, Designation, Employee, Warehouse
@@ -13,7 +14,7 @@ from .serializers import (
 )
 
 
-class FoundationModelViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class FoundationModelViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     permission_classes = [HasFoundationPermission]
     filterset_fields = ["is_active"]
     ordering_fields = ["name", "code", "created_at", "updated_at"]

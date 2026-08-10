@@ -33,6 +33,8 @@ venv/
 # Local database and runtime files
 *.sqlite3
 *.pid
+private_storage/
+backend/private_storage/
 
 # Editor directories and files
 .vscode/*

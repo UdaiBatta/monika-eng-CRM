@@ -36,7 +36,7 @@ Completion here means the baseline artifact exists; business review is still req
 | R-000 | Primary objective | All | IN DEVELOPMENT | Production foundation complete; operational ERP/CRM modules remain phased |
 | R-001 | Technology architecture | 1 | COMPLETE | React/Django/PostgreSQL/Redis/Celery workspace and Docker services implemented |
 | R-002 | System architecture principles | 1 | COMPLETE | Modular-monolith boundaries, versioned API and separate frontend implemented |
-| R-003 | Controlled state transitions | 1+ | NOT STARTED | Service/API command tests required |
+| R-003 | Controlled state transitions | 1+ | COMPLETE | Explicit document and approval commands enforce tested transitions; mutable status PATCH is rejected |
 | R-004 | User, employee and organization foundation | 1 | COMPLETE | Separate User/Employee and organization models, APIs, UI and tests implemented |
 | R-005 | RBAC framework | 1 | COMPLETE | Data-driven roles, scoped assignments, allow/deny overrides and tests implemented; business roles intentionally unseeded |
 | R-006 | Common data model | 1 | COMPLETE | UUID/timestamp base models and Django migrations implemented |
@@ -103,10 +103,10 @@ Completion here means the baseline artifact exists; business review is still req
 | R-067 | AMC visit report | 10 | NOT STARTED | Template required |
 | R-068 | AMC billing | 10/13 | NOT STARTED | Finance integration decision required |
 | R-069 | AMC renewal | 10 | NOT STARTED | Renewal ownership/process required |
-| R-070 | Approval engine | 1 | NOT STARTED | Approval matrix inputs required |
-| R-071 | Notification engine | 1/11 | NOT STARTED | Internal notifications first |
-| R-072 | Audit logging | 1 | NOT STARTED | Audit retention/access policy required |
-| R-073 | Document management | 1 | NOT STARTED | Storage/retention decision required |
+| R-070 | Approval engine | 1 | TESTING | Generic versioned workflows, safe conditions, commands, row locks, supporting files, notifications and Axis UI implemented; final signed-in browser scenario pending |
+| R-071 | Notification engine | 1/11 | TESTING | Recipient-isolated in-app notifications, preferences, deduplication and post-commit rules implemented; final signed-in browser scenario pending |
+| R-072 | Audit logging | 1 | TESTING | Immutable audit service, context, redaction, read-only scoped API, entity timeline and Axis UI implemented; final signed-in browser scenario pending |
+| R-073 | Document management | 1 | TESTING | Private storage, secure downloads, versions, checksums, validation, links, archive/restore and Axis UI implemented; final signed-in browser scenario pending and drawing management remains R-012 |
 | R-074 | Global search | 11 | NOT STARTED | PostgreSQL-first plan documented |
 | R-075 | Filtering | 2+ | IN DEVELOPMENT | URL-filter patterns exist in UI proof-of-concept |
 | R-076 | Dashboard | 11 | IN DEVELOPMENT | Employee-home UI proof-of-concept only |
@@ -131,7 +131,7 @@ Completion here means the baseline artifact exists; business review is still req
 | R-095 | Barcode/QR readiness | 14 | NOT STARTED | Data/API readiness planned |
 | R-096 | Responsive web application | 1+ | COMPLETE | Production Axis foundation app browser-tested on desktop and mobile |
 | R-097 | Human-readable error handling | 1+ | COMPLETE | Shared API error envelope and typed frontend normalization implemented and tested |
-| R-098 | Concurrency protection | 1+ | IN DEVELOPMENT | Numbering row locks complete; future mutable workflows require their own concurrency rules |
+| R-098 | Concurrency protection | 1+ | COMPLETE | PostgreSQL locking tests cover numbering, document version allocation and parallel approval decisions; future modules retain their own gates |
 | R-099 | Server-side data validation | 1+ | COMPLETE | Foundation serializers/models reject invalid and cross-company relationships |
 | R-100 | Transaction safety | 1+ | COMPLETE | Foundation numbering consumption is atomic and lock protected |
 | R-101 | Security | 1+ | IN DEVELOPMENT | Session/CSRF/RBAC/settings baseline complete; production threat review remains a go-live gate |
@@ -148,7 +148,7 @@ Completion here means the baseline artifact exists; business review is still req
 | R-112 | Customer 360 view | 2 | NOT STARTED | UI/data contract required |
 | R-113 | Material 360 view | 5 | NOT STARTED | UI/data contract required |
 | R-114 | Asset 360 view | 9 | NOT STARTED | UI/data contract required |
-| R-115 | Activity timelines | 2+ | IN DEVELOPMENT | UI abstraction exists; audited event source pending |
+| R-115 | Activity timelines | 2+ | IN DEVELOPMENT | Shared authorized audit timeline API/UI is complete; future business entity registrations remain module work |
 | R-116 | Comments/internal notes | 2+ | NOT STARTED | Visibility/attachment policy required |
 | R-117 | Tasks/follow-ups | 2+ | NOT STARTED | Lifecycle/notification policy required |
 | R-118 | UTC and timezone handling | 1 | COMPLETE | Django timezone-aware UTC storage with Asia/Kolkata presentation setting |
@@ -160,13 +160,13 @@ Completion here means the baseline artifact exists; business review is still req
 | R-124 | Migration strategy | All | IN DEVELOPMENT | Baseline documented; data discovery pending |
 | R-125 | Company configuration | 1 | COMPLETE | Automatic CompanySettings with editable India/INR defaults implemented |
 | R-126 | Feature flags | 1 | COMPLETE | Company-scoped feature flag model, API and UI implemented |
-| R-127 | Testing | Every phase | COMPLETE | Phase 1 backend/frontend suites, checks, builds and browser QA pass |
+| R-127 | Testing | Every phase | TESTING | Phase 1A–H automated regression: 45 backend and 12 frontend tests plus checks, lint and build; signed-in browser QA remains |
 | R-128 | Permission testing | 1+ | COMPLETE | Grants, scopes, overrides, deny precedence and scoped querysets tested |
 | R-129 | Seed/demo data | 1+ | COMPLETE | Explicit environment-gated debug-only seed command; no production demo migration |
 | R-130 | Django migrations only | 1+ | COMPLETE | All database schema and seed changes use reviewed Django migrations |
 | R-131 | One-command development environment | 1 | COMPLETE | Docker Compose starts PostgreSQL, Redis, Django and Celery with health checks |
 | R-132 | Ubuntu VPS production deployment | Go-live | NOT STARTED | Hosting decision pending |
-| R-133 | Maintained documentation | All | COMPLETE | README, seven Phase 1 guides and this traceability update maintained with code |
+| R-133 | Maintained documentation | All | COMPLETE | README, thirteen Phase 1 guides and this traceability register maintained with code |
 | R-134 | Change management | All | IN DEVELOPMENT | Process documented; enforcement pending |
 | R-135 | Future architecture readiness | All | IN DEVELOPMENT | Boundaries documented; features not implemented |
 | R-136 | Prohibited practices | All | IN DEVELOPMENT | Architectural guardrails documented |
@@ -195,6 +195,11 @@ No requirement is currently marked DEFERRED WITH EXPLICIT APPROVAL.
 | P1-NUMBER | Transaction-safe numbering foundation | COMPLETE | `docs/phase-1/05-numbering-engine.md`, PostgreSQL locking tests |
 | P1-UI | Axis production foundation application | COMPLETE | `/app` plus desktop/mobile browser verification; mockup routes preserved |
 | P1-OPS | PostgreSQL, Redis, Django and Celery local stack | COMPLETE | Docker health checks and `/api/v1/health/` |
+| P1-AUDIT | Immutable business audit and controlled entity timeline | TESTING | Backend/API/integration tests pass; signed-in Axis Activity History walkthrough pending |
+| P1-DOCS | Private versioned document management | TESTING | Security/concurrency tests pass; signed-in upload/version/download walkthrough pending |
+| P1-APPROVAL | Generic configurable approval engine | TESTING | Command/concurrency/integration tests pass; signed-in requester/approver walkthrough pending |
+| P1-NOTIFY | In-app notification engine | TESTING | Isolation/deduplication/post-commit tests pass; signed-in notification-center walkthrough pending |
+| P1-SHARED-UI | Axis shared-service production screens | TESTING | Components, TypeScript and build pass; desktop/mobile browser QA remains the final gate |
 
 No later module is marked complete merely because these foundations can support it. CRM, Project 360, drawing/BOM and other operational domains retain their original phase status.
 
@@ -205,3 +210,4 @@ Every future deferral must include requirement ID, scope, reason, impact, approv
 | Date | Change | Impact |
 |---|---|---|
 | 2026-08-10 | Initial register created from authoritative sections 0-140 | Establishes honest baseline; production implementation remains largely not started |
+| 2026-08-10 | Phase 1E–H implementation reached final browser acceptance | Automated gates and Docker health pass; signed-in real-data browser walkthrough remains before COMPLETE; CRM and operational modules remain not started |

@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
-  BadgeCheck, Building2, ChevronRight, Database, FileKey2, Gauge, Layers3, LogOut,
-  Menu, Network, Settings2, ShieldCheck, Users, Warehouse,
+  Activity, BadgeCheck, Bell, Building2, ChevronRight, ClipboardCheck, Database,
+  FileKey2, Files, Gauge, GitBranch, Layers3, LogOut, Menu, Network, Settings2,
+  ShieldCheck, Users, Warehouse,
 } from "lucide-react"
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
+import ERPNotificationBell from "@/production/components/notification-center"
 import { apiPost } from "@/production/lib/api"
 import { currentUserQueryKey, hasPermission, useCurrentUser } from "@/production/lib/auth"
 
@@ -22,8 +24,11 @@ type NavItem = {
 
 const navigation: Array<{ label: string; items: NavItem[] }> = [
   { label: "Workspace", items: [
-    { label: "Foundation overview", to: "/app", icon: Gauge },
+    { label: "Workspace overview", to: "/app", icon: Gauge },
     { label: "Employees", to: "/app/employees", icon: Users, permission: "organization.employee.view" },
+    { label: "Documents", to: "/app/documents", icon: Files, permission: "documents.document.view" },
+    { label: "My approvals", to: "/app/approvals", icon: ClipboardCheck, permission: "approvals.request.view" },
+    { label: "Activity history", to: "/app/activity-history", icon: Activity, permission: "audit.event.view" },
   ] },
   { label: "Organization", items: [
     { label: "Companies", to: "/app/organization/companies", icon: Building2, permission: "organization.company.view" },
@@ -40,6 +45,9 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
     { label: "Company settings", to: "/app/settings/company", icon: Settings2, permission: "configuration.settings.view" },
     { label: "Numbering", to: "/app/settings/numbering", icon: Database, permission: "numbering.sequence.view" },
     { label: "Foundation masters", to: "/app/settings/masters", icon: Layers3, permission: "masters.view" },
+    { label: "Document categories", to: "/app/settings/document-categories", icon: Files, permission: "documents.category.view" },
+    { label: "Approval workflows", to: "/app/settings/approval-workflows", icon: GitBranch, permission: "approvals.workflow.view" },
+    { label: "Notifications", to: "/app/settings/notifications", icon: Bell, permission: "notifications.notification.manage_preferences" },
   ] },
 ]
 
@@ -158,13 +166,14 @@ function Header() {
       <div className="flex items-center gap-3">
         <MobileNavigation />
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted-foreground">Monika Engineers / Production foundation</p>
+          <p className="text-xs text-muted-foreground">Monika Engineers / Integrated ERP</p>
           <h1 className="truncate text-base font-semibold capitalize">{pathLabel}</h1>
         </div>
         <div className="hidden text-right sm:block">
           <p className="text-sm font-medium">{user?.employee?.display_name || user?.email}</p>
           <p className="text-xs text-muted-foreground">Secure session</p>
         </div>
+        <ERPNotificationBell />
       </div>
     </header>
   )
@@ -179,7 +188,7 @@ export default function AppShell() {
         <main className="p-4 sm:p-6"><Outlet /></main>
         <Separator />
         <footer className="px-6 py-4 text-xs text-muted-foreground">
-          Phase 1A–D · Production foundation · Operational modules remain intentionally gated
+          Phase 1A–H · Production foundation and shared enterprise services · CRM and operational modules remain gated
         </footer>
       </div>
     </div>

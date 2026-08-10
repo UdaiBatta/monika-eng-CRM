@@ -3,8 +3,17 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.accounts.views import UserViewSet
+from apps.approvals.views import (
+    ApprovalConditionViewSet,
+    ApprovalRequestViewSet,
+    ApprovalStepDefinitionViewSet,
+    ApprovalWorkflowVersionViewSet,
+    ApprovalWorkflowViewSet,
+)
+from apps.audit.views import AuditEventViewSet
 from apps.configuration.views import CompanySettingsViewSet, FeatureFlagViewSet
 from apps.core.views import HealthView
+from apps.documents.views import DocumentCategoryViewSet, DocumentViewSet
 from apps.masters.views import (
     CurrencyViewSet,
     DeliveryTermViewSet,
@@ -12,6 +21,7 @@ from apps.masters.views import (
     TaxRateViewSet,
     UnitOfMeasureViewSet,
 )
+from apps.notifications.views import NotificationPreferenceViewSet, NotificationViewSet
 from apps.numbering.views import DocumentSequenceViewSet
 from apps.organization.views import (
     BranchViewSet,
@@ -50,6 +60,20 @@ router.register("tax-rates", TaxRateViewSet)
 router.register("payment-terms", PaymentTermViewSet)
 router.register("delivery-terms", DeliveryTermViewSet)
 router.register("document-sequences", DocumentSequenceViewSet)
+router.register("audit/events", AuditEventViewSet, basename="audit-event")
+router.register("document-categories", DocumentCategoryViewSet)
+router.register("documents", DocumentViewSet, basename="document")
+router.register("approval-workflows", ApprovalWorkflowViewSet)
+router.register("approval-workflow-versions", ApprovalWorkflowVersionViewSet)
+router.register("approval-step-definitions", ApprovalStepDefinitionViewSet)
+router.register("approval-conditions", ApprovalConditionViewSet)
+router.register("approvals/requests", ApprovalRequestViewSet, basename="approval-request")
+router.register("notifications", NotificationViewSet, basename="notification")
+router.register(
+    "notification-preferences",
+    NotificationPreferenceViewSet,
+    basename="notification-preference",
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),

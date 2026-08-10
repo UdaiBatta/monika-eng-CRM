@@ -1,8 +1,8 @@
 # Monika Engineers Integrated ERP
 
-Production foundation for the Monika Engineers ERP and future CRM. Phase 1A-D is implemented as an Axis CRM-based React application backed by a Django modular monolith, PostgreSQL, Redis, and Celery.
+Production foundation for the Monika Engineers ERP and future CRM. Phase 1A–H is implemented as an Axis CRM-based React application backed by a Django modular monolith, PostgreSQL, Redis, and Celery.
 
-The current boundary is deliberate: identity, organization, scoped access control, company configuration, foundation masters, and concurrency-safe numbering are production foundations. Customer, enquiry, project execution, drawing/BOM, purchasing, production, quality, dispatch, service, documents, audit, approvals, and notifications remain later phases.
+The current boundary is deliberate: identity, organization, scoped access control, company configuration, foundation masters, concurrency-safe numbering, private documents, immutable audit history, configurable approvals and in-app notifications are production foundations. Customer, enquiry, project execution, drawing/BOM, purchasing, production, quality, dispatch and service remain later phases.
 
 ## Architecture
 
@@ -107,4 +107,4 @@ bun run build
 
 The approved requirement register is [`docs/phase-0/07-requirements-traceability.md`](docs/phase-0/07-requirements-traceability.md). Phase 1 evidence is in [`docs/phase-1`](docs/phase-1). The Axis mockups remain visual regression/reference material and were not replaced by production routes.
 
-Do not treat the foundation as a completed CRM. It is intentionally shaped so customer, contact, enquiry, activity, project, drawing/BOM and service domains can be added without changing the identity, organization, authorization, configuration, or numbering contracts.
+Do not treat the foundation as a completed CRM. It is intentionally shaped so customer, contact, enquiry, activity, project, drawing/BOM and service domains can reuse the same identity, organization, authorization, configuration, numbering, document, audit, approval and notification contracts.

@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from "@tanstack/react-query"
-import { ArrowRight, Building2, DatabaseZap, FileKey2, PencilRuler, ServerCog, ShieldCheck, Users } from "lucide-react"
+import { Activity, ArrowRight, ClipboardCheck, FileKey2, Files, PencilRuler, ServerCog, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -14,9 +14,9 @@ import type { FoundationRecord, Paginated } from "@/production/lib/types"
 
 const metrics = [
   { label: "Employees", endpoint: "/employees/?page_size=1", permission: "organization.employee.view", icon: Users, href: "/app/employees" },
-  { label: "Companies", endpoint: "/companies/?page_size=1", permission: "organization.company.view", icon: Building2, href: "/app/organization/companies" },
-  { label: "Roles", endpoint: "/roles/?page_size=1", permission: "rbac.role.view", icon: ShieldCheck, href: "/app/access/roles" },
-  { label: "Sequences", endpoint: "/document-sequences/?page_size=1", permission: "numbering.sequence.view", icon: DatabaseZap, href: "/app/settings/numbering" },
+  { label: "Documents", endpoint: "/documents/?page_size=1", permission: "documents.document.view", icon: Files, href: "/app/documents" },
+  { label: "Needs my approval", endpoint: "/approvals/requests/?bucket=needs-action&page_size=1", permission: "approvals.request.view", icon: ClipboardCheck, href: "/app/approvals" },
+  { label: "Recorded activity", endpoint: "/audit/events/?page_size=1", permission: "audit.event.view", icon: Activity, href: "/app/activity-history" },
 ]
 
 export default function DashboardPage() {
@@ -37,10 +37,10 @@ export default function DashboardPage() {
           <CardHeader className="bg-erp-sidebar text-white">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <Badge variant="secondary" className="mb-3">Phase 1 production foundation</Badge>
+                <Badge variant="secondary" className="mb-3">Phase 1A–H production foundation</Badge>
                 <CardTitle className="text-2xl">Good to see you, {user?.employee?.display_name || user?.first_name || "administrator"}.</CardTitle>
                 <CardDescription className="mt-2 max-w-2xl text-white/60">
-                  Identity, organization, scoped access, configuration, masters, and safe numbering are connected to live services.
+                  Identity, scoped access, documents, approvals, notifications, and permanent activity history are connected to live services.
                 </CardDescription>
               </div>
               <ServerCog aria-hidden="true" className="opacity-40" />
@@ -63,9 +63,9 @@ export default function DashboardPage() {
         <Card>
           <CardHeader><CardTitle>Foundation readiness</CardTitle><CardDescription>Current delivery boundary</CardDescription></CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div><div className="mb-2 flex justify-between text-sm"><span>Phase 1A–D</span><span>Implemented</span></div><Progress value={100} /></div>
+            <div><div className="mb-2 flex justify-between text-sm"><span>Phase 1A–H</span><span>Implemented</span></div><Progress value={100} /></div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="border p-3"><p className="font-semibold">In scope</p><p className="text-muted-foreground">Foundation administration</p></div>
+              <div className="border p-3"><p className="font-semibold">In scope</p><p className="text-muted-foreground">Foundation & shared services</p></div>
               <div className="border p-3"><p className="font-semibold">Gated</p><p className="text-muted-foreground">CRM & operations</p></div>
             </div>
           </CardContent>
@@ -111,7 +111,7 @@ export default function DashboardPage() {
                 <PencilRuler aria-hidden="true" className="mx-auto mb-4 text-primary" />
                 <h3 className="font-semibold">Drawing intelligence stays central to the product vision.</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  The integrated drawing/BOM viewer from the approved Project 360 concept will be built after foundation sign-off. It is intentionally not simulated with fake files in Phase 1A–D.
+                  Controlled drawing files can now be uploaded, versioned, linked, approved, and audited. The rich CAD/BOM canvas from Project 360 remains a later Engineering phase and is not falsely simulated here.
                 </p>
               </div>
             </div>
@@ -126,6 +126,8 @@ export default function DashboardPage() {
               ["Role and scope design", hasPermission(user, "rbac.role.manage")],
               ["Company configuration", hasPermission(user, "configuration.settings.manage")],
               ["Document numbering", hasPermission(user, "numbering.sequence.manage")],
+              ["Document categories", hasPermission(user, "documents.category.manage")],
+              ["Approval workflows", hasPermission(user, "approvals.workflow.manage")],
             ].map(([label, allowed]) => (
               <div key={String(label)} className="flex items-center justify-between border-b pb-3 text-sm">
                 <span>{String(label)}</span><Badge variant={allowed ? "default" : "outline"}>{allowed ? "Manage" : "View only"}</Badge>

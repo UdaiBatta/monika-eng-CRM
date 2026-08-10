@@ -207,6 +207,22 @@ export const resourceConfigs: Record<string, ResourceConfig> = {
       { name: "reset_behavior", label: "Reset behavior", type: "select", defaultValue: "FINANCIAL_YEAR", options: [{ value: "FINANCIAL_YEAR", label: "Financial year" }, { value: "NEVER", label: "Never" }] }, activeField,
     ],
   },
+  "document-categories": {
+    key: "document-categories", endpoint: "/document-categories/", title: "Document categories", singular: "document category",
+    description: "Company-owned file categories with explicit extensions, confidentiality defaults, and upload-size limits.",
+    viewPermission: "documents.category.view", managePermission: "documents.category.manage",
+    columns: [{ key: "code", label: "Code" }, { key: "name", label: "Category" }, { key: "company_name", label: "Company" }, { key: "max_upload_size_mb", label: "Max MB" }, { key: "default_confidential", label: "Confidential by default" }, { key: "is_active", label: "Active" }],
+    fields: [
+      { name: "company", label: "Company", type: "relation", relation: companyRelation, required: true },
+      { name: "code", label: "Code", required: true },
+      { name: "name", label: "Name", required: true },
+      { name: "description", label: "Description", type: "textarea" },
+      { name: "allowed_extensions", label: "Allowed file types", type: "multi-relation", required: true, options: ["pdf", "png", "jpg", "jpeg", "csv", "docx", "xlsx"].map((value) => ({ value, label: value.toUpperCase() })), help: "Select only the file types needed for this category." },
+      { name: "max_upload_size_mb", label: "Maximum upload size (MB)", type: "number", defaultValue: 50 },
+      { name: "default_confidential", label: "Confidential by default", type: "boolean" },
+      activeField,
+    ],
+  },
   currencies: {
     key: "currencies", endpoint: "/currencies/", title: "Currencies", singular: "currency", description: "Currency codes and precision.",
     viewPermission: "masters.view", managePermission: "masters.manage", columns: [{ key: "code", label: "Code" }, { key: "name", label: "Name" }, { key: "symbol", label: "Symbol" }, { key: "decimal_places", label: "Decimals" }, { key: "is_active", label: "Active" }],

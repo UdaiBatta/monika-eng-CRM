@@ -2,6 +2,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.audit.mixins import AuditModelViewSetMixin
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 
 from .models import Permission, PermissionOverride, Role, RoleAssignment, RolePermission
@@ -15,7 +16,7 @@ from .serializers import (
 from .services import effective_permission_codes
 
 
-class PermissionViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class PermissionViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
     permission_classes = [HasFoundationPermission]
@@ -34,7 +35,7 @@ class PermissionViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
         return Response({"permissions": effective_permission_codes(request.user)})
 
 
-class RoleViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class RoleViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = Role.objects.select_related("company").prefetch_related("role_permissions__permission")
     serializer_class = RoleSerializer
     permission_classes = [HasFoundationPermission]
@@ -44,7 +45,7 @@ class RoleViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     ordering_fields = ["name", "code", "created_at"]
 
 
-class RolePermissionViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class RolePermissionViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = RolePermission.objects.select_related("role", "permission")
     serializer_class = RolePermissionSerializer
     permission_classes = [HasFoundationPermission]
@@ -52,7 +53,7 @@ class RolePermissionViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     filterset_fields = ["role", "permission"]
 
 
-class RoleAssignmentViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class RoleAssignmentViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = RoleAssignment.objects.select_related(
         "user", "role", "company", "branch", "department", "warehouse"
     )
@@ -76,7 +77,7 @@ class RoleAssignmentViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
     ]
 
 
-class PermissionOverrideViewSet(ScopedQuerysetMixin, viewsets.ModelViewSet):
+class PermissionOverrideViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = PermissionOverride.objects.select_related(
         "user", "permission", "company", "branch", "department", "warehouse"
     )

@@ -100,6 +100,8 @@ class CustomerViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Mode
 
     @action(detail=True, methods=["get"], url_path="360")
     def customer_360(self, request, pk=None):
+        from apps.enquiries.serializers import EnquirySerializer
+
         customer = self.get_object()
         data = customer_360_data(customer, request.user)
         activity_serializer = CrmActivitySerializer(
@@ -135,6 +137,9 @@ class CustomerViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Mode
                 "customer": self.get_serializer(customer).data,
                 "overview": {
                     "open_follow_ups": data["open_follow_up_count"],
+                    "open_enquiries": data["open_enquiry_count"],
+                    "won_enquiries": data["won_enquiry_count"],
+                    "lost_enquiries": data["lost_enquiry_count"],
                     "last_contact": CrmActivitySerializer(
                         data["last_contact"], context={"request": request}
                     ).data
@@ -151,6 +156,11 @@ class CustomerViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Mode
                 ).data,
                 "open_follow_ups": CrmActivitySerializer(
                     data["open_follow_ups"], many=True, context={"request": request}
+                ).data,
+                "recent_enquiries": EnquirySerializer(
+                    data["recent_enquiries"],
+                    many=True,
+                    context={"request": request},
                 ).data,
                 "recent_documents": DocumentSerializer(
                     data["recent_documents"], many=True, context={"request": request}

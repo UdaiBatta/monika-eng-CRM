@@ -283,6 +283,13 @@ class CrmActivity(ValidatedModel):
 
     company = models.ForeignKey(Company, on_delete=models.PROTECT, related_name="crm_activities")
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="activities")
+    enquiry = models.ForeignKey(
+        "enquiries.Enquiry",
+        on_delete=models.PROTECT,
+        related_name="activities",
+        null=True,
+        blank=True,
+    )
     contact = models.ForeignKey(
         CustomerContact,
         on_delete=models.PROTECT,
@@ -345,6 +352,11 @@ class CrmActivity(ValidatedModel):
             errors["customer"] = "Customer must belong to the selected company."
         if self.contact_id and self.contact.customer_id != self.customer_id:
             errors["contact"] = "Contact must belong to this customer."
+        if self.enquiry_id and (
+            self.enquiry.company_id != self.company_id
+            or self.enquiry.customer_id != self.customer_id
+        ):
+            errors["enquiry"] = "Enquiry must belong to this customer and company."
         if self.follow_up_owner_id and self.follow_up_owner.company_id != self.company_id:
             errors["follow_up_owner"] = "Follow-up owner must belong to the selected company."
         if self.follow_up_owner_id and (

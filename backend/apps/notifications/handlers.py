@@ -47,7 +47,22 @@ def _notify_requester(event, *, title, severity):
 
 
 def handle_domain_event(event):
-    if event.event_name == "crm.follow_up.assigned":
+    if event.event_name == "enquiry.assigned":
+        recipient = _user(event.metadata.get("recipient_user_id"))
+        if recipient:
+            notify(
+                recipient=recipient,
+                company=event.company_id,
+                notification_type="ENQUIRY_ASSIGNED",
+                severity=Notification.Severity.ACTION_REQUIRED,
+                title="Enquiry assigned to you",
+                message=event.summary,
+                entity_type=event.entity_type,
+                entity_id=event.entity_id,
+                action_url=f"/app/enquiries/{event.entity_id}",
+                deduplication_key=f"{event.correlation_id}:{recipient.pk}:enquiry-assigned",
+            )
+    elif event.event_name == "crm.follow_up.assigned":
         recipient = _user(event.metadata.get("recipient_user_id"))
         if recipient:
             notify(

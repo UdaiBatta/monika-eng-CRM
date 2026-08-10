@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "apps.approvals.apps.ApprovalsConfig",
     "apps.notifications.apps.NotificationsConfig",
     "apps.crm.apps.CrmConfig",
+    "apps.enquiries.apps.EnquiriesConfig",
 ]
 
 MIDDLEWARE = [

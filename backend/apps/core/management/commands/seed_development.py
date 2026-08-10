@@ -5,6 +5,8 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from apps.accounts.models import User
+from apps.numbering.models import DocumentSequence
+from apps.numbering.services import financial_year_label
 from apps.organization.models import Branch, Company, Department, Designation, Employee
 
 
@@ -62,5 +64,17 @@ class Command(BaseCommand):
                 "employment_status": Employee.EmploymentStatus.ACTIVE,
             },
         )
+        financial_year = financial_year_label(company)
+        for code, template, padding in (
+            ("CUSTOMER", "CUST-{number}", 5),
+            ("ENQUIRY", "ENQ-{year}-{number}", 4),
+        ):
+            DocumentSequence.objects.get_or_create(
+                company=company,
+                branch=None,
+                code=code,
+                financial_year=financial_year,
+                defaults={"template": template, "padding": padding},
+            )
         action = "Created" if created else "Updated"
         self.stdout.write(self.style.SUCCESS(f"{action} local development administrator {email}"))

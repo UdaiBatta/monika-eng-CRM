@@ -20,6 +20,7 @@ from apps.crm.views import (
     CustomerViewSet,
 )
 from apps.documents.views import DocumentCategoryViewSet, DocumentViewSet
+from apps.enquiries.views import EnquiryItemViewSet, EnquiryRequirementViewSet, EnquiryViewSet
 from apps.masters.views import (
     CurrencyViewSet,
     DeliveryTermViewSet,
@@ -79,6 +80,9 @@ router.register("customers", CustomerViewSet)
 router.register("customer-contacts", CustomerContactViewSet)
 router.register("customer-sites", CustomerSiteViewSet)
 router.register("crm-activities", CrmActivityViewSet)
+router.register("enquiries", EnquiryViewSet)
+router.register("enquiry-requirements", EnquiryRequirementViewSet)
+router.register("enquiry-items", EnquiryItemViewSet)
 router.register(
     "notification-preferences",
     NotificationPreferenceViewSet,

@@ -1,6 +1,6 @@
 # Immutable Business Audit Engine
 
-Status: Phase 1F complete and locally verified on 2026-08-10.
+Status: implementation and automated verification complete on 2026-08-10; final signed-in browser acceptance pending.
 
 ## Policy
 

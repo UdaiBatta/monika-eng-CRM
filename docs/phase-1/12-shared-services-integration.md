@@ -1,6 +1,6 @@
 # Shared Services Integration and Operations
 
-Status: Phase 1A–H foundation complete; CRM and operational modules are not started.
+Status: Phase 1A–H implementation and automated gates complete; final signed-in browser acceptance pending. CRM and operational modules are not started.
 
 ## Integration contract
 

@@ -14,7 +14,10 @@
 | Commercial estimation | COMPLETE | Controlled Decimal cost build-up, pricing, revisioning, shared approval, confidential permissions, tests, and live approved EST-2026-0001 Rev 2 |
 | Estimation-to-Enquiry handoff | COMPLETE | Approved current Estimate moves Enquiry to Estimation Complete and visibly Ready for Quotation |
 | Desktop/mobile Axis CRM interface | COMPLETE | Responsive browser acceptance and permission-aware navigation |
-| Quotation and downstream ERP work | DEFERRED BY SCOPE | Quotation, Project, Drawing Management, BOM, and later operations were explicitly excluded from these milestones |
+| Realtime collaboration foundation | IMPLEMENTED; CONDITIONAL ACCEPTANCE | ASGI/Channels, authenticated company-scoped WebSocket, safe after-commit events, centralized query invalidation, reconnect, presence, tests, and two-tab browser conflict UAT. Production Redis and two-distinct-employee UAT remain. |
+| Unified incoming enquiries | IMPLEMENTED; CONDITIONAL ACCEPTANCE | Website compatibility plus TradeIndia/WhatsApp/Phone/Email/In-person/Manual sources, shared queues, provenance, duplicates, ownership, conversion, tests, and live Phone capture. Full WhatsApp/TradeIndia browser scenarios remain. |
+| Internal quotation lifecycle | IMPLEMENTED; CONDITIONAL ACCEPTANCE | Standard/quick paths, revisions, Decimal totals, approval reuse, communication, negotiation, confirmation, PO pending, Ready for Sales Order, tests, and live end-to-end UAT. Approved DOCX/PDF operations remain. |
+| Sales Order and downstream ERP work | NOT STARTED | Sales Order, Project, Drawing Management, BOM, and later operations remain explicitly outside scope. |
 
 ## Decisions required before the next phase
 
@@ -22,25 +25,25 @@
 - approve approval thresholds and escalation rules;
 - approve document categories, retention, and production malware-scanning policy;
 - confirm enquiry source, priority, loss-reason, and response-SLA masters;
-- approve the Quotation input contract, commercial template, tax/freight presentation, validity, terms, and approval thresholds;
+- approve the final quotation DOCX, wording/defaults, tax/freight presentation, validity, terms, numbering ownership, and approval thresholds;
 - confirm which roles may see Estimate cost, selling price, and gross margin in production;
 - confirm the production website credential owner, source restriction, CAPTCHA policy, and malware-scanning service;
 - complete production hosting, secret management, logging, backup, restore, and disaster-recovery decisions.
 
 ## Known boundary and technical debt
 
-- Generated OpenAPI schema publication remains pending; the versioned \`/api/v1/\` contract is implemented.
+- Generated OpenAPI schema publication remains pending; the versioned `/api/v1/` contract is implemented.
 - Production malware scanning is not enabled. The UI says so; file validation, private storage, checksum, and authorization are implemented.
 - Website integration secrets are environment-managed; production secret storage and rotation ownership remain go-live decisions.
 - Business role assignments are intentionally not seeded into production data.
-- Acceptance data and the PDF are synthetic local fixtures.
+- Acceptance records and business data are synthetic local fixtures; no approved quotation template or live PDF artifact is configured.
 - Preliminary drawing, BOM, and routing notes are engineering assessment fields only. There is no Drawing Management or BOM module.
 - The accepted Project 360 and drawing-viewer mockups remain non-production visual references.
-- Generated OpenAPI publication, production logging/alerting, load testing, backup/restore, and disaster recovery remain separate gates.
+- Production Redis, distinct-user/cross-department UAT, LibreOffice PDF validation, generated OpenAPI publication, production logging/alerting, load testing, backup/restore, and disaster recovery remain separate gates.
 
 ## Next safe slice
 
-Do not begin Quotation until the user reviews the completion report and approves its document template, numbering, revision/validity rules, commercial terms, taxes, approval matrix, PDF strategy, and the exact contract consumed from the approved current Estimate. The Ready for Quotation state is a handoff only; no Quotation record or action exists.
+Do not begin Sales Order or Project until the realtime/quotation completion report is reviewed and the conditional acceptance items are closed. First approve the Sales Order input contract from the accepted current quotation, numbering, revision/cancellation rules, commercial controls, inventory commitments, authorization matrix, and exact Ready-for-Sales-Order handoff behavior.
 
 ## Website intake and estimation acceptance evidence
 
@@ -55,4 +58,8 @@ Do not begin Quotation until the user reviews the completion report and approves
 | Revision 1 to revision 2 preservation | PASS |
 | Axis desktop/mobile UAT | PASS; viewport-bounded line editor |
 | Enquiry Estimation Complete / Ready for Quotation handoff | PASS |
-| Quotation implementation | NOT STARTED by explicit stop condition |
+| Quotation backend/frontend implementation | PASS; 106 backend and 36 frontend tests in the final regression |
+| Realtime two-tab conflict UAT | PASS; unsaved work preserved and stale overwrite prevented |
+| Standard and quick quotation browser UAT | PASS; includes revision, communication, negotiation, confirmation, and handoff |
+| Production Redis / two-employee UAT | PENDING operational acceptance |
+| Approved DOCX / LibreOffice PDF UAT | PENDING operational acceptance |

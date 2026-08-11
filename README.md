@@ -1,15 +1,15 @@
 # Monika Engineers Integrated ERP
 
-Production Monika Engineers ERP/CRM foundation. Phase 1A-H and the Phase 2 Website-to-approved-Estimation commercial CRM vertical slice are implemented as an Axis CRM-based React application backed by a Django modular monolith and PostgreSQL, with Redis/Celery available for asynchronous production workloads.
+Production Monika Engineers ERP/CRM foundation. Phase 1A-H and the Phase 2 incoming-enquiry-to-Ready-for-Sales-Order commercial CRM vertical slice are implemented as an Axis CRM-based React application backed by a Django modular monolith and PostgreSQL, with Channels/Redis/Celery available for production realtime and asynchronous workloads.
 
-The current production path is signed Website Enquiry -> Human Review -> Customer/Contact -> Enquiry/RFQ -> Engineering Feasibility -> Commercial Estimation -> Shared Approval -> Ready for Quotation. Quotation, Project execution, Drawing Management, BOM, purchasing, production, quality, dispatch, and service remain later phases.
+The current production path is unified Incoming Enquiry -> Human Review -> Customer/Contact -> Enquiry/RFQ -> Engineering Feasibility -> Commercial Estimation -> optional Shared Approval -> Quotation -> Communication/Negotiation -> Customer Confirmation -> Ready for Sales Order. Sales Order, Project execution, Drawing Management, BOM, purchasing, production, quality, dispatch, and service remain later phases.
 
 ## Architecture
 
 - `frontend/` - Vite, React 19, TypeScript, TanStack Query, React Hook Form, Zod, shadcn/ui and the preserved Axis visual system.
 - `backend/` - Django 5.2 and Django REST Framework modular monolith.
 - PostgreSQL - system of record.
-- Redis - cache, rate-limit state, and Celery transport.
+- Redis - production Channels layer, cache/rate-limit state, and Celery transport; local development uses native in-memory substitutes.
 - Celery - asynchronous work foundation; no later-phase jobs are invented yet.
 - `docs/phase-0/` - approved architecture and requirements baseline.
 - `docs/phase-1/` - implementation decisions, API and operating notes.
@@ -26,8 +26,9 @@ The browser uses same-origin session authentication and CSRF protection. Django 
 | Customers | `http://127.0.0.1:5173/app/crm/customers` |
 | Enquiries and RFQs | `http://127.0.0.1:5173/app/crm/enquiries` |
 | Engineering reviews | `http://127.0.0.1:5173/app/crm/engineering` |
-| Website enquiry inbox | `http://127.0.0.1:5173/app/crm/website-enquiries` |
+| Incoming enquiries | `http://127.0.0.1:5173/app/crm/incoming-enquiries` |
 | Commercial estimates | `http://127.0.0.1:5173/app/crm/estimates` |
+| Quotations | `http://127.0.0.1:5173/app/crm/quotations` |
 | Sign in | `http://127.0.0.1:5173/login` |
 | Preserved Axis mockup | `http://127.0.0.1:5173/mockups/axis?view=home` |
 | Project 360 reference | `http://127.0.0.1:5173/mockups/axis?view=project` |
@@ -113,4 +114,4 @@ bun run build
 
 The approved requirement register is [`docs/phase-0/07-requirements-traceability.md`](docs/phase-0/07-requirements-traceability.md). Phase 1 evidence is in [`docs/phase-1`](docs/phase-1), and the Phase 2 handoff is in [`docs/phase-2`](docs/phase-2). The Axis mockups remain visual regression/reference material and were not replaced by production routes.
 
-The commercial CRM is complete through an approved current Estimate and the Ready for Quotation handoff. Do not treat the milestone as a completed sales or ERP lifecycle: there is no Quotation, Project, Drawing Management, or BOM production module yet.
+The commercial CRM implementation reaches the explicit Ready for Sales Order handoff. Production acceptance still requires the approved quotation DOCX template, LibreOffice/Redis deployment validation, and distinct-employee realtime UAT recorded in [`docs/phase-2/15-realtime-quotation-acceptance.md`](docs/phase-2/15-realtime-quotation-acceptance.md). Do not treat this as a completed ERP lifecycle: no Sales Order, Project, Drawing Management, or BOM production module exists yet.

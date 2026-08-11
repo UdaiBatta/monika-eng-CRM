@@ -64,7 +64,9 @@ import type {
   Customer360,
   CustomerContact,
   CustomerSite,
+  Quotation,
 } from "@/production/lib/crm-types";
+import type { Paginated } from "@/production/lib/types";
 import { CustomerForm } from "@/production/pages/customers-page";
 
 type Panel =
@@ -169,6 +171,11 @@ export default function CustomerPage() {
   const query = useQuery({
     queryKey: ["customer-360", customerId],
     queryFn: () => apiGet<Customer360>(`/customers/${customerId}/360/`),
+  });
+  const quotations = useQuery({
+    queryKey: ["customer-quotations", customerId],
+    queryFn: () => apiGet<Paginated<Quotation>>(`/quotations/?customer=${customerId}&page_size=100`),
+    enabled: Boolean(customerId) && hasPermission(user, "crm.quotation.view"),
   });
   const statusMutation = useMutation({
     mutationFn: () =>
@@ -294,6 +301,7 @@ export default function CustomerPage() {
               Enquiries{" "}
               <Badge variant="outline">{data.recent_enquiries.length}</Badge>
             </TabsTrigger>
+            {hasPermission(user, "crm.quotation.view") ? <TabsTrigger value="quotations">Quotations <Badge variant="outline">{quotations.data?.pagination.count ?? 0}</Badge></TabsTrigger> : null}
             <TabsTrigger value="activities">Activities</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
@@ -623,6 +631,7 @@ export default function CustomerPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        {hasPermission(user, "crm.quotation.view") ? <TabsContent value="quotations" className="mt-4"><Card><CardHeader className="flex-row items-start justify-between"><div><CardTitle>Customer quotations</CardTitle><CardDescription>Current commercial offers and their latest customer-facing value.</CardDescription></div><Link to="/app/crm/quotations"><Button size="sm" variant="outline">Open register</Button></Link></CardHeader><CardContent>{quotations.isPending ? <ERPLoadingState rows={4} /> : !quotations.data?.results.length ? <ERPEmptyState title="No quotations yet" description="Approved estimates and permitted quick offers will appear here." /> : <div className="divide-y">{quotations.data.results.map((quotation) => <Link key={quotation.id} to={`/app/crm/quotations/${quotation.id}`} className="flex items-center gap-3 py-3 first:pt-0 hover:text-primary"><FileText /><div className="min-w-0 flex-1"><p className="font-medium">{quotation.quotation_number}</p><p className="text-xs text-muted-foreground">Rev {quotation.current_revision.revision_number} · {quotation.current_revision.currency_code} {Number(quotation.current_revision.grand_total).toLocaleString("en-IN")}</p></div><ERPStatusBadge value={quotation.status} /></Link>)}</div>}</CardContent></Card></TabsContent> : null}
         <TabsContent value="activities" className="mt-4">
           <Card>
             <CardHeader className="flex-row items-start justify-between">

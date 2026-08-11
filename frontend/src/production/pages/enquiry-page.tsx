@@ -70,6 +70,7 @@ import type {
   EnquiryItem,
   EnquiryRequirement,
   EnquiryWorkspace,
+  Quotation,
   RelationOption,
 } from "@/production/lib/crm-types";
 import type { Paginated } from "@/production/lib/types";
@@ -195,6 +196,11 @@ export default function EnquiryPage() {
     queryKey: ["enquiry-workspace", enquiryId],
     queryFn: () =>
       apiGet<EnquiryWorkspace>(`/enquiries/${enquiryId}/workspace/`),
+  });
+  const quotations = useQuery({
+    queryKey: ["enquiry-quotations", enquiryId],
+    queryFn: () => apiGet<Paginated<Quotation>>(`/quotations/?enquiry=${enquiryId}&page_size=100`),
+    enabled: Boolean(enquiryId) && hasPermission(user, "crm.quotation.view"),
   });
   const customerQuery = useQuery({
     queryKey: ["customer", query.data?.enquiry.customer],
@@ -426,6 +432,7 @@ export default function EnquiryPage() {
               Items <Badge variant="outline">{enquiry.items.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="engineering">Engineering</TabsTrigger>
+            {hasPermission(user, "crm.quotation.view") ? <TabsTrigger value="quotations">Quotations <Badge variant="outline">{quotations.data?.pagination.count ?? 0}</Badge></TabsTrigger> : null}
             <TabsTrigger value="activities">Activities</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
@@ -740,6 +747,7 @@ export default function EnquiryPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        {hasPermission(user, "crm.quotation.view") ? <TabsContent value="quotations" className="mt-4"><Card><CardHeader className="flex-row items-start justify-between"><div><CardTitle>Quotation trail</CardTitle><CardDescription>Commercial offers connected to this enquiry and its approved estimate.</CardDescription></div><Link to="/app/crm/quotations"><Button size="sm" variant="outline">Quotation register</Button></Link></CardHeader><CardContent>{quotations.isPending ? <ERPLoadingState rows={4} /> : !quotations.data?.results.length ? <ERPEmptyState title="No quotation yet" description="Create a standard quotation after the current commercial estimate is approved." /> : <div className="divide-y">{quotations.data.results.map((quotation) => <Link key={quotation.id} to={`/app/crm/quotations/${quotation.id}`} className="flex items-center gap-3 py-3 first:pt-0 hover:text-primary"><FileText /><div className="min-w-0 flex-1"><p className="font-medium">{quotation.quotation_number} · Rev {quotation.current_revision.revision_number}</p><p className="text-xs text-muted-foreground">{quotation.current_revision.currency_code} {Number(quotation.current_revision.grand_total).toLocaleString("en-IN")} · {quotation.path_label}</p></div><ERPStatusBadge value={quotation.status} /></Link>)}</div>}</CardContent></Card></TabsContent> : null}
         <TabsContent value="activities" className="mt-4">
           <Card>
             <CardHeader className="flex-row items-start justify-between">

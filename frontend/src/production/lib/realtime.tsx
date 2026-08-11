@@ -24,7 +24,13 @@ type RealtimeContextValue = {
   subscribe: (entityType: string, entityId: string) => () => void;
 };
 
-const RealtimeContext = createContext<RealtimeContextValue | null>(null);
+const offlineContext: RealtimeContextValue = {
+  status: "offline",
+  presence: {},
+  subscribe: () => () => undefined,
+};
+
+const RealtimeContext = createContext<RealtimeContextValue>(offlineContext);
 
 const queryRoots: Record<string, string[]> = {
   customer: ["customers", "customer"],
@@ -161,9 +167,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 }
 
 export function useRealtime() {
-  const value = useContext(RealtimeContext);
-  if (!value) throw new Error("useRealtime must be used within RealtimeProvider");
-  return value;
+  return useContext(RealtimeContext);
 }
 
 export function useRealtimeEntity(entityType: string, entityId?: string) {

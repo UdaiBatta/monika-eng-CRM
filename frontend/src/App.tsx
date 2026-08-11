@@ -60,6 +60,8 @@ const EngineeringReviewPage = lazy(
 );
 const EstimatesPage = lazy(() => import("@/production/pages/estimates-page"));
 const EstimatePage = lazy(() => import("@/production/pages/estimate-page"));
+const QuotationsPage = lazy(() => import("@/production/pages/quotations-page"));
+const QuotationPage = lazy(() => import("@/production/pages/quotation-page"));
 
 function PageLoading() {
   return (
@@ -146,6 +148,8 @@ export default function App() {
               />
               <Route path="crm/estimates" element={<EstimatesPage />} />
               <Route path="crm/estimates/:estimateId" element={<EstimatePage />} />
+              <Route path="crm/quotations" element={<QuotationsPage />} />
+              <Route path="crm/quotations/:quotationId" element={<QuotationPage />} />
 
               <Route
                 path="organization"

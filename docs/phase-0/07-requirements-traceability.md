@@ -1,7 +1,7 @@
 # Requirements Traceability Register
 
 Authority: Monika Engineers Integrated ERP specification received 2026-08-09
-Status date: 2026-08-10
+Status date: 2026-08-11
 
 ## 1. Status definitions
 
@@ -33,25 +33,25 @@ Completion here means the baseline artifact exists; business review is still req
 
 | ID | Requirement section | Phase | Status | Evidence / next gate |
 |---|---|---:|---|---|
-| R-000 | Primary objective | All | IN DEVELOPMENT | Production foundation complete; operational ERP/CRM modules remain phased |
+| R-000 | Primary objective | All | IN DEVELOPMENT | Production foundation and first Customer-to-Engineering vertical slice complete; downstream ERP/CRM modules remain phased |
 | R-001 | Technology architecture | 1 | COMPLETE | React/Django/PostgreSQL/Redis/Celery workspace and Docker services implemented |
 | R-002 | System architecture principles | 1 | COMPLETE | Modular-monolith boundaries, versioned API and separate frontend implemented |
-| R-003 | Controlled state transitions | 1+ | COMPLETE | Explicit document and approval commands enforce tested transitions; mutable status PATCH is rejected |
+| R-003 | Controlled state transitions | 1+ | COMPLETE | Explicit document, approval, customer, enquiry, activity, and engineering commands enforce tested transitions; mutable status PATCH is rejected |
 | R-004 | User, employee and organization foundation | 1 | COMPLETE | Separate User/Employee and organization models, APIs, UI and tests implemented |
 | R-005 | RBAC framework | 1 | COMPLETE | Data-driven roles, scoped assignments, allow/deny overrides and tests implemented; business roles intentionally unseeded |
 | R-006 | Common data model | 1 | COMPLETE | UUID/timestamp base models and Django migrations implemented |
 | R-007 | Numbering engine | 1 | COMPLETE | Atomic row-locked sequence service and non-consuming preview tested on PostgreSQL |
 | R-008 | Master data | 1+ | IN DEVELOPMENT | Currency, UOM, tax, payment and delivery foundation masters complete; downstream masters remain phased |
-| R-009 | CRM module | 2 | NOT STARTED | Customer workflow confirmation required |
-| R-010 | Enquiry/RFQ management | 2 | NOT STARTED | Sales process workshop required |
-| R-011 | Engineering feasibility review | 2 | NOT STARTED | Sales/engineering handoff confirmation required |
+| R-009 | CRM module | 2 | COMPLETE | Production Customer/Contact/Site models, APIs, Axis registers and Customer 360 verified |
+| R-010 | Enquiry/RFQ management | 2 | COMPLETE | Controlled enquiry workflow, requirements/items, documents, activities, Enquiry 360 and tests verified |
+| R-011 | Engineering feasibility review | 2 | COMPLETE | Controlled reviews, revisions, clarifications, assessment, decisions, readiness gate, tests and browser acceptance verified |
 | R-012 | Drawing management | 3 | NOT STARTED | Revision and release authority required |
 | R-013 | Engineering change management | 3 | NOT STARTED | ECR/ECN policy required |
 | R-014 | BOM management | 3 | NOT STARTED | BOM ownership/release policy required |
 | R-015 | Routing | 3 | NOT STARTED | Work centres and operations required |
 | R-016 | Estimation and costing | 2 | NOT STARTED | Cost model and visibility policy required |
 | R-017 | Quotation module | 2 | NOT STARTED | Template and approval policy required |
-| R-018 | Customer negotiation history | 2 | NOT STARTED | Activity rules required |
+| R-018 | Customer negotiation history | 2 | COMPLETE | Customer/enquiry activities and immutable history are linked and visible in context |
 | R-019 | Sales order | 3 | NOT STARTED | Conversion and partial-delivery rules required |
 | R-020 | Project management | 3 | IN DEVELOPMENT | Project 360 UI proof-of-concept only |
 | R-021 | Project document repository | 3 | NOT STARTED | Category/access/retention policy required |
@@ -108,7 +108,7 @@ Completion here means the baseline artifact exists; business review is still req
 | R-072 | Audit logging | 1 | COMPLETE | Immutable audit service, context, redaction, read-only scoped API, entity timeline, Axis UI and signed-in browser acceptance complete |
 | R-073 | Document management | 1 | COMPLETE | Private storage, secure downloads, versions, checksums, validation, links, archive/restore and signed-in Axis acceptance complete; drawing management remains R-012 |
 | R-074 | Global search | 11 | NOT STARTED | PostgreSQL-first plan documented |
-| R-075 | Filtering | 2+ | IN DEVELOPMENT | URL-filter patterns exist in UI proof-of-concept |
+| R-075 | Filtering | 2+ | COMPLETE | Production customer, enquiry, activity and engineering registers support searchable, shareable URL filter states |
 | R-076 | Dashboard | 11 | IN DEVELOPMENT | Employee-home UI proof-of-concept only |
 | R-077 | Sales reporting | 11 | NOT STARTED | KPI definitions required |
 | R-078 | Procurement reporting | 11 | NOT STARTED | KPI definitions required |
@@ -129,49 +129,49 @@ Completion here means the baseline artifact exists; business review is still req
 | R-093 | Serial traceability | 5-9 | NOT STARTED | Material tracking policy required |
 | R-094 | Batch traceability | 5 | NOT STARTED | Batch policy required |
 | R-095 | Barcode/QR readiness | 14 | NOT STARTED | Data/API readiness planned |
-| R-096 | Responsive web application | 1+ | COMPLETE | Production Axis foundation app browser-tested on desktop and mobile |
+| R-096 | Responsive web application | 1+ | COMPLETE | Production Axis foundation and Phase 2 CRM browser-tested on desktop and 390-pixel mobile without page overflow |
 | R-097 | Human-readable error handling | 1+ | COMPLETE | Shared API error envelope and typed frontend normalization implemented and tested |
-| R-098 | Concurrency protection | 1+ | COMPLETE | PostgreSQL locking tests cover numbering, document version allocation and parallel approval decisions; future modules retain their own gates |
+| R-098 | Concurrency protection | 1+ | COMPLETE | PostgreSQL locking tests cover numbering, document versions, approval decisions, engineering revision creation and concurrent feasibility decisions |
 | R-099 | Server-side data validation | 1+ | COMPLETE | Foundation serializers/models reject invalid and cross-company relationships |
-| R-100 | Transaction safety | 1+ | COMPLETE | Foundation numbering consumption is atomic and lock protected |
+| R-100 | Transaction safety | 1+ | COMPLETE | Numbering, enquiry handoff, follow-up completion, engineering commands and revision creation are atomic and lock protected |
 | R-101 | Security | 1+ | IN DEVELOPMENT | Session/CSRF/RBAC/settings baseline complete; production threat review remains a go-live gate |
 | R-102 | Login security | 1 | COMPLETE | Django password framework, generic failures, CSRF, sessions and login throttling tested |
 | R-103 | Backups | 1/Go-live | NOT STARTED | Destination and restore test required |
 | R-104 | Disaster recovery | Go-live | NOT STARTED | Runbooks and exercise required |
 | R-105 | Logging | 1 | NOT STARTED | Log routing/retention required |
 | R-106 | Performance | All | NOT STARTED | Load targets and tests required |
-| R-107 | Database indexing | Each phase | NOT STARTED | Query plans reviewed per module |
+| R-107 | Database indexing | Each phase | IN DEVELOPMENT | Phase 2 customer, activity, enquiry and engineering operational indexes implemented; later modules retain their own review gates |
 | R-108 | Versioned API/OpenAPI | 1+ | IN DEVELOPMENT | `/api/v1/` implemented and documented; generated OpenAPI schema remains pending |
-| R-109 | Enterprise frontend design | 1+ | COMPLETE | Axis CRM visual system applied to live production foundation routes |
+| R-109 | Enterprise frontend design | 1+ | COMPLETE | Axis CRM visual system applied to live foundation, Customer 360, Enquiry 360 and Engineering routes |
 | R-110 | Permission-aware navigation | 1+ | COMPLETE | Navigation consumes effective permission codes while APIs enforce authorization independently |
 | R-111 | Project 360 view | 3 | IN DEVELOPMENT | Axis UI proof-of-concept exists; production data/actions pending |
-| R-112 | Customer 360 view | 2 | NOT STARTED | UI/data contract required |
+| R-112 | Customer 360 view | 2 | COMPLETE | Live production Customer 360 with Overview, Contacts, Sites, Enquiries, Activities, Documents and History |
 | R-113 | Material 360 view | 5 | NOT STARTED | UI/data contract required |
 | R-114 | Asset 360 view | 9 | NOT STARTED | UI/data contract required |
-| R-115 | Activity timelines | 2+ | IN DEVELOPMENT | Shared authorized audit timeline API/UI is complete; future business entity registrations remain module work |
+| R-115 | Activity timelines | 2+ | COMPLETE | Authorized audit and CRM activity timelines are integrated into Customer and Enquiry workspaces |
 | R-116 | Comments/internal notes | 2+ | NOT STARTED | Visibility/attachment policy required |
-| R-117 | Tasks/follow-ups | 2+ | NOT STARTED | Lifecycle/notification policy required |
+| R-117 | Tasks/follow-ups | 2+ | COMPLETE | Production follow-up ownership, due dates, priority, queues, controlled completion and contextual UI verified |
 | R-118 | UTC and timezone handling | 1 | COMPLETE | Django timezone-aware UTC storage with Asia/Kolkata presentation setting |
 | R-119 | Decimal currency/INR | 1+ | COMPLETE | Decimal financial master fields and INR seed implemented |
-| R-120 | Decimal quantity precision | 3+ | NOT STARTED | Precision policy required |
+| R-120 | Decimal quantity precision | 3+ | COMPLETE | Enquiry item quantities use Django Decimal fields and string-safe API/UI handling |
 | R-121 | Configurable taxes | 1/2+ | COMPLETE | Company-scoped TaxRate master and administration UI implemented |
 | R-122 | Controlled data import | Each launch | NOT STARTED | Staging/preview plan documented |
 | R-123 | Opening inventory | 5 | NOT STARTED | Cutover process required |
 | R-124 | Migration strategy | All | IN DEVELOPMENT | Baseline documented; data discovery pending |
 | R-125 | Company configuration | 1 | COMPLETE | Automatic CompanySettings with editable India/INR defaults implemented |
 | R-126 | Feature flags | 1 | COMPLETE | Company-scoped feature flag model, API and UI implemented |
-| R-127 | Testing | Every phase | TESTING | Phase 1A–H automated regression: 45 backend and 12 frontend tests plus checks, lint and build; signed-in browser QA remains |
+| R-127 | Testing | Every phase | TESTING | Phase 2 automated regression, PostgreSQL concurrency, checks, lint, build, signed-in vertical slice, restricted access and desktop/mobile QA complete; repeat for every later phase |
 | R-128 | Permission testing | 1+ | COMPLETE | Grants, scopes, overrides, deny precedence and scoped querysets tested |
 | R-129 | Seed/demo data | 1+ | COMPLETE | Explicit environment-gated debug-only seed command; no production demo migration |
 | R-130 | Django migrations only | 1+ | COMPLETE | All database schema and seed changes use reviewed Django migrations |
 | R-131 | One-command development environment | 1 | COMPLETE | Docker Compose starts PostgreSQL, Redis, Django and Celery with health checks |
 | R-132 | Ubuntu VPS production deployment | Go-live | NOT STARTED | Hosting decision pending |
-| R-133 | Maintained documentation | All | COMPLETE | README, thirteen Phase 1 guides and this traceability register maintained with code |
+| R-133 | Maintained documentation | All | COMPLETE | README, Phase 1 guides, eight Phase 2 guides and this traceability register maintained with code |
 | R-134 | Change management | All | IN DEVELOPMENT | Process documented; enforcement pending |
 | R-135 | Future architecture readiness | All | IN DEVELOPMENT | Boundaries documented; features not implemented |
 | R-136 | Prohibited practices | All | IN DEVELOPMENT | Architectural guardrails documented |
-| R-137 | Development order | All | IN DEVELOPMENT | Phase 1A-D completed in order and stopped before Phase 1E-H |
-| R-138 | Definition of Done | Every module | IN DEVELOPMENT | Phase 1A-D gates satisfied; future modules retain independent gates |
+| R-137 | Development order | All | IN DEVELOPMENT | Phase 1A–H and Phase 2 Customer-to-Engineering slice completed in order and stopped before Estimation |
+| R-138 | Definition of Done | Every module | IN DEVELOPMENT | Phase 1 and Phase 2 vertical-slice gates satisfied; later modules retain independent gates |
 | R-139 | Requirement traceability | All | COMPLETE | This register covers sections 0-140 |
 | R-140 | Final engineering principle | Every workflow | IN DEVELOPMENT | Mandatory design questions adopted |
 
@@ -212,3 +212,4 @@ Every future deferral must include requirement ID, scope, reason, impact, approv
 | 2026-08-10 | Initial register created from authoritative sections 0-140 | Establishes honest baseline; production implementation remains largely not started |
 | 2026-08-10 | Phase 1E–H implementation reached final browser acceptance | Automated gates and Docker health pass; signed-in real-data browser walkthrough remains before COMPLETE; CRM and operational modules remain not started |
 | 2026-08-11 | Phase 1A–H signed-in browser acceptance completed | Real PostgreSQL administrator and restricted-user scenarios passed across desktop, tablet and mobile; Phase 2 retains independent gates |
+| 2026-08-11 | Phase 2 Customer-to-Engineering vertical slice completed | Live RFQ, follow-up, document, clarification, decision and Ready for Estimation path passed; downstream modules remain unimplemented |

@@ -1,8 +1,8 @@
 # Monika Engineers Integrated ERP
 
-Production foundation for the Monika Engineers ERP and future CRM. Phase 1A–H is implemented as an Axis CRM-based React application backed by a Django modular monolith, PostgreSQL, Redis, and Celery.
+Production Monika Engineers ERP/CRM foundation. Phase 1A–H and the Phase 2 Customer-to-Engineering commercial CRM vertical slice are implemented as an Axis CRM-based React application backed by a Django modular monolith, PostgreSQL, Redis, and Celery.
 
-The current boundary is deliberate: identity, organization, scoped access control, company configuration, foundation masters, concurrency-safe numbering, private documents, immutable audit history, configurable approvals and in-app notifications are production foundations. Customer, enquiry, project execution, drawing/BOM, purchasing, production, quality, dispatch and service remain later phases.
+The current production path is Customer -> Contact/Site -> Enquiry/RFQ -> Requirements/Items -> Documents/Activities -> Engineering Feasibility -> Clarification -> Decision -> Ready for Estimation. Estimation, Quotation, Project execution, Drawing Management, BOM, purchasing, production, quality, dispatch, and service remain later phases.
 
 ## Architecture
 
@@ -13,6 +13,7 @@ The current boundary is deliberate: identity, organization, scoped access contro
 - Celery - asynchronous work foundation; no later-phase jobs are invented yet.
 - `docs/phase-0/` - approved architecture and requirements baseline.
 - `docs/phase-1/` - implementation decisions, API and operating notes.
+- `docs/phase-2/` - commercial CRM design, operator guide, acceptance evidence, and traceability.
 - `deploy/` - deployment notes; production provisioning remains a go-live activity.
 
 The browser uses same-origin session authentication and CSRF protection. Django owns authorization, validation, transactions, and persistence. `User` and `Employee` are separate records with an optional one-to-one link.
@@ -22,6 +23,9 @@ The browser uses same-origin session authentication and CSRF protection. Django 
 | Surface | URL |
 |---|---|
 | Production foundation | `http://127.0.0.1:5173/app` |
+| Customers | `http://127.0.0.1:5173/app/crm/customers` |
+| Enquiries and RFQs | `http://127.0.0.1:5173/app/crm/enquiries` |
+| Engineering reviews | `http://127.0.0.1:5173/app/crm/engineering` |
 | Sign in | `http://127.0.0.1:5173/login` |
 | Preserved Axis mockup | `http://127.0.0.1:5173/mockups/axis?view=home` |
 | Project 360 reference | `http://127.0.0.1:5173/mockups/axis?view=project` |
@@ -105,6 +109,6 @@ bun run build
 
 ## Requirements and phase boundary
 
-The approved requirement register is [`docs/phase-0/07-requirements-traceability.md`](docs/phase-0/07-requirements-traceability.md). Phase 1 evidence is in [`docs/phase-1`](docs/phase-1). The Axis mockups remain visual regression/reference material and were not replaced by production routes.
+The approved requirement register is [`docs/phase-0/07-requirements-traceability.md`](docs/phase-0/07-requirements-traceability.md). Phase 1 evidence is in [`docs/phase-1`](docs/phase-1), and the Phase 2 handoff is in [`docs/phase-2`](docs/phase-2). The Axis mockups remain visual regression/reference material and were not replaced by production routes.
 
-Do not treat the foundation as a completed CRM. It is intentionally shaped so customer, contact, enquiry, activity, project, drawing/BOM and service domains can reuse the same identity, organization, authorization, configuration, numbering, document, audit, approval and notification contracts.
+The commercial CRM is complete only through Ready for Estimation. Do not treat the milestone as a completed sales or ERP lifecycle: there is no Estimate, Quotation, Project, Drawing Management, or BOM production module yet.

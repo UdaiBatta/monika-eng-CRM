@@ -43,6 +43,7 @@ import {
   hasPermission,
   useCurrentUser,
 } from "@/production/lib/auth";
+import { getPageTitle } from "@/production/lib/page-title";
 
 type NavItem = {
   label: string;
@@ -351,18 +352,7 @@ function MobileNavigation() {
 function Header() {
   const location = useLocation();
   const { data: user } = useCurrentUser();
-  const pathLabel =
-    location.pathname === "/app"
-      ? "foundation overview"
-      : location.pathname.match(/^\/app\/employees\/[^/]+\/edit$/)
-        ? "edit employee"
-        : location.pathname.match(/^\/app\/employees\/[^/]+$/)
-          ? "employee profile"
-          : (location.pathname
-              .split("/")
-              .filter(Boolean)
-              .at(-1)
-              ?.replaceAll("-", " ") ?? "overview");
+  const pathLabel = getPageTitle(location.pathname);
   return (
     <header className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur sm:px-6">
       <div className="flex items-center gap-3">

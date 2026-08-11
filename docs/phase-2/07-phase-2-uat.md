@@ -5,8 +5,8 @@ Acceptance date: 11 August 2026
 ## Automated gates
 
 - Backend: `80 passed in 26.47s` against PostgreSQL, including concurrency tests.
-- Frontend: four files and `19 passed`.
-- Production build: TypeScript and Vite completed; 2,612 modules transformed.
+- Frontend: five files and `24 passed`.
+- Production build: TypeScript and Vite completed; 2,613 modules transformed.
 - Ruff: all checks passed.
 - oxlint: exit 0 with eight existing non-blocking React fast-refresh/exhaustive-dependency warnings.
 - Django: `check` reported no issues and `makemigrations --check --dry-run` reported no changes.
@@ -46,5 +46,6 @@ The upload used authenticated HTTP against the same production API because the b
 - Foundation master audit registration was added and regression-tested.
 - Document category audit registration was added and regression-tested.
 - Linked-document serialization was corrected and regression-tested.
+- Detail-route UUID headings were replaced with business-friendly page titles and regression-tested.
 
 No defect was hidden or deferred from this milestone.

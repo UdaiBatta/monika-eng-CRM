@@ -2,9 +2,12 @@ import base64
 import json
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 
 import pytest
 from django.core.cache import cache
+from django.db import close_old_connections, connections
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -15,6 +18,7 @@ from apps.external_enquiries.models import (
     ExternalEnquirySubmission,
     IntegrationCredential,
 )
+from apps.external_enquiries.services import convert_submission
 from apps.masters.models import Currency
 from apps.notifications.models import Notification
 from apps.numbering.models import DocumentSequence
@@ -38,7 +42,10 @@ def admin(db):
 
 @pytest.fixture
 def currency(db):
-    return Currency.objects.get(code="INR")
+    return Currency.objects.get_or_create(
+        code="INR",
+        defaults={"name": "Indian Rupee", "symbol": "₹", "decimal_places": 2},
+    )[0]
 
 
 @pytest.fixture
@@ -202,6 +209,44 @@ def test_duplicate_candidates_explain_customer_and_contact_matches(api_client, c
     assert matches.data["contacts"][0]["reasons"] == ["Email matches", "Phone matches"]
 
 
+@pytest.mark.django_db
+def test_duplicate_candidates_include_phone_match_when_email_differs(
+    api_client, credential, admin, currency
+):
+    customer = Customer.objects.create(
+        company=credential.company,
+        customer_code="CUST-PHONE",
+        legal_name="Phone Match Industries",
+        default_currency=currency,
+        status=Customer.Status.ACTIVE,
+        created_by=admin,
+        updated_by=admin,
+    )
+    contact = CustomerContact.objects.create(
+        customer=customer,
+        first_name="Asha",
+        email="old-address@example.test",
+        phone="9000000000",
+    )
+    signed_post(api_client, payload(company="Unrelated company", email="new-address@example.test"))
+    submission = ExternalEnquirySubmission.objects.get()
+    api_client.force_authenticate(admin)
+
+    matches = api_client.get(f"/api/v1/external-enquiries/{submission.pk}/candidates/")
+
+    assert matches.status_code == 200
+    assert matches.data["contacts"] == [
+        {
+            "id": str(contact.pk),
+            "display_name": contact.display_name,
+            "customer_id": str(customer.pk),
+            "customer_code": customer.customer_code,
+            "customer_name": customer.legal_name,
+            "reasons": ["Phone matches"],
+        }
+    ]
+
+
 def create_submission(credential, **overrides):
     values = {
         "company": credential.company,
@@ -317,6 +362,58 @@ def test_conversion_can_create_reviewed_customer_and_contact(
     assert submission.converted_customer.customer_code == "CUST-0001"
     assert submission.converted_contact.customer == submission.converted_customer
     assert submission.converted_enquiry.customer == submission.converted_customer
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_conversion_creates_exactly_one_enquiry(
+    credential, admin, currency, employee, sequences
+):
+    customer = Customer.objects.create(
+        company=credential.company,
+        customer_code="CUST-CONCURRENT",
+        legal_name="Concurrent Controls Pvt. Ltd.",
+        default_currency=currency,
+        status=Customer.Status.ACTIVE,
+        created_by=admin,
+        updated_by=admin,
+    )
+    contact = CustomerContact.objects.create(
+        customer=customer,
+        first_name="Asha",
+        email="concurrent@example.test",
+    )
+    submission = create_submission(credential, email="concurrent@example.test")
+    barrier = Barrier(2)
+
+    def attempt_conversion():
+        close_old_connections()
+        try:
+            actor = User.objects.get(pk=admin.pk)
+            barrier.wait(timeout=5)
+            converted = convert_submission(
+                submission_id=submission.pk,
+                actor=actor,
+                data={
+                    "customer_id": customer.pk,
+                    "contact_id": contact.pk,
+                    "responsible_salesperson_id": employee.pk,
+                    "priority": "NORMAL",
+                },
+            )
+            return "converted", str(converted.converted_enquiry_id)
+        except Exception as exc:  # The losing transaction must fail cleanly.
+            return "blocked", type(exc).__name__
+        finally:
+            connections.close_all()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _index: attempt_conversion(), range(2)))
+
+    submission.refresh_from_db()
+    assert [result[0] for result in results].count("converted") == 1
+    assert [result[0] for result in results].count("blocked") == 1
+    assert customer.enquiries.count() == 1
+    assert submission.review_status == ExternalEnquirySubmission.ReviewStatus.CONVERTED
 
 
 @pytest.mark.django_db

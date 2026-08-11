@@ -9,6 +9,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
+from apps.core.entity_registry import entity_key
 from apps.documents.models import Document, DocumentCategory, DocumentVersion
 from apps.documents.services import (
     add_version,
@@ -42,6 +43,10 @@ def category(company, **overrides):
     }
     values.update(overrides)
     return DocumentCategory.objects.create(**values)
+
+
+def test_document_category_is_registered_for_audit():
+    assert entity_key(DocumentCategory()) == "document_category"
 
 
 def grant(user, company, *codes):

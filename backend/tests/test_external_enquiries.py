@@ -1,4 +1,5 @@
 import base64
+import io
 import json
 import time
 import uuid
@@ -7,7 +8,9 @@ from threading import Barrier
 
 import pytest
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import close_old_connections, connections
+from openpyxl import Workbook
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -169,6 +172,99 @@ def test_manual_tradeindia_capture_preserves_source_and_supports_ownership(
     assert mine.data["pagination"]["count"] == 1
     assert unassigned.data["pagination"]["count"] == 0
     assert IncomingEnquirySourceEvent.objects.filter(submission=submission).count() == 1
+
+
+@pytest.mark.django_db
+def test_historical_csv_import_is_atomic_and_preserves_received_time(api_client, user, employee):
+    user.is_superuser = True
+    user.is_staff = True
+    user.save(update_fields=["is_superuser", "is_staff"])
+    api_client.force_authenticate(user)
+    contents = (
+        "received_at,channel,source_reference,person_name,company_name,email,phone,subject,message,priority\n"
+        "2025-04-01T10:30:00+05:30,PHONE,OLD-CALL-1,Ravi Shah,Legacy Controls,,919900001111,"
+        "Old panel enquiry,Need replacement starter panel,HIGH\n"
+    )
+
+    response = api_client.post(
+        "/api/v1/external-enquiries/import-history/",
+        {"file": SimpleUploadedFile("history.csv", contents.encode(), content_type="text/csv")},
+        format="multipart",
+    )
+
+    assert response.status_code == 201, response.data
+    assert response.data == {"imported": 1, "possible_duplicates": 0}
+    submission = ExternalEnquirySubmission.objects.get(external_submission_id="OLD-CALL-1")
+    assert submission.received_at.year == 2025
+    assert submission.source_history.get().metadata["historical_import"] is True
+
+
+@pytest.mark.django_db
+def test_historical_xlsx_import_and_invalid_file_rollback(api_client, user, employee):
+    user.is_superuser = True
+    user.is_staff = True
+    user.save(update_fields=["is_superuser", "is_staff"])
+    api_client.force_authenticate(user)
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.append(
+        [
+            "received_at",
+            "channel",
+            "source_reference",
+            "person_name",
+            "company_name",
+            "email",
+            "phone",
+            "subject",
+            "message",
+            "priority",
+        ]
+    )
+    worksheet.append(
+        [
+            "2025-05-02T09:15:00+05:30",
+            "Email",
+            "OLD-MAIL-1",
+            "Meera Rao",
+            "Rao Process",
+            "meera@example.test",
+            "",
+            "Legacy APFC request",
+            "Please quote the old APFC requirement.",
+            "Normal",
+        ]
+    )
+    stream = io.BytesIO()
+    workbook.save(stream)
+
+    accepted = api_client.post(
+        "/api/v1/external-enquiries/import-history/",
+        {
+            "file": SimpleUploadedFile(
+                "history.xlsx",
+                stream.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+        format="multipart",
+    )
+    invalid = api_client.post(
+        "/api/v1/external-enquiries/import-history/",
+        {
+            "file": SimpleUploadedFile(
+                "invalid.csv",
+                b"received_at,channel,person_name,subject,message\n2025-01-01,NOPE,A,B,C\n",
+                content_type="text/csv",
+            )
+        },
+        format="multipart",
+    )
+
+    assert accepted.status_code == 201, accepted.data
+    assert ExternalEnquirySubmission.objects.filter(external_submission_id="OLD-MAIL-1").exists()
+    assert invalid.status_code == 400
+    assert ExternalEnquirySubmission.objects.count() == 1
 
 
 @pytest.mark.django_db

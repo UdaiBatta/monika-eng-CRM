@@ -81,6 +81,7 @@ def create_manual_submission(*, actor, data):
         ).first()
         if not assigned_to:
             raise ValidationError("Choose an active employee from this company.")
+    historical_received_at = data.get("received_at")
     with transaction.atomic():
         reference = data.get("source_reference", "").strip()
         submission = ExternalEnquirySubmission.objects.create(
@@ -88,6 +89,7 @@ def create_manual_submission(*, actor, data):
             channel=data["channel"],
             source_type=SOURCE_TYPES[data["channel"]],
             external_submission_id=reference or f"IN-{uuid.uuid4().hex[:12].upper()}",
+            received_at=historical_received_at or timezone.now(),
             person_name=data["person_name"],
             company_name=data.get("company_name", ""),
             email=data.get("email", ""),
@@ -107,6 +109,14 @@ def create_manual_submission(*, actor, data):
             source_reference=reference,
             original_message=submission.message,
             captured_by=actor,
+            metadata=(
+                {
+                    "historical_import": True,
+                    "received_at": submission.received_at.isoformat(),
+                }
+                if historical_received_at
+                else {}
+            ),
         )
         matches = find_submission_candidates(submission)
         if matches["customers"] or matches["contacts"]:

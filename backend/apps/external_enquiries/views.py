@@ -1,9 +1,10 @@
 import hashlib
 
 from django.conf import settings
+from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,10 +13,13 @@ from apps.core.domain_events import publish
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 
 from .authentication import verify_website_request
+from .imports import parse_historical_enquiries
 from .intake import create_submission, enforce_rate_limit, find_submission_candidates
 from .models import ExternalEnquirySubmission
 from .serializers import (
     ExternalSubmissionSerializer,
+    HistoricalIncomingEnquiryImportSerializer,
+    HistoricalIncomingEnquiryRowSerializer,
     ManualIncomingEnquirySerializer,
     SubmissionAssignSerializer,
     SubmissionConversionSerializer,
@@ -96,6 +100,7 @@ class ExternalEnquirySubmissionViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyMod
         "assign": "crm.external_enquiry.assign",
         "take_ownership": "crm.external_enquiry.assign",
         "manual_capture": "crm.external_enquiry.review",
+        "import_history": "crm.external_enquiry.review",
         "convert": "crm.external_enquiry.convert",
         "reject": "crm.external_enquiry.reject",
         "mark_spam": "crm.external_enquiry.mark_spam",
@@ -131,6 +136,67 @@ class ExternalEnquirySubmissionViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyMod
         serializer.is_valid(raise_exception=True)
         submission = create_manual_submission(actor=request.user, data=serializer.validated_data)
         return Response(self.get_serializer(submission).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["post"], url_path="import-history")
+    def import_history(self, request):
+        upload_serializer = HistoricalIncomingEnquiryImportSerializer(data=request.data)
+        upload_serializer.is_valid(raise_exception=True)
+        rows = parse_historical_enquiries(upload_serializer.validated_data["file"])
+
+        validated_rows = []
+        errors = []
+        seen_references = set()
+        for row_number, row in enumerate(rows, start=2):
+            row_serializer = HistoricalIncomingEnquiryRowSerializer(data=row)
+            if not row_serializer.is_valid():
+                errors.append({"row": row_number, "errors": row_serializer.errors})
+                continue
+            data = row_serializer.validated_data
+            reference = data.get("source_reference", "").strip()
+            key = (data["channel"], reference)
+            if reference and key in seen_references:
+                errors.append({"row": row_number, "errors": {"source_reference": ["Duplicate in file."]}})
+                continue
+            if reference:
+                seen_references.add(key)
+            validated_rows.append((row_number, data))
+
+        employee = getattr(request.user, "employee", None)
+        if employee and seen_references:
+            existing = set(
+                ExternalEnquirySubmission.objects.filter(
+                    company_id=employee.company_id,
+                    external_submission_id__in=[reference for _, reference in seen_references],
+                ).values_list("channel", "external_submission_id")
+            )
+            for row_number, data in validated_rows:
+                reference = data.get("source_reference", "").strip()
+                if reference and (data["channel"], reference) in existing:
+                    errors.append(
+                        {
+                            "row": row_number,
+                            "errors": {"source_reference": ["Already exists for this source."]},
+                        }
+                    )
+
+        if errors:
+            raise ValidationError({"rows": errors})
+
+        with transaction.atomic():
+            created = [
+                create_manual_submission(actor=request.user, data=data)
+                for _, data in validated_rows
+            ]
+        return Response(
+            {
+                "imported": len(created),
+                "possible_duplicates": sum(
+                    item.duplicate_status == ExternalEnquirySubmission.DuplicateStatus.POSSIBLE
+                    for item in created
+                ),
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(detail=True, methods=["get"])
     def candidates(self, request, pk=None):

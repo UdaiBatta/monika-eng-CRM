@@ -110,7 +110,7 @@ class SubmissionAssignSerializer(serializers.Serializer):
 
 class ManualIncomingEnquirySerializer(serializers.Serializer):
     channel = serializers.ChoiceField(choices=ExternalEnquirySubmission.Channel.choices)
-    source_reference = serializers.CharField(max_length=250, required=False, allow_blank=True)
+    source_reference = serializers.CharField(max_length=160, required=False, allow_blank=True)
     person_name = serializers.CharField(max_length=200)
     company_name = serializers.CharField(max_length=250, required=False, allow_blank=True)
     email = serializers.EmailField(required=False, allow_blank=True)
@@ -138,6 +138,21 @@ class ManualIncomingEnquirySerializer(serializers.Serializer):
         } and not (attrs["email"] or attrs["phone"]):
             raise serializers.ValidationError("Add the available email address or phone number.")
         return attrs
+
+
+class HistoricalIncomingEnquiryRowSerializer(ManualIncomingEnquirySerializer):
+    received_at = serializers.DateTimeField()
+
+
+class HistoricalIncomingEnquiryImportSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+    def validate_file(self, value):
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("The import file must be 5 MB or smaller.")
+        if not value.name.lower().endswith((".csv", ".xlsx")):
+            raise serializers.ValidationError("Upload a .csv or .xlsx file.")
+        return value
 
 
 class SubmissionDecisionSerializer(serializers.Serializer):

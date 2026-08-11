@@ -1,8 +1,8 @@
 # Monika Engineers Integrated ERP
 
-Production Monika Engineers ERP/CRM foundation. Phase 1A–H and the Phase 2 Customer-to-Engineering commercial CRM vertical slice are implemented as an Axis CRM-based React application backed by a Django modular monolith, PostgreSQL, Redis, and Celery.
+Production Monika Engineers ERP/CRM foundation. Phase 1A-H and the Phase 2 Website-to-approved-Estimation commercial CRM vertical slice are implemented as an Axis CRM-based React application backed by a Django modular monolith and PostgreSQL, with Redis/Celery available for asynchronous production workloads.
 
-The current production path is Customer -> Contact/Site -> Enquiry/RFQ -> Requirements/Items -> Documents/Activities -> Engineering Feasibility -> Clarification -> Decision -> Ready for Estimation. Estimation, Quotation, Project execution, Drawing Management, BOM, purchasing, production, quality, dispatch, and service remain later phases.
+The current production path is signed Website Enquiry -> Human Review -> Customer/Contact -> Enquiry/RFQ -> Engineering Feasibility -> Commercial Estimation -> Shared Approval -> Ready for Quotation. Quotation, Project execution, Drawing Management, BOM, purchasing, production, quality, dispatch, and service remain later phases.
 
 ## Architecture
 
@@ -26,6 +26,8 @@ The browser uses same-origin session authentication and CSRF protection. Django 
 | Customers | `http://127.0.0.1:5173/app/crm/customers` |
 | Enquiries and RFQs | `http://127.0.0.1:5173/app/crm/enquiries` |
 | Engineering reviews | `http://127.0.0.1:5173/app/crm/engineering` |
+| Website enquiry inbox | `http://127.0.0.1:5173/app/crm/website-enquiries` |
+| Commercial estimates | `http://127.0.0.1:5173/app/crm/estimates` |
 | Sign in | `http://127.0.0.1:5173/login` |
 | Preserved Axis mockup | `http://127.0.0.1:5173/mockups/axis?view=home` |
 | Project 360 reference | `http://127.0.0.1:5173/mockups/axis?view=project` |
@@ -78,7 +80,7 @@ Vite proxies `/api` to Django on `127.0.0.1:8000`, keeping session cookies and C
 
 ## Run the backend without Docker
 
-Use Python 3.11 and point the environment at an accessible PostgreSQL and Redis instance:
+Use Python 3.11 and point the environment at an accessible PostgreSQL instance. Development settings use in-process cache and eager tasks, so Redis/Celery are not required for this local workflow:
 
 ```powershell
 python -m venv .venv
@@ -111,4 +113,4 @@ bun run build
 
 The approved requirement register is [`docs/phase-0/07-requirements-traceability.md`](docs/phase-0/07-requirements-traceability.md). Phase 1 evidence is in [`docs/phase-1`](docs/phase-1), and the Phase 2 handoff is in [`docs/phase-2`](docs/phase-2). The Axis mockups remain visual regression/reference material and were not replaced by production routes.
 
-The commercial CRM is complete only through Ready for Estimation. Do not treat the milestone as a completed sales or ERP lifecycle: there is no Estimate, Quotation, Project, Drawing Management, or BOM production module yet.
+The commercial CRM is complete through an approved current Estimate and the Ready for Quotation handoff. Do not treat the milestone as a completed sales or ERP lifecycle: there is no Quotation, Project, Drawing Management, or BOM production module yet.

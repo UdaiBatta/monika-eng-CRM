@@ -8,7 +8,7 @@ The production path is:
 
 `Customer -> Contact/Site -> Enquiry/RFQ -> Requirements/Items -> Activities/Documents -> Engineering Review -> Clarification -> Decision -> Ready for Estimation`.
 
-The browser uses live Django REST APIs and PostgreSQL records. The implementation does not contain static production data. Estimation, Quotation, Project, Drawing Management, BOM, and downstream operations are intentionally absent.
+The browser uses live Django REST APIs and PostgreSQL records. The implementation does not contain static production data. Secure Website Enquiry Intake and Commercial Estimation are now production routes; Quotation, Project, Drawing Management, BOM, and downstream operations remain intentionally absent.
 
 ## Architecture
 

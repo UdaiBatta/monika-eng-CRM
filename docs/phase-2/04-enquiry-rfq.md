@@ -14,7 +14,7 @@ The register is searchable, filterable, paginated, and based on live APIs. Enqui
 
 Commands receive the enquiry, start commercial review, send it to engineering, mark it lost, or cancel it. Direct status PATCH is rejected. Sending to engineering atomically creates exactly one current Engineering Feasibility Review.
 
-The stage tracker displays Ready for Estimation as the milestone outcome. Estimation and Quotation are visually identified as not built and have no routes or fake actions.
+The stage tracker continues through Ready for Estimation, Commercial Estimation, and the approved Ready for Quotation handoff. Estimation has controlled production routes. Quotation is explicitly shown as not implemented and has no route, record, or fake action.
 
 ## Main APIs
 

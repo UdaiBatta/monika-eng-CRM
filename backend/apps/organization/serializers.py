@@ -1,6 +1,12 @@
 from rest_framework import serializers
 
+from apps.core.tabular_imports import TabularImportUploadSerializer
+
 from .models import Branch, Company, Department, Designation, Employee, Warehouse
+
+
+class OrganizationImportUploadSerializer(TabularImportUploadSerializer):
+    pass
 
 
 class CleanModelSerializer(serializers.ModelSerializer):

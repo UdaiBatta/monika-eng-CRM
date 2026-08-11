@@ -16,12 +16,20 @@ from .intake import create_submission, enforce_rate_limit, find_submission_candi
 from .models import ExternalEnquirySubmission
 from .serializers import (
     ExternalSubmissionSerializer,
+    ManualIncomingEnquirySerializer,
     SubmissionAssignSerializer,
     SubmissionConversionSerializer,
     SubmissionDecisionSerializer,
     WebsiteIntakeSerializer,
 )
-from .services import _event, assign_submission, convert_submission, decide_submission
+from .services import (
+    _event,
+    assign_submission,
+    convert_submission,
+    create_manual_submission,
+    decide_submission,
+    take_ownership,
+)
 
 
 class PayloadTooLarge(APIException):
@@ -78,7 +86,7 @@ class ExternalEnquirySubmissionViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyMod
         "converted_enquiry",
         "reviewed_by",
         "converted_by",
-    ).prefetch_related("attachments")
+    ).prefetch_related("attachments", "source_history")
     serializer_class = ExternalSubmissionSerializer
     permission_classes = [HasFoundationPermission]
     permission_map = {
@@ -86,6 +94,8 @@ class ExternalEnquirySubmissionViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyMod
         "retrieve": "crm.external_enquiry.view",
         "candidates": "crm.external_enquiry.review",
         "assign": "crm.external_enquiry.assign",
+        "take_ownership": "crm.external_enquiry.assign",
+        "manual_capture": "crm.external_enquiry.review",
         "convert": "crm.external_enquiry.convert",
         "reject": "crm.external_enquiry.reject",
         "mark_spam": "crm.external_enquiry.mark_spam",
@@ -101,8 +111,26 @@ class ExternalEnquirySubmissionViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyMod
         "assigned_to",
         "priority",
         "source_type",
+        "channel",
     ]
     ordering_fields = ["received_at", "company_name", "person_name", "priority", "updated_at"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        queue = self.request.query_params.get("queue")
+        employee = getattr(self.request.user, "employee", None)
+        if queue == "mine":
+            return queryset.filter(assigned_to=employee) if employee else queryset.none()
+        if queue == "unassigned":
+            return queryset.filter(assigned_to__isnull=True)
+        return queryset
+
+    @action(detail=False, methods=["post"], url_path="manual-capture")
+    def manual_capture(self, request):
+        serializer = ManualIncomingEnquirySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        submission = create_manual_submission(actor=request.user, data=serializer.validated_data)
+        return Response(self.get_serializer(submission).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get"])
     def candidates(self, request, pk=None):
@@ -117,6 +145,11 @@ class ExternalEnquirySubmissionViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyMod
             actor=request.user,
             **serializer.validated_data,
         )
+        return Response(self.get_serializer(submission).data)
+
+    @action(detail=True, methods=["post"], url_path="take-ownership")
+    def take_ownership(self, request, pk=None):
+        submission = take_ownership(submission_id=self.get_object().pk, actor=request.user)
         return Response(self.get_serializer(submission).data)
 
     @action(detail=True, methods=["post"])

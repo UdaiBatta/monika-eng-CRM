@@ -17,7 +17,12 @@ from apps.enquiries.serializers import EnquirySerializer
 from apps.organization.models import Employee
 from apps.rbac.services import has_permission
 
-from .models import ExternalEnquiryAttachment, ExternalEnquirySubmission
+from .intake import find_submission_candidates, normalize_phone
+from .models import (
+    ExternalEnquiryAttachment,
+    ExternalEnquirySubmission,
+    IncomingEnquirySourceEvent,
+)
 
 
 def _employee_id(user):
@@ -26,7 +31,7 @@ def _employee_id(user):
 
 def _require(user, permission, submission):
     if not has_permission(user, permission, submission):
-        raise PermissionDenied("You do not have permission to manage this website enquiry.")
+        raise PermissionDenied("You do not have permission to manage this incoming enquiry.")
 
 
 def _event(name, submission, actor, action, summary, *, metadata=None, changes=None):
@@ -49,6 +54,93 @@ def _event(name, submission, actor, action, summary, *, metadata=None, changes=N
     )
 
 
+SOURCE_TYPES = {
+    ExternalEnquirySubmission.Channel.TRADEINDIA: ExternalEnquirySubmission.SourceType.MARKETPLACE,
+    ExternalEnquirySubmission.Channel.WHATSAPP: ExternalEnquirySubmission.SourceType.CHAT,
+    ExternalEnquirySubmission.Channel.PHONE: ExternalEnquirySubmission.SourceType.PHONE_CALL,
+    ExternalEnquirySubmission.Channel.EMAIL: ExternalEnquirySubmission.SourceType.EMAIL_MESSAGE,
+    ExternalEnquirySubmission.Channel.IN_PERSON: ExternalEnquirySubmission.SourceType.IN_PERSON,
+    ExternalEnquirySubmission.Channel.MANUAL: ExternalEnquirySubmission.SourceType.MANUAL_ENTRY,
+    ExternalEnquirySubmission.Channel.OTHER: ExternalEnquirySubmission.SourceType.OTHER,
+}
+
+
+def create_manual_submission(*, actor, data):
+    employee = Employee.objects.filter(user=actor, user__is_active=True).first()
+    if not employee or not has_permission(
+        actor, "crm.external_enquiry.review", {"company": employee.company_id}
+    ):
+        raise PermissionDenied("You do not have permission to capture incoming enquiries.")
+    assigned_to = None
+    if data.get("assigned_to_id"):
+        assigned_to = Employee.objects.filter(
+            pk=data["assigned_to_id"],
+            company_id=employee.company_id,
+            employment_status=Employee.EmploymentStatus.ACTIVE,
+            user__is_active=True,
+        ).first()
+        if not assigned_to:
+            raise ValidationError("Choose an active employee from this company.")
+    with transaction.atomic():
+        reference = data.get("source_reference", "").strip()
+        submission = ExternalEnquirySubmission.objects.create(
+            company_id=employee.company_id,
+            channel=data["channel"],
+            source_type=SOURCE_TYPES[data["channel"]],
+            external_submission_id=reference or f"IN-{uuid.uuid4().hex[:12].upper()}",
+            person_name=data["person_name"],
+            company_name=data.get("company_name", ""),
+            email=data.get("email", ""),
+            phone=data.get("phone", ""),
+            normalized_phone=normalize_phone(data.get("phone", "")),
+            subject=data["subject"],
+            message=data["message"],
+            review_status=ExternalEnquirySubmission.ReviewStatus.NEEDS_REVIEW,
+            spam_status=ExternalEnquirySubmission.SpamStatus.LIKELY_VALID,
+            assigned_to=assigned_to,
+            priority=data["priority"],
+            captured_by=actor,
+        )
+        IncomingEnquirySourceEvent.objects.create(
+            submission=submission,
+            channel=submission.channel,
+            source_reference=reference,
+            original_message=submission.message,
+            captured_by=actor,
+        )
+        matches = find_submission_candidates(submission)
+        if matches["customers"] or matches["contacts"]:
+            submission.duplicate_status = ExternalEnquirySubmission.DuplicateStatus.POSSIBLE
+            submission.review_status = ExternalEnquirySubmission.ReviewStatus.POSSIBLE_DUPLICATE
+            submission.save(update_fields=["duplicate_status", "review_status", "updated_at"])
+        publish(
+            _event(
+                "external_enquiry.received",
+                submission,
+                actor,
+                "CREATE",
+                f"{submission.get_channel_display()} enquiry captured",
+                metadata={
+                    "channel": submission.channel,
+                    "source_type": submission.source_type,
+                    "recipient_user_id": str(assigned_to.user_id) if assigned_to else None,
+                },
+            )
+        )
+        return submission
+
+
+def take_ownership(*, submission_id, actor):
+    employee = Employee.objects.filter(user=actor, user__is_active=True).first()
+    if not employee:
+        raise PermissionDenied("Your account is not linked to an active employee.")
+    return assign_submission(
+        submission_id=submission_id,
+        employee_id=employee.pk,
+        actor=actor,
+    )
+
+
 def assign_submission(*, submission_id, employee_id, actor, priority=None):
     with transaction.atomic():
         submission = ExternalEnquirySubmission.objects.select_for_update().get(pk=submission_id)
@@ -58,7 +150,7 @@ def assign_submission(*, submission_id, employee_id, actor, priority=None):
             ExternalEnquirySubmission.ReviewStatus.REJECTED,
             ExternalEnquirySubmission.ReviewStatus.SPAM,
         }:
-            raise ValidationError("This website enquiry is no longer available for assignment.")
+            raise ValidationError("This incoming enquiry is no longer available for assignment.")
         try:
             employee = Employee.objects.select_related("user").get(
                 pk=employee_id,
@@ -80,7 +172,7 @@ def assign_submission(*, submission_id, employee_id, actor, priority=None):
                 submission,
                 actor,
                 "ASSIGN",
-                f"Website enquiry assigned to {employee.display_name}",
+                f"Incoming enquiry assigned to {employee.display_name}",
                 metadata={"recipient_user_id": str(employee.user_id)},
                 changes={"assigned_to": {"old": str(previous or ""), "new": str(employee.pk)}},
             )
@@ -98,7 +190,7 @@ def decide_submission(*, submission_id, actor, target_status, reason):
         submission = ExternalEnquirySubmission.objects.select_for_update().get(pk=submission_id)
         _require(actor, permissions[target_status], submission)
         if submission.review_status == ExternalEnquirySubmission.ReviewStatus.CONVERTED:
-            raise ValidationError("A converted website enquiry cannot be changed.")
+            raise ValidationError("A converted incoming enquiry cannot be changed.")
         old_status = submission.review_status
         if target_status == ExternalEnquirySubmission.ReviewStatus.SPAM:
             submission.spam_status = ExternalEnquirySubmission.SpamStatus.SPAM
@@ -117,7 +209,7 @@ def decide_submission(*, submission_id, actor, target_status, reason):
                 submission,
                 actor,
                 "STATUS_CHANGE",
-                f"Website enquiry marked {submission.get_review_status_display().lower()}",
+                f"Incoming enquiry marked {submission.get_review_status_display().lower()}",
                 metadata={"reason": reason.strip()},
                 changes={"review_status": {"old": old_status, "new": target_status}},
             )
@@ -140,7 +232,7 @@ def _create_customer(submission, data, actor, request_context):
         data={
             **data,
             "company": str(submission.company_id),
-            "source": "Website",
+            "source": submission.get_channel_display(),
         },
         context={"request": request_context},
     )
@@ -164,7 +256,7 @@ def _create_contact(customer, data, actor, request_context):
 def _create_enquiry(submission, customer, contact, employee, priority, actor, request_context):
     product = ""
     if submission.product_name or submission.product_reference:
-        product = f"\n\nWebsite product: {submission.product_name or submission.product_reference}"
+        product = f"\n\nSource product: {submission.product_name or submission.product_reference}"
         if submission.product_reference:
             product += f" ({submission.product_reference})"
         if submission.product_url:
@@ -173,7 +265,7 @@ def _create_enquiry(submission, customer, contact, employee, priority, actor, re
         data={
             "customer": str(customer.pk),
             "customer_contact": str(contact.pk),
-            "source": "Website",
+            "source": submission.get_channel_display(),
             "received_date": timezone.localtime(submission.received_at).date().isoformat(),
             "customer_reference": submission.external_submission_id,
             "subject": submission.subject,
@@ -193,7 +285,7 @@ def _promote_attachment(attachment, category, enquiry, actor, stored_keys):
     if category.company_id != enquiry.company_id or not category.is_active:
         raise ValidationError("Choose an active document category from this company.")
     if not has_permission(actor, "documents.document.upload", enquiry):
-        raise PermissionDenied("You do not have permission to promote website attachments.")
+        raise PermissionDenied("You do not have permission to promote incoming enquiry attachments.")
     storage = get_storage()
     document_id, version_id = uuid.uuid4(), uuid.uuid4()
     key = f"company/{enquiry.company_id}/documents/{document_id}/{version_id}"
@@ -203,8 +295,8 @@ def _promote_attachment(attachment, category, enquiry, actor, stored_keys):
     document = Document.objects.create(
         id=document_id,
         company=enquiry.company,
-        title=f"Website enquiry - {attachment.safe_display_filename}",
-        description=f"Promoted from website submission {attachment.submission.external_submission_id}",
+        title=f"Incoming enquiry - {attachment.safe_display_filename}",
+        description=f"Promoted from source submission {attachment.submission.external_submission_id}",
         category=category,
         created_by=actor,
         created_by_name=getattr(getattr(actor, "employee", None), "display_name", actor.email),
@@ -236,7 +328,7 @@ def _promote_attachment(attachment, category, enquiry, actor, stored_keys):
         entity_type="enquiry",
         entity_id=str(enquiry.pk),
         entity_reference=str(enquiry),
-        relationship_type="WEBSITE_RFQ",
+        relationship_type="CUSTOMER_RFQ",
         linked_by=actor,
     )
     attachment.promoted_document = document
@@ -259,12 +351,12 @@ def convert_submission(*, submission_id, actor, data):
             )
             _require(actor, "crm.external_enquiry.convert", submission)
             if submission.review_status == ExternalEnquirySubmission.ReviewStatus.CONVERTED:
-                raise ValidationError("This website enquiry has already been converted.")
+                raise ValidationError("This incoming enquiry has already been converted.")
             if submission.review_status in {
                 ExternalEnquirySubmission.ReviewStatus.REJECTED,
                 ExternalEnquirySubmission.ReviewStatus.SPAM,
             }:
-                raise ValidationError("Restore this website enquiry for review before converting it.")
+                raise ValidationError("Restore this incoming enquiry for review before converting it.")
             try:
                 employee = Employee.objects.select_related("user").get(
                     pk=data["responsible_salesperson_id"],
@@ -305,7 +397,7 @@ def convert_submission(*, submission_id, actor, data):
             attachments = list(submission.attachments.filter(promoted_document__isnull=True))
             if attachments:
                 if not data.get("document_category_id"):
-                    raise ValidationError("Choose a document category for the website attachments.")
+                    raise ValidationError("Choose a document category for the incoming attachments.")
                 category = DocumentCategory.objects.get(
                     pk=data["document_category_id"], company_id=submission.company_id
                 )
@@ -319,7 +411,7 @@ def convert_submission(*, submission_id, actor, data):
                         "contact": str(contact.pk),
                         "enquiry": str(enquiry.pk),
                         "activity_type": CrmActivity.ActivityType.FOLLOW_UP,
-                        "subject": f"Follow up website enquiry {enquiry.enquiry_number}",
+                        "subject": f"Follow up incoming enquiry {enquiry.enquiry_number}",
                         "next_follow_up_at": data["follow_up_at"],
                         "follow_up_owner": str(employee.pk),
                         "priority": data["priority"],
@@ -350,7 +442,7 @@ def convert_submission(*, submission_id, actor, data):
                     submission,
                     actor,
                     "CONVERT",
-                    f"Website enquiry converted to {enquiry.enquiry_number}",
+                    f"Incoming enquiry converted to {enquiry.enquiry_number}",
                     metadata={
                         "enquiry_id": str(enquiry.pk),
                         "customer_id": str(customer.pk),

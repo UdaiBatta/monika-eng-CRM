@@ -17,7 +17,11 @@ from apps.crm.services import find_customer_duplicates
 from apps.documents.storage import get_storage
 from apps.documents.validators import validate_upload
 
-from .models import ExternalEnquiryAttachment, ExternalEnquirySubmission
+from .models import (
+    ExternalEnquiryAttachment,
+    ExternalEnquirySubmission,
+    IncomingEnquirySourceEvent,
+)
 
 
 class IntakeConflict(APIException):
@@ -199,6 +203,17 @@ def create_submission(*, credential, request_id, payload, payload_checksum, requ
                 user_agent=request.headers.get("User-Agent", "")[:500],
                 spam_status=spam_status,
                 review_status=review_status,
+            )
+            IncomingEnquirySourceEvent.objects.create(
+                submission=submission,
+                channel=submission.channel,
+                source_reference=submission.external_submission_id,
+                original_message=submission.message,
+                metadata={
+                    "source_type": submission.source_type,
+                    "source_page_url": submission.source_page_url,
+                    "product_reference": submission.product_reference,
+                },
             )
             for content, validated in validated_attachments:
                 attachment_id = uuid.uuid4()

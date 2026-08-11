@@ -42,11 +42,25 @@ class IntegrationCredential(TimeStampedModel):
 class ExternalEnquirySubmission(TimeStampedModel):
     class Channel(models.TextChoices):
         WEBSITE = "WEBSITE", "Website"
+        TRADEINDIA = "TRADEINDIA", "TradeIndia"
+        WHATSAPP = "WHATSAPP", "WhatsApp"
+        PHONE = "PHONE", "Phone"
+        EMAIL = "EMAIL", "Email"
+        IN_PERSON = "IN_PERSON", "In person"
+        MANUAL = "MANUAL", "Manual"
+        OTHER = "OTHER", "Other"
 
     class SourceType(models.TextChoices):
         CONTACT_FORM = "CONTACT_FORM", "Contact form"
         PRODUCT_QUOTE = "PRODUCT_QUOTE", "Product request quote"
         CAMPAIGN = "CAMPAIGN", "Campaign form"
+        MARKETPLACE = "MARKETPLACE", "Marketplace enquiry"
+        CHAT = "CHAT", "Chat message"
+        PHONE_CALL = "PHONE_CALL", "Phone call"
+        EMAIL_MESSAGE = "EMAIL_MESSAGE", "Email message"
+        IN_PERSON = "IN_PERSON", "In-person conversation"
+        MANUAL_ENTRY = "MANUAL_ENTRY", "Manual entry"
+        OTHER = "OTHER", "Other"
 
     class SpamStatus(models.TextChoices):
         UNKNOWN = "UNKNOWN", "Not screened"
@@ -76,14 +90,18 @@ class ExternalEnquirySubmission(TimeStampedModel):
 
     company = models.ForeignKey(Company, on_delete=models.PROTECT, related_name="external_enquiries")
     credential = models.ForeignKey(
-        IntegrationCredential, on_delete=models.PROTECT, related_name="submissions"
+        IntegrationCredential,
+        on_delete=models.PROTECT,
+        related_name="submissions",
+        null=True,
+        blank=True,
     )
     channel = models.CharField(max_length=30, choices=Channel.choices, default=Channel.WEBSITE)
     source_type = models.CharField(max_length=30, choices=SourceType.choices)
     external_submission_id = models.CharField(max_length=160)
-    idempotency_key = models.CharField(max_length=160)
-    request_id = models.CharField(max_length=160)
-    payload_checksum = models.CharField(max_length=64)
+    idempotency_key = models.CharField(max_length=160, blank=True)
+    request_id = models.CharField(max_length=160, blank=True)
+    payload_checksum = models.CharField(max_length=64, blank=True)
     received_at = models.DateTimeField(default=timezone.now)
     submitted_at = models.DateTimeField(null=True, blank=True)
     person_name = models.CharField(max_length=200)
@@ -136,6 +154,13 @@ class ExternalEnquirySubmission(TimeStampedModel):
     )
     assigned_to = models.ForeignKey(
         Employee, on_delete=models.PROTECT, related_name="assigned_external_enquiries", null=True, blank=True
+    )
+    captured_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="captured_incoming_enquiries",
+        null=True,
+        blank=True,
     )
     priority = models.CharField(max_length=20, choices=Priority.choices, default=Priority.NORMAL)
     reviewed_by = models.ForeignKey(
@@ -204,7 +229,12 @@ class ExternalEnquirySubmission(TimeStampedModel):
             errors["converted_enquiry"] = "A converted submission must link to its CRM enquiry."
         if self.converted_enquiry_id and self.review_status != self.ReviewStatus.CONVERTED:
             errors["review_status"] = "A submission linked to an enquiry must be marked converted."
-        if not self.email and not self.phone:
+        if (
+            not self.email
+            and not self.phone
+            and self.channel
+            not in {self.Channel.IN_PERSON, self.Channel.MANUAL, self.Channel.OTHER}
+        ):
             errors["email"] = "Provide an email address or phone number."
         if errors:
             raise ValidationError(errors)
@@ -219,6 +249,35 @@ class ExternalEnquirySubmission(TimeStampedModel):
 
     def __str__(self):
         return f"{self.external_submission_id} - {self.company_name or self.person_name}"
+
+
+class IncomingEnquirySourceEvent(TimeStampedModel):
+    submission = models.ForeignKey(
+        ExternalEnquirySubmission,
+        on_delete=models.PROTECT,
+        related_name="source_history",
+    )
+    channel = models.CharField(max_length=30, choices=ExternalEnquirySubmission.Channel.choices)
+    source_reference = models.CharField(max_length=250, blank=True)
+    original_message = models.TextField()
+    captured_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="incoming_enquiry_source_events",
+        null=True,
+        blank=True,
+    )
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    @property
+    def company_id(self):
+        return self.submission.company_id
+
+    def __str__(self):
+        return f"{self.submission.external_submission_id} - {self.get_channel_display()}"
 
 
 class ExternalEnquiryAttachment(TimeStampedModel):

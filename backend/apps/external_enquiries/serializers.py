@@ -4,7 +4,11 @@ from rest_framework import serializers
 
 from apps.crm.models import Customer
 
-from .models import ExternalEnquiryAttachment, ExternalEnquirySubmission
+from .models import (
+    ExternalEnquiryAttachment,
+    ExternalEnquirySubmission,
+    IncomingEnquirySourceEvent,
+)
 
 
 class IntakeAttachmentSerializer(serializers.Serializer):
@@ -60,8 +64,19 @@ class ExternalAttachmentSerializer(serializers.ModelSerializer):
         read_only_fields = [field.name for field in ExternalEnquiryAttachment._meta.fields]
 
 
+class IncomingSourceEventSerializer(serializers.ModelSerializer):
+    channel_label = serializers.CharField(source="get_channel_display", read_only=True)
+
+    class Meta:
+        model = IncomingEnquirySourceEvent
+        exclude = ["updated_at"]
+        read_only_fields = [field.name for field in IncomingEnquirySourceEvent._meta.fields]
+
+
 class ExternalSubmissionSerializer(serializers.ModelSerializer):
     attachments = ExternalAttachmentSerializer(many=True, read_only=True)
+    source_history = IncomingSourceEventSerializer(many=True, read_only=True)
+    channel_label = serializers.CharField(source="get_channel_display", read_only=True)
     assigned_to_name = serializers.CharField(source="assigned_to.display_name", read_only=True)
     matched_customer_name = serializers.CharField(source="matched_customer.legal_name", read_only=True)
     matched_contact_name = serializers.CharField(source="matched_contact.display_name", read_only=True)
@@ -91,6 +106,38 @@ class ExternalSubmissionSerializer(serializers.ModelSerializer):
 class SubmissionAssignSerializer(serializers.Serializer):
     employee_id = serializers.UUIDField()
     priority = serializers.ChoiceField(choices=ExternalEnquirySubmission.Priority.choices, required=False)
+
+
+class ManualIncomingEnquirySerializer(serializers.Serializer):
+    channel = serializers.ChoiceField(choices=ExternalEnquirySubmission.Channel.choices)
+    source_reference = serializers.CharField(max_length=250, required=False, allow_blank=True)
+    person_name = serializers.CharField(max_length=200)
+    company_name = serializers.CharField(max_length=250, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    subject = serializers.CharField(max_length=250)
+    message = serializers.CharField(max_length=10000)
+    assigned_to_id = serializers.UUIDField(required=False, allow_null=True)
+    priority = serializers.ChoiceField(
+        choices=ExternalEnquirySubmission.Priority.choices,
+        default=ExternalEnquirySubmission.Priority.NORMAL,
+    )
+
+    def validate(self, attrs):
+        if attrs["channel"] == ExternalEnquirySubmission.Channel.WEBSITE:
+            raise serializers.ValidationError(
+                "Website enquiries must use the signed website integration endpoint."
+            )
+        attrs["email"] = attrs.get("email", "").strip().lower()
+        attrs["phone"] = attrs.get("phone", "").strip()
+        if attrs["channel"] in {
+            ExternalEnquirySubmission.Channel.TRADEINDIA,
+            ExternalEnquirySubmission.Channel.WHATSAPP,
+            ExternalEnquirySubmission.Channel.PHONE,
+            ExternalEnquirySubmission.Channel.EMAIL,
+        } and not (attrs["email"] or attrs["phone"]):
+            raise serializers.ValidationError("Add the available email address or phone number.")
+        return attrs
 
 
 class SubmissionDecisionSerializer(serializers.Serializer):

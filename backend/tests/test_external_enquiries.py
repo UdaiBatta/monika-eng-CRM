@@ -16,6 +16,7 @@ from apps.external_enquiries.authentication import sign_payload
 from apps.external_enquiries.models import (
     ExternalEnquiryAttachment,
     ExternalEnquirySubmission,
+    IncomingEnquirySourceEvent,
     IntegrationCredential,
 )
 from apps.external_enquiries.services import convert_submission
@@ -125,6 +126,49 @@ def test_signed_intake_is_audited_and_idempotent(api_client, credential):
         entity_id=str(submission.pk),
         event_type="external_enquiry.received",
     ).exists()
+    assert submission.source_history.get().original_message == data["message"]
+
+
+@pytest.mark.django_db
+def test_manual_tradeindia_capture_preserves_source_and_supports_ownership(
+    api_client, user, employee
+):
+    user.is_superuser = True
+    user.is_staff = True
+    user.save(update_fields=["is_superuser", "is_staff"])
+    api_client.force_authenticate(user)
+
+    created = api_client.post(
+        "/api/v1/external-enquiries/manual-capture/",
+        {
+            "channel": "TRADEINDIA",
+            "source_reference": "TI-RFQ-2026-104",
+            "person_name": "Priya Shah",
+            "company_name": "Shah Automation",
+            "phone": "+91 98888 77665",
+            "subject": "APFC panel requirement",
+            "message": "Need an APFC panel quotation for our new plant.",
+            "priority": "HIGH",
+        },
+        format="json",
+    )
+
+    assert created.status_code == 201, created.data
+    submission = ExternalEnquirySubmission.objects.get(pk=created.data["id"])
+    assert submission.channel == ExternalEnquirySubmission.Channel.TRADEINDIA
+    assert submission.source_type == ExternalEnquirySubmission.SourceType.MARKETPLACE
+    assert submission.assigned_to is None
+    assert submission.source_history.get().source_reference == "TI-RFQ-2026-104"
+
+    claimed = api_client.post(f"/api/v1/external-enquiries/{submission.pk}/take-ownership/")
+    mine = api_client.get("/api/v1/external-enquiries/?queue=mine")
+    unassigned = api_client.get("/api/v1/external-enquiries/?queue=unassigned")
+
+    assert claimed.status_code == 200, claimed.data
+    assert str(claimed.data["assigned_to"]) == str(employee.pk)
+    assert mine.data["pagination"]["count"] == 1
+    assert unassigned.data["pagination"]["count"] == 0
+    assert IncomingEnquirySourceEvent.objects.filter(submission=submission).count() == 1
 
 
 @pytest.mark.django_db

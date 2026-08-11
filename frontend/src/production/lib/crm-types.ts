@@ -406,3 +406,78 @@ export type ExternalEnquiryCandidates = {
     reasons: string[];
   }>;
 };
+
+export type EstimateCostLine = {
+  id: Identifier;
+  estimate: Identifier;
+  line_number: number;
+  category: string;
+  description: string;
+  quantity: string;
+  unit_of_measure: string;
+  unit_cost: string;
+  amount: string;
+  source_reference: string;
+  notes: string;
+  is_optional: boolean;
+};
+
+export type CommercialEstimate = {
+  id: Identifier;
+  company: Identifier;
+  enquiry: Identifier;
+  enquiry_number: string;
+  enquiry_subject: string;
+  customer_id: Identifier;
+  customer_code: string;
+  customer_name: string;
+  sales_owner_name: string;
+  engineering_review: Identifier;
+  engineering_review_revision: number;
+  estimate_number: string;
+  revision_number: number;
+  is_current: boolean;
+  status: string;
+  currency: Identifier;
+  currency_code: string;
+  currency_symbol: string;
+  pricing_method?: string;
+  markup_percent?: string;
+  target_margin_percent?: string;
+  manual_selling_price?: string | null;
+  total_cost?: string;
+  proposed_selling_price?: string;
+  gross_margin_amount?: string;
+  gross_margin_percent?: string;
+  category_totals?: Record<string, string>;
+  assumptions: string;
+  exclusions: string;
+  commercial_notes: string;
+  technical_reference_summary: string;
+  prepared_by_name: string;
+  submitted_at: string | null;
+  submitted_by_name: string;
+  approved_at: string | null;
+  approved_by_name: string;
+  approval_request: Identifier | null;
+  approval_status: string;
+  supersedes: Identifier | null;
+  cost_lines?: EstimateCostLine[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type EstimateWorkspace = {
+  estimate: CommercialEstimate;
+  enquiry: Enquiry;
+  documents: ERPDocument[];
+  approvals: Array<{
+    id: Identifier;
+    workflow_name: string;
+    status: string;
+    status_label: string;
+    current_step_name: string | null;
+    requested_at: string;
+  }>;
+  timeline: AuditEvent[];
+};

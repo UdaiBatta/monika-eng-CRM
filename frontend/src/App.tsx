@@ -58,6 +58,8 @@ const EngineeringPage = lazy(
 const EngineeringReviewPage = lazy(
   () => import("@/production/pages/engineering-review-page"),
 );
+const EstimatesPage = lazy(() => import("@/production/pages/estimates-page"));
+const EstimatePage = lazy(() => import("@/production/pages/estimate-page"));
 
 function PageLoading() {
   return (
@@ -134,6 +136,8 @@ export default function App() {
                 path="crm/engineering/:reviewId"
                 element={<EngineeringReviewPage />}
               />
+              <Route path="crm/estimates" element={<EstimatesPage />} />
+              <Route path="crm/estimates/:estimateId" element={<EstimatePage />} />
 
               <Route
                 path="organization"

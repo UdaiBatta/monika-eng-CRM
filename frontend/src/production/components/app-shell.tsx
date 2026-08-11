@@ -5,6 +5,7 @@ import {
   Bell,
   Building2,
   ChevronRight,
+  CircleDollarSign,
   ClipboardCheck,
   ClipboardList,
   Contact,
@@ -111,6 +112,12 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         to: "/app/crm/engineering",
         icon: Wrench,
         permission: "engineering.feasibility.view",
+      },
+      {
+        label: "Commercial estimates",
+        to: "/app/crm/estimates",
+        icon: CircleDollarSign,
+        permission: "estimation.estimate.view",
       },
       {
         label: "Activities & follow-ups",

@@ -131,6 +131,27 @@ describe("quotation frontend", () => {
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith("/quotations/", { path: "STANDARD", customer_id: "customer-1", enquiry_id: "enquiry-1", estimate_id: "estimate-1" }));
   });
 
+  it("allows a prospect customer through the permission-gated quick path", async () => {
+    mocks.apiGet.mockImplementation((path: string) => {
+      if (path.startsWith("/customers/")) return Promise.resolve({ results: [{ id: "customer-1", customer_code: "CUST-0001", legal_name: "ABC Industries Pvt. Ltd.", status: "PROSPECT" }], pagination });
+      return Promise.resolve({ results: [], pagination: { ...pagination, count: 0 } });
+    });
+    mocks.apiPost.mockResolvedValue({ ...quotation, path: "QUICK", estimate: null, enquiry: null });
+    const user = userEvent.setup();
+    renderAt(<QuotationsPage />, "/app/crm/quotations");
+
+    await user.click(await screen.findByRole("button", { name: "New quotation" }));
+    await user.click(screen.getByRole("button", { name: /Quick Direct commercial offer/ }));
+    await user.selectOptions(await screen.findByLabelText("Customer"), "customer-1");
+    await user.type(screen.getByLabelText("Why is the quick path appropriate?"), "Standard replacement item with agreed pricing.");
+    await user.type(screen.getByLabelText("Offer description"), "Replacement contactor");
+    await user.clear(screen.getByLabelText("Unit price"));
+    await user.type(screen.getByLabelText("Unit price"), "15000");
+    await user.click(screen.getByRole("button", { name: "Create draft" }));
+
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith("/quotations/", expect.objectContaining({ path: "QUICK", customer_id: "customer-1", quick_reason: "Standard replacement item with agreed pricing." })));
+  });
+
   it("saves a versioned quotation draft through the focused builder", async () => {
     mocks.apiGet.mockImplementation((path: string) => {
       if (path === "/quotations/quotation-1/") return Promise.resolve(quotation);

@@ -28,6 +28,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/theme-switch";
 import {
   Sheet,
   SheetContent,
@@ -371,6 +372,7 @@ function Header() {
           </p>
           <p className="text-xs text-muted-foreground">Secure session</p>
         </div>
+        <ThemeToggle />
         <ERPNotificationBell />
       </div>
     </header>

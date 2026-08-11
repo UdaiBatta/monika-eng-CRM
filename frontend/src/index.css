@@ -55,6 +55,36 @@
 }
 
 .axis-erp {
+  --background: oklch(0.975 0.006 75);
+  --foreground: oklch(0.2 0.018 238);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.018 238);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.018 238);
+  --primary: oklch(0.64 0.18 55);
+  --primary-foreground: oklch(0.99 0.005 75);
+  --secondary: oklch(0.93 0.012 75);
+  --secondary-foreground: oklch(0.24 0.02 238);
+  --muted: oklch(0.94 0.01 75);
+  --muted-foreground: oklch(0.48 0.025 238);
+  --accent: oklch(0.93 0.035 67);
+  --accent-foreground: oklch(0.25 0.025 238);
+  --destructive: oklch(0.57 0.21 27);
+  --border: oklch(0.82 0.025 70);
+  --input: oklch(0.87 0.018 70);
+  --ring: oklch(0.64 0.18 55);
+  --radius: 0.42rem;
+  --erp-sidebar: oklch(0.105 0.018 238);
+  --status-success: oklch(0.5 0.14 157);
+  --status-warning: oklch(0.6 0.15 76);
+  --status-warning-foreground: oklch(0.45 0.13 76);
+  --status-critical: oklch(0.57 0.19 27);
+  --status-info: oklch(0.52 0.12 210);
+  color-scheme: light;
+  font-size: 14px;
+}
+
+.dark .axis-erp {
   --background: oklch(0.145 0.02 238);
   --foreground: oklch(0.93 0.01 225);
   --card: oklch(0.185 0.025 232);

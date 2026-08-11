@@ -158,6 +158,6 @@ describe("quotation frontend", () => {
 
     await user.click(await screen.findByRole("button", { name: "Save version 3" }));
     expect(await screen.findByText("A newer version is available")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Refresh latest version" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load latest version" })).toBeInTheDocument();
   });
 });

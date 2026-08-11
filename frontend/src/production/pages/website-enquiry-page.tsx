@@ -257,7 +257,7 @@ export default function WebsiteEnquiryPage() {
             </Button>
             {viewers.length ? (
               <span className="rounded-full border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
-                {viewers.length} {viewers.length === 1 ? "colleague" : "colleagues"} here
+                {viewers.length} active {viewers.length === 1 ? "viewer" : "viewers"}
               </span>
             ) : null}
             <ERPStatusBadge value={item.review_status} />

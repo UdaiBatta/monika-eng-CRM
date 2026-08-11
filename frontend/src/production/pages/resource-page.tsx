@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Pencil, Plus, Search } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Pencil, Plus, Search, Upload } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -19,7 +20,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
-import { ApiError, apiGet, apiPatch, apiPost } from "@/production/lib/api"
+import { ApiError, apiGet, apiPatch, apiPost, apiUpload } from "@/production/lib/api"
 import { hasPermission, useCurrentUser } from "@/production/lib/auth"
 import { resourceConfigs, type ResourceConfig, type ResourceField } from "@/production/lib/resource-config"
 import type { FoundationRecord, Paginated } from "@/production/lib/types"
@@ -52,6 +53,22 @@ function cleanValues(config: ResourceConfig, values: FormValues) {
 function errorMessages(error: unknown) {
   if (!(error instanceof ApiError) || !error.details || typeof error.details !== "object") return {}
   return error.details as Record<string, string[] | string>
+}
+
+function csvCell(value: string) {
+  return `"${value.replaceAll('"', '""')}"`
+}
+
+function downloadImportTemplate(config: ResourceConfig) {
+  if (!config.importTemplate) return
+  const rows = [config.importTemplate.headers, config.importTemplate.example]
+  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\r\n")
+  const url = URL.createObjectURL(new Blob([`\uFEFF${csv}\r\n`], { type: "text/csv;charset=utf-8" }))
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = `monika-${config.key}-import-template.csv`
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 export function ResourceRecordForm({
@@ -212,11 +229,14 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
   const config = resourceConfigs[resourceKey]
   const { data: user } = useCurrentUser()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
   const [ordering, setOrdering] = useState("")
   const [formRecord, setFormRecord] = useState<FoundationRecord | null | undefined>(undefined)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
   const canManage = hasPermission(user, config.managePermission)
   const query = useQuery({
     queryKey: ["resource", config.key, page, search, ordering],
@@ -225,6 +245,19 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
       if (search) params.set("search", search)
       if (ordering) params.set("ordering", ordering)
       return apiGet<Paginated<FoundationRecord>>(`${config.endpoint}?${params}`)
+    },
+  })
+  const bulkImport = useMutation({
+    mutationFn: (file: File) => {
+      const body = new FormData()
+      body.append("file", file)
+      return apiUpload<{ imported: number }>(`${config.endpoint}import-history/`, body)
+    },
+    onSuccess: async ({ imported }) => {
+      await queryClient.invalidateQueries({ queryKey: ["resource", config.key] })
+      setImportOpen(false)
+      setImportFile(null)
+      toast.success(`${imported} ${imported === 1 ? config.singular : config.title.toLowerCase()} imported.`)
     },
   })
 
@@ -243,11 +276,22 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
     setPage(1)
   }
 
+  function closeImport() {
+    setImportOpen(false)
+    setImportFile(null)
+    bulkImport.reset()
+  }
+
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div><h2 className="text-2xl font-semibold tracking-tight">{config.title}</h2><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{config.description}</p></div>
-        {canManage ? <Button onClick={openCreate}><Plus data-icon="inline-start" />New {config.singular}</Button> : null}
+        {canManage ? (
+          <div className="flex flex-wrap gap-2">
+            {config.importTemplate ? <Button variant="outline" onClick={() => setImportOpen(true)}><Upload data-icon="inline-start" />Import previous data</Button> : null}
+            <Button onClick={openCreate}><Plus data-icon="inline-start" />New {config.singular}</Button>
+          </div>
+        ) : null}
       </div>
 
       <Card>
@@ -331,6 +375,37 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
           </div>
         </SheetContent>
       </Sheet>
+
+      {config.importTemplate ? (
+        <Dialog open={importOpen} onOpenChange={(open) => { if (open) setImportOpen(true); else closeImport() }}>
+          <DialogContent className="sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Import previous {config.title.toLowerCase()}</DialogTitle>
+              <DialogDescription>Upload Excel or CSV data exported from your current spreadsheet or Google Sheets.</DialogDescription>
+            </DialogHeader>
+            <Alert>
+              <FileSpreadsheet />
+              <AlertTitle>Safe, all-or-nothing import</AlertTitle>
+              <AlertDescription>Up to 500 rows and 5 MB. If any row is invalid or already exists, nothing from the file is imported.</AlertDescription>
+            </Alert>
+            <Field>
+              <FieldLabel htmlFor={`${config.key}-import-file`}>CSV or Excel file</FieldLabel>
+              <Input id={`${config.key}-import-file`} type="file" accept=".csv,.xlsx" onChange={(event) => setImportFile(event.target.files?.[0] ?? null)} />
+              <FieldDescription>Required columns: {config.importTemplate.required.join(", ")}.</FieldDescription>
+            </Field>
+            {config.importTemplate.note ? <p className="text-sm text-muted-foreground">{config.importTemplate.note}</p> : null}
+            <Button variant="outline" className="justify-self-start" onClick={() => downloadImportTemplate(config)}><Download data-icon="inline-start" />Download CSV template</Button>
+            {bulkImport.isError ? <Alert variant="destructive"><AlertTitle>Data could not be imported</AlertTitle><AlertDescription>{bulkImport.error.message}</AlertDescription></Alert> : null}
+            <DialogFooter>
+              <Button variant="outline" onClick={closeImport}>Cancel</Button>
+              <Button onClick={() => importFile && bulkImport.mutate(importFile)} disabled={!importFile || bulkImport.isPending}>
+                {bulkImport.isPending ? <Spinner data-icon="inline-start" /> : <Upload data-icon="inline-start" />}
+                {bulkImport.isPending ? "Importing…" : "Import data"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </div>
   )
 }

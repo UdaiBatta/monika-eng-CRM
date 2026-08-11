@@ -2,30 +2,18 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
-  BadgeCheck,
-  Bell,
-  Building2,
   ChevronRight,
-  CircleDollarSign,
   ClipboardCheck,
   ClipboardList,
   Contact,
-  Database,
-  FileKey2,
   FileText,
   Files,
   Gauge,
-  GitBranch,
   Globe2,
-  Layers3,
   LogOut,
   Menu,
-  Network,
   Settings2,
-  ShieldCheck,
   Users,
-  Warehouse,
-  Wrench,
   Wifi,
   WifiOff,
 } from "lucide-react";
@@ -62,67 +50,26 @@ type NavItem = {
 
 const navigation: Array<{ label: string; items: NavItem[] }> = [
   {
-    label: "Workspace",
+    label: "Daily work",
     items: [
-      { label: "Workspace overview", to: "/app", icon: Gauge },
+      { label: "Home", to: "/app", icon: Gauge },
       {
-        label: "Employees",
-        to: "/app/employees",
-        icon: Users,
-        permission: "organization.employee.view",
-      },
-      {
-        label: "Documents",
-        to: "/app/documents",
-        icon: Files,
-        permission: "documents.document.view",
-      },
-      {
-        label: "My approvals",
-        to: "/app/approvals",
-        icon: ClipboardCheck,
-        permission: "approvals.request.view",
-      },
-      {
-        label: "Activity history",
-        to: "/app/activity-history",
-        icon: Activity,
-        permission: "audit.event.view",
-      },
-    ],
-  },
-  {
-    label: "Commercial CRM",
-    items: [
-      {
-        label: "Customers",
-        to: "/app/crm/customers",
-        icon: Contact,
-        permission: "crm.customer.view",
-      },
-      {
-        label: "Enquiries & RFQs",
-        to: "/app/crm/enquiries",
-        icon: ClipboardList,
-        permission: "enquiry.enquiry.view",
-      },
-      {
-        label: "Incoming enquiries",
+        label: "New enquiries",
         to: "/app/crm/incoming-enquiries",
         icon: Globe2,
         permission: "crm.external_enquiry.view",
       },
       {
-        label: "Engineering reviews",
-        to: "/app/crm/engineering",
-        icon: Wrench,
-        permission: "engineering.feasibility.view",
+        label: "Active enquiries",
+        to: "/app/crm/enquiries",
+        icon: ClipboardList,
+        permission: "enquiry.enquiry.view",
       },
       {
-        label: "Commercial estimates",
-        to: "/app/crm/estimates",
-        icon: CircleDollarSign,
-        permission: "estimation.estimate.view",
+        label: "Customers",
+        to: "/app/crm/customers",
+        icon: Contact,
+        permission: "crm.customer.view",
       },
       {
         label: "Quotations",
@@ -131,7 +78,7 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         permission: "crm.quotation.view",
       },
       {
-        label: "Activities & follow-ups",
+        label: "Follow-ups",
         to: "/app/crm/activities",
         icon: Activity,
         permission: "crm.activity.view",
@@ -139,98 +86,47 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
     ],
   },
   {
-    label: "Organization",
+    label: "Shared",
     items: [
       {
-        label: "Companies",
-        to: "/app/organization/companies",
-        icon: Building2,
-        permission: "organization.company.view",
-      },
-      {
-        label: "Branches",
-        to: "/app/organization/branches",
-        icon: Network,
-        permission: "organization.branch.view",
-      },
-      {
-        label: "Departments",
-        to: "/app/organization/departments",
-        icon: Layers3,
-        permission: "organization.department.view",
-      },
-      {
-        label: "Warehouses",
-        to: "/app/organization/warehouses",
-        icon: Warehouse,
-        permission: "organization.warehouse.view",
-      },
-    ],
-  },
-  {
-    label: "Access control",
-    items: [
-      {
-        label: "Roles",
-        to: "/app/access/roles",
-        icon: ShieldCheck,
-        permission: "rbac.role.view",
-      },
-      {
-        label: "Permissions",
-        to: "/app/access/permissions",
-        icon: FileKey2,
-        permission: "rbac.permission.view",
-      },
-      {
-        label: "Assignments",
-        to: "/app/access/assignments",
-        icon: BadgeCheck,
-        permission: "rbac.assignment.view",
-      },
-    ],
-  },
-  {
-    label: "Configuration",
-    items: [
-      {
-        label: "Company settings",
-        to: "/app/settings/company",
-        icon: Settings2,
-        permission: "configuration.settings.view",
-      },
-      {
-        label: "Numbering",
-        to: "/app/settings/numbering",
-        icon: Database,
-        permission: "numbering.sequence.view",
-      },
-      {
-        label: "Foundation masters",
-        to: "/app/settings/masters",
-        icon: Layers3,
-        permission: "masters.view",
-      },
-      {
-        label: "Document categories",
-        to: "/app/settings/document-categories",
+        label: "Documents",
+        to: "/app/documents",
         icon: Files,
-        permission: "documents.category.view",
+        permission: "documents.document.view",
       },
       {
-        label: "Approval workflows",
-        to: "/app/settings/approval-workflows",
-        icon: GitBranch,
-        permission: "approvals.workflow.view",
+        label: "Approvals",
+        to: "/app/approvals",
+        icon: ClipboardCheck,
+        permission: "approvals.request.view",
       },
       {
-        label: "Notifications",
-        to: "/app/settings/notifications",
-        icon: Bell,
-        permission: "notifications.notification.manage_preferences",
+        label: "Employees",
+        to: "/app/employees",
+        icon: Users,
+        permission: "organization.employee.view",
       },
     ],
   },
+];
+
+const toolPermissions = [
+  "engineering.feasibility.view",
+  "estimation.estimate.view",
+  "organization.company.view",
+  "organization.branch.view",
+  "organization.department.view",
+  "organization.warehouse.view",
+  "rbac.role.view",
+  "rbac.permission.view",
+  "rbac.assignment.view",
+  "configuration.settings.view",
+  "numbering.sequence.view",
+  "masters.view",
+  "documents.category.view",
+  "approvals.workflow.view",
+  "notifications.notification.manage_preferences",
+  "audit.event.view",
 ];
 
 function ProductMark() {
@@ -253,6 +149,32 @@ function ProductMark() {
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const { data: user } = useCurrentUser();
+  const canOpenTools = toolPermissions.some((permission) =>
+    hasPermission(user, permission),
+  );
+
+  const renderLink = (item: NavItem) => {
+    const Icon = item.icon;
+    return (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        end={item.to === "/app"}
+        onClick={onNavigate}
+        className={({ isActive }) =>
+          cn(
+            "flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2 text-sm text-white/65 transition-colors hover:bg-white/10 hover:text-white",
+            isActive && "border-primary bg-primary/12 text-primary",
+          )
+        }
+      >
+        <Icon aria-hidden="true" />
+        <span className="flex-1">{item.label}</span>
+        <ChevronRight aria-hidden="true" className="opacity-40" />
+      </NavLink>
+    );
+  };
+
   return (
     <nav
       aria-label="Application navigation"
@@ -268,30 +190,22 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
             <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
               {section.label}
             </p>
-            {visible.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === "/app"}
-                  onClick={onNavigate}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-3 rounded-md border-l-2 border-transparent px-3 py-2 text-sm text-white/65 transition-colors hover:bg-white/10 hover:text-white",
-                      isActive && "border-primary bg-primary/12 text-primary",
-                    )
-                  }
-                >
-                  <Icon aria-hidden="true" />
-                  <span className="flex-1">{item.label}</span>
-                  <ChevronRight aria-hidden="true" className="opacity-40" />
-                </NavLink>
-              );
-            })}
+            {visible.map(renderLink)}
           </div>
         );
       })}
+      {canOpenTools ? (
+        <div className="flex flex-col gap-1">
+          <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+            More
+          </p>
+          {renderLink({
+            label: "Tools & settings",
+            to: "/app/settings",
+            icon: Settings2,
+          })}
+        </div>
+      ) : null}
     </nav>
   );
 }

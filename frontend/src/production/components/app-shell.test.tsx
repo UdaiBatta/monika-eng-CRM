@@ -15,7 +15,7 @@ const user = {
   is_active: true,
   is_staff: true,
   employee: { id: "employee-1", employee_code: "ME-001", display_name: "Development Administrator", company_id: "company-1" },
-  permissions: ["crm.quotation.view"],
+  permissions: ["crm.quotation.view", "configuration.settings.view"],
 } as CurrentUser;
 
 vi.mock("@/production/lib/auth", () => ({
@@ -53,5 +53,26 @@ describe("mobile application navigation", () => {
 
     expect(await screen.findByText("Quotation register opened")).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Application navigation" })).not.toBeInTheDocument());
+  });
+
+  it("keeps advanced administration out of the daily sidebar", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/app"]}>
+          <Routes>
+            <Route path="/app" element={<AppShell />}>
+              <Route index element={<p>Workspace opened</p>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Quotations" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Tools & settings" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Numbering" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Roles" })).not.toBeInTheDocument();
   });
 });

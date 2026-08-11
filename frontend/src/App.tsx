@@ -38,6 +38,9 @@ const ApprovalWorkflowsPage = lazy(
 const NotificationSettingsPage = lazy(
   () => import("@/production/pages/notification-settings-page"),
 );
+const ToolsSettingsPage = lazy(
+  () => import("@/production/pages/tools-settings-page"),
+);
 const CustomersPage = lazy(() => import("@/production/pages/customers-page"));
 const CustomerPage = lazy(() => import("@/production/pages/customer-page"));
 const ActivitiesPage = lazy(() => import("@/production/pages/activities-page"));
@@ -194,10 +197,7 @@ export default function App() {
                 element={<ResourcePage resourceKey="permission-overrides" />}
               />
 
-              <Route
-                path="settings"
-                element={<Navigate to="company" replace />}
-              />
+              <Route path="settings" element={<ToolsSettingsPage />} />
               <Route
                 path="settings/company"
                 element={<ResourcePage resourceKey="company-settings" />}

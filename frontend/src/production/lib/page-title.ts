@@ -13,14 +13,15 @@ const detailTitles: Array<[RegExp, string]> = [
 ];
 
 const listTitles: Record<string, string> = {
-  app: "Workspace overview",
-  activities: "Activities & follow-ups",
-  engineering: "Engineering reviews",
-  enquiries: "Enquiries & RFQs",
+  app: "Home",
+  activities: "Follow-ups",
+  engineering: "Engineering checks",
+  enquiries: "Active enquiries",
   "website-enquiries": "Website enquiry inbox",
-  "incoming-enquiries": "Incoming enquiries",
-  estimates: "Commercial estimates",
+  "incoming-enquiries": "New enquiries",
+  estimates: "Cost estimates",
   quotations: "Quotations",
+  settings: "Tools & settings",
 };
 
 export function getPageTitle(pathname: string) {

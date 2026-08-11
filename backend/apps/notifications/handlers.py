@@ -62,6 +62,21 @@ def handle_domain_event(event):
                 action_url=f"/app/crm/enquiries/{event.entity_id}",
                 deduplication_key=f"{event.correlation_id}:{recipient.pk}:enquiry-assigned",
             )
+    elif event.event_name == "external_enquiry.assigned":
+        recipient = _user(event.metadata.get("recipient_user_id"))
+        if recipient:
+            notify(
+                recipient=recipient,
+                company=event.company_id,
+                notification_type="WEBSITE_ENQUIRY_ASSIGNED",
+                severity=Notification.Severity.ACTION_REQUIRED,
+                title="Website enquiry assigned to you",
+                message=event.summary,
+                entity_type=event.entity_type,
+                entity_id=event.entity_id,
+                action_url=f"/app/crm/website-enquiries/{event.entity_id}",
+                deduplication_key=f"{event.correlation_id}:{recipient.pk}:website-enquiry-assigned",
+            )
     elif event.event_name == "crm.follow_up.assigned":
         recipient = _user(event.metadata.get("recipient_user_id"))
         if recipient:

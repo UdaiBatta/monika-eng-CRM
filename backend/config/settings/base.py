@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
     "apps.crm.apps.CrmConfig",
     "apps.enquiries.apps.EnquiriesConfig",
     "apps.engineering_reviews.apps.EngineeringReviewsConfig",
+    "apps.external_enquiries.apps.ExternalEnquiriesConfig",
 ]
 
 MIDDLEWARE = [
@@ -147,6 +149,12 @@ LOCAL_PRIVATE_STORAGE_ROOT = os.getenv(
 )
 DOCUMENT_ALLOWED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg", "csv", "docx", "xlsx"]
 DOCUMENT_MAX_UPLOAD_SIZE_MB = int(os.getenv("DOCUMENT_MAX_UPLOAD_SIZE_MB", "50"))
+INTEGRATION_SECRETS = json.loads(os.getenv("INTEGRATION_SECRETS_JSON", "{}"))
+WEBSITE_INTAKE_SIGNATURE_TTL_SECONDS = int(os.getenv("WEBSITE_INTAKE_SIGNATURE_TTL_SECONDS", "300"))
+WEBSITE_INTAKE_RATE_LIMIT_PER_MINUTE = int(os.getenv("WEBSITE_INTAKE_RATE_LIMIT_PER_MINUTE", "30"))
+WEBSITE_INTAKE_MAX_PAYLOAD_BYTES = int(os.getenv("WEBSITE_INTAKE_MAX_PAYLOAD_BYTES", str(8 * 1024 * 1024)))
+WEBSITE_INTAKE_ATTACHMENT_MAX_MB = int(os.getenv("WEBSITE_INTAKE_ATTACHMENT_MAX_MB", "5"))
+WEBSITE_INTAKE_ALLOWED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg"]
 R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL", "")
 R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "")
 R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "")

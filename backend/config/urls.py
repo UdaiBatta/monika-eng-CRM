@@ -22,6 +22,10 @@ from apps.crm.views import (
 from apps.documents.views import DocumentCategoryViewSet, DocumentViewSet
 from apps.engineering_reviews.views import EngineeringClarificationViewSet, EngineeringReviewViewSet
 from apps.enquiries.views import EnquiryItemViewSet, EnquiryRequirementViewSet, EnquiryViewSet
+from apps.external_enquiries.views import (
+    ExternalEnquirySubmissionViewSet,
+    WebsiteEnquiryIntakeView,
+)
 from apps.masters.views import (
     CurrencyViewSet,
     DeliveryTermViewSet,
@@ -87,6 +91,11 @@ router.register("enquiry-items", EnquiryItemViewSet)
 router.register("engineering-reviews", EngineeringReviewViewSet)
 router.register("engineering-clarifications", EngineeringClarificationViewSet)
 router.register(
+    "external-enquiries",
+    ExternalEnquirySubmissionViewSet,
+    basename="external-enquiry",
+)
+router.register(
     "notification-preferences",
     NotificationPreferenceViewSet,
     basename="notification-preference",
@@ -96,5 +105,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/health/", HealthView.as_view(), name="health"),
     path("api/v1/auth/", include("apps.accounts.urls")),
+    path(
+        "api/v1/integrations/website/enquiries/",
+        WebsiteEnquiryIntakeView.as_view(),
+        name="website-enquiry-intake",
+    ),
     path("api/v1/", include(router.urls)),
 ]

@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
+from django.db.models import Max
 from rest_framework.response import Response
 
 from apps.audit.mixins import AuditModelViewSetMixin
@@ -30,7 +31,9 @@ class CustomerViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Mode
         "payment_term",
         "default_currency",
         "default_tax",
-    ).prefetch_related("contacts", "sites")
+    ).prefetch_related("contacts", "sites").annotate(
+        last_activity_at=Max("activities__activity_date")
+    ).order_by("legal_name", "customer_code")
     serializer_class = CustomerSerializer
     permission_classes = [HasFoundationPermission]
     http_method_names = ["get", "post", "put", "patch", "head", "options"]
@@ -249,6 +252,13 @@ class CrmActivityViewSet(
         "follow_up_owner",
     ]
     ordering_fields = ["activity_date", "next_follow_up_at", "priority", "created_at", "updated_at"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.query_params.get("mine", "").lower() == "true":
+            employee = getattr(self.request.user, "employee", None)
+            return queryset.filter(follow_up_owner=employee) if employee else queryset.none()
+        return queryset
 
     def _change_status(self, request, target_status):
         activity = change_activity_status(

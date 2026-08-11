@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -330,3 +331,23 @@ def test_customer_360_returns_real_activity_and_follow_up_data(
     assert response.data["overview"]["open_follow_ups"] == 1
     assert response.data["open_follow_ups"][0]["subject"] == "Review enquiry response"
     assert response.data["timeline"][0]["kind"] == "CRM_ACTIVITY"
+
+
+@pytest.mark.django_db
+def test_customer_register_exposes_last_activity(api_client, admin, customer):
+    occurred_at = timezone.now() - timedelta(hours=2)
+    CrmActivity.objects.create(
+        company=customer.company,
+        customer=customer,
+        activity_type=CrmActivity.ActivityType.CALL,
+        subject="Reviewed new RFQ",
+        activity_date=occurred_at,
+        created_by=admin,
+    )
+    api_client.force_authenticate(admin)
+
+    response = api_client.get("/api/v1/customers/")
+
+    assert response.status_code == 200, response.data
+    record = next(item for item in response.data["results"] if item["id"] == str(customer.pk))
+    assert parse_datetime(record["last_activity_at"]) == occurred_at

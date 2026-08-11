@@ -70,6 +70,7 @@ class CustomerSerializer(CleanModelSerializer):
     )
     company_name = serializers.CharField(source="company.name", read_only=True)
     account_manager_name = serializers.CharField(source="account_manager.display_name", read_only=True)
+    last_activity_at = serializers.DateTimeField(read_only=True)
     primary_contact = serializers.SerializerMethodField()
     contacts = CustomerContactSerializer(many=True, read_only=True)
     sites = CustomerSiteSerializer(many=True, read_only=True)

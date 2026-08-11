@@ -13,6 +13,7 @@ import {
   Files,
   Gauge,
   GitBranch,
+  Globe2,
   Layers3,
   LogOut,
   Menu,
@@ -98,6 +99,12 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         to: "/app/crm/enquiries",
         icon: ClipboardList,
         permission: "enquiry.enquiry.view",
+      },
+      {
+        label: "Website enquiries",
+        to: "/app/crm/website-enquiries",
+        icon: Globe2,
+        permission: "crm.external_enquiry.view",
       },
       {
         label: "Engineering reviews",

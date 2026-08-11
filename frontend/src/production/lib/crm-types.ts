@@ -325,3 +325,84 @@ export type CustomerFormValues = {
 };
 
 export type EntityHistory = AuditEvent[];
+
+export type ExternalEnquiryAttachment = {
+  id: Identifier;
+  safe_display_filename: string;
+  original_filename: string;
+  mime_type: string;
+  extension: string;
+  size_bytes: number;
+  checksum_sha256: string;
+  validation_status: string;
+  scan_status: string;
+  promoted_document: Identifier | null;
+  uploaded_at: string;
+};
+
+export type ExternalEnquirySubmission = {
+  id: Identifier;
+  company: Identifier;
+  external_submission_id: string;
+  channel: string;
+  source_type: string;
+  received_at: string;
+  submitted_at: string | null;
+  person_name: string;
+  company_name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+  product_reference: string;
+  product_name: string;
+  product_url: string;
+  source_page_url: string;
+  referrer_url?: string;
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  utm_term?: string;
+  utm_content?: string;
+  spam_status: string;
+  spam_score: string | null;
+  review_status: string;
+  duplicate_status: string;
+  matched_customer: Identifier | null;
+  matched_customer_name: string;
+  matched_contact: Identifier | null;
+  matched_contact_name: string;
+  converted_customer: Identifier | null;
+  converted_customer_name: string;
+  converted_contact: Identifier | null;
+  converted_contact_name: string;
+  converted_enquiry: Identifier | null;
+  converted_enquiry_number: string;
+  assigned_to: Identifier | null;
+  assigned_to_name: string;
+  priority: string;
+  reviewed_at: string | null;
+  converted_at: string | null;
+  rejection_reason: string;
+  attachments: ExternalEnquiryAttachment[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type ExternalEnquiryCandidates = {
+  customers: Array<{
+    id: Identifier;
+    customer_code: string;
+    legal_name: string;
+    status: string;
+    reasons: string[];
+  }>;
+  contacts: Array<{
+    id: Identifier;
+    display_name: string;
+    customer_id: Identifier;
+    customer_code: string;
+    customer_name: string;
+    reasons: string[];
+  }>;
+};

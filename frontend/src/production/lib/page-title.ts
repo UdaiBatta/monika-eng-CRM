@@ -5,6 +5,7 @@ const detailTitles: Array<[RegExp, string]> = [
   [/^\/app\/approvals\/[^/]+$/, "Approval details"],
   [/^\/app\/crm\/customers\/[^/]+$/, "Customer 360"],
   [/^\/app\/crm\/enquiries\/[^/]+$/, "Enquiry 360"],
+  [/^\/app\/crm\/website-enquiries\/[^/]+$/, "Website enquiry review"],
   [/^\/app\/crm\/engineering\/[^/]+$/, "Engineering review"],
 ];
 
@@ -13,6 +14,7 @@ const listTitles: Record<string, string> = {
   activities: "Activities & follow-ups",
   engineering: "Engineering reviews",
   enquiries: "Enquiries & RFQs",
+  "website-enquiries": "Website enquiry inbox",
 };
 
 export function getPageTitle(pathname: string) {

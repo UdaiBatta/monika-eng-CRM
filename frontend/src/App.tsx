@@ -46,6 +46,12 @@ const EnquiryCreatePage = lazy(
   () => import("@/production/pages/enquiry-create-page"),
 );
 const EnquiryPage = lazy(() => import("@/production/pages/enquiry-page"));
+const WebsiteEnquiriesPage = lazy(
+  () => import("@/production/pages/website-enquiries-page"),
+);
+const WebsiteEnquiryPage = lazy(
+  () => import("@/production/pages/website-enquiry-page"),
+);
 const EngineeringPage = lazy(
   () => import("@/production/pages/engineering-page"),
 );
@@ -110,6 +116,14 @@ export default function App() {
               />
               <Route path="crm/activities" element={<ActivitiesPage />} />
               <Route path="crm/enquiries" element={<EnquiriesPage />} />
+              <Route
+                path="crm/website-enquiries"
+                element={<WebsiteEnquiriesPage />}
+              />
+              <Route
+                path="crm/website-enquiries/:submissionId"
+                element={<WebsiteEnquiryPage />}
+              />
               <Route path="crm/enquiries/new" element={<EnquiryCreatePage />} />
               <Route
                 path="crm/enquiries/:enquiryId"

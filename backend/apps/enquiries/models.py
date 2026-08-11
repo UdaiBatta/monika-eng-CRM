@@ -34,6 +34,7 @@ class Enquiry(ValidatedModel):
         UNDER_REVIEW = "UNDER_REVIEW", "Under review"
         ENGINEERING_REVIEW = "ENGINEERING_REVIEW", "Engineering review"
         ESTIMATION = "ESTIMATION", "Estimation"
+        ESTIMATION_COMPLETE = "ESTIMATION_COMPLETE", "Estimation complete"
         QUOTATION_PREPARATION = "QUOTATION_PREPARATION", "Quotation preparation"
         QUOTATION_SENT = "QUOTATION_SENT", "Quotation sent"
         NEGOTIATION = "NEGOTIATION", "Negotiation"

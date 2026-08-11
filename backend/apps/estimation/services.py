@@ -14,6 +14,7 @@ from apps.core.domain_events import DomainEvent, publish
 from apps.engineering_reviews.models import EngineeringFeasibilityReview
 from apps.engineering_reviews.services import is_ready_for_estimation
 from apps.enquiries.models import Enquiry
+from apps.enquiries.services import enquiry_event
 from apps.masters.models import Currency
 from apps.numbering.services import allocate_company_number
 from apps.rbac.services import has_permission
@@ -439,6 +440,26 @@ def revise_estimate(*, estimate_id, actor, reason):
             ]
         )
         recalculate_estimate(revised)
+        if revised.enquiry.status == Enquiry.Status.ESTIMATION_COMPLETE:
+            old_enquiry_status = revised.enquiry.status
+            revised.enquiry.status = Enquiry.Status.ESTIMATION
+            revised.enquiry.updated_by = actor
+            revised.enquiry.save(update_fields=["status", "updated_by", "updated_at"])
+            publish(
+                enquiry_event(
+                    revised.enquiry,
+                    actor,
+                    "enquiry.estimation_reopened",
+                    "STATUS_CHANGE",
+                    f"{revised.enquiry.enquiry_number} returned to estimation for revision",
+                    changes={
+                        "status": {
+                            "old": old_enquiry_status,
+                            "new": Enquiry.Status.ESTIMATION,
+                        }
+                    },
+                )
+            )
         publish(
             estimate_event(
                 revised,
@@ -480,6 +501,28 @@ def sync_estimate_approval(event):
             estimate.approved_by_id = event.actor_user_id
         estimate.save()
         actor = User.objects.filter(pk=event.actor_user_id).first()
+        if target == CommercialEstimate.Status.APPROVED and estimate.is_current:
+            enquiry = Enquiry.objects.select_for_update().get(pk=estimate.enquiry_id)
+            old_enquiry_status = enquiry.status
+            enquiry.status = Enquiry.Status.ESTIMATION_COMPLETE
+            enquiry.updated_by_id = event.actor_user_id
+            enquiry.save(update_fields=["status", "updated_by", "updated_at"])
+            publish(
+                enquiry_event(
+                    enquiry,
+                    actor,
+                    "enquiry.estimation_completed",
+                    "STATUS_CHANGE",
+                    f"{enquiry.enquiry_number} is ready for quotation",
+                    metadata={"estimate_id": str(estimate.pk)},
+                    changes={
+                        "status": {
+                            "old": old_enquiry_status,
+                            "new": Enquiry.Status.ESTIMATION_COMPLETE,
+                        }
+                    },
+                )
+            )
         publish(
             estimate_event(
                 estimate,

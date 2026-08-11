@@ -417,10 +417,66 @@ describe("Phase 2 commercial CRM frontend", () => {
         {},
       ),
     );
-    expect(screen.getByText("Estimation · not built")).toBeInTheDocument();
+    expect(screen.getByText(/Quotation.*not built/)).toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: /Estimation/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the approved estimate handoff as ready for quotation", async () => {
+    mocks.apiGet.mockResolvedValue({
+      enquiry: {
+        id: "enquiry-1",
+        enquiry_number: "ENQ-0001",
+        subject: "MCC control panel",
+        status: "ESTIMATION_COMPLETE",
+        customer_reference: "RFQ-431",
+        due_date: "2026-08-20",
+        responsible_salesperson_name: "Development Administrator",
+        customer: "customer-1",
+        customer_code: "CUS-0001",
+        customer_name: "ABC Industries Pvt. Ltd.",
+        priority: "HIGH",
+        estimated_value: "1875000.00",
+        currency_code: "INR",
+        is_overdue: false,
+        company: "company-1",
+        company_name: "Monika Engineers",
+        customer_contact: null,
+        customer_contact_name: "",
+        customer_site: null,
+        customer_site_name: "",
+        source: "Website",
+        received_date: "2026-08-10",
+        description: "Panel design and manufacture",
+        responsible_salesperson: "employee-1",
+        currency: "currency-1",
+        lost_reason: "",
+        cancellation_reason: "",
+        competitor: "",
+        customer_feedback: "",
+        closed_at: null,
+        requirements: [],
+        items: [],
+      },
+      next_follow_up: null,
+      activities: [],
+      documents: [],
+      timeline: [],
+      engineering_review: engineeringReview,
+    });
+    renderAt(
+      <Routes>
+        <Route path="/app/crm/enquiries/:enquiryId" element={<EnquiryPage />} />
+      </Routes>,
+      "/app/crm/enquiries/enquiry-1",
+    );
+
+    expect(await screen.findByText("Milestone handoff:")).toBeInTheDocument();
+    expect(screen.getAllByText("Ready for quotation")).toHaveLength(2);
+    expect(
+      screen.getByText("Quotation is intentionally not implemented."),
+    ).toBeInTheDocument();
   });
 
   it("renders the role-aware engineering work queue", async () => {

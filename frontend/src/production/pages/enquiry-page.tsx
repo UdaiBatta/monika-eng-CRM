@@ -87,6 +87,8 @@ const activeStages = [
   "UNDER_REVIEW",
   "ENGINEERING_REVIEW",
   "READY_FOR_ESTIMATION",
+  "ESTIMATION",
+  "ESTIMATION_COMPLETE",
 ];
 
 function money(amount: string | null, code: string) {
@@ -96,9 +98,13 @@ function money(amount: string | null, code: string) {
 }
 
 function StageTracker({ workspace }: { workspace: EnquiryWorkspace }) {
-  const status = workspace.engineering_review?.ready_for_estimation
-    ? "READY_FOR_ESTIMATION"
-    : workspace.enquiry.status;
+  const status = ["ESTIMATION", "ESTIMATION_COMPLETE"].includes(
+    workspace.enquiry.status,
+  )
+    ? workspace.enquiry.status
+    : workspace.engineering_review?.ready_for_estimation
+      ? "READY_FOR_ESTIMATION"
+      : workspace.enquiry.status;
   const current = Math.max(0, activeStages.indexOf(status));
   const stages = [
     ["DRAFT", "Draft"],
@@ -106,11 +112,13 @@ function StageTracker({ workspace }: { workspace: EnquiryWorkspace }) {
     ["UNDER_REVIEW", "Commercial review"],
     ["ENGINEERING_REVIEW", "Engineering feasibility"],
     ["READY_FOR_ESTIMATION", "Ready for estimation"],
+    ["ESTIMATION", "Commercial estimation"],
+    ["ESTIMATION_COMPLETE", "Ready for quotation"],
   ];
   return (
     <Card className="border-primary/25">
       <CardContent className="p-4">
-        <div className="grid gap-3 md:grid-cols-5">
+        <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-7">
           {stages.map(([key, label], index) => {
             const complete = index < current;
             const selected = key === status;
@@ -143,10 +151,27 @@ function StageTracker({ workspace }: { workspace: EnquiryWorkspace }) {
           })}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3 text-xs text-muted-foreground">
-          <span>Future gated flow:</span>
-          <Badge variant="outline">Estimation · not built</Badge>
+          <span>
+            {status === "ESTIMATION_COMPLETE"
+              ? "Milestone handoff:"
+              : "Controlled flow:"}
+          </span>
+          <Badge variant="outline">
+            {status === "ESTIMATION_COMPLETE"
+              ? "Estimation approved"
+              : "Estimation"}
+          </Badge>
           <ArrowRight />
-          <Badge variant="outline">Quotation · not built</Badge>
+          <Badge
+            variant={status === "ESTIMATION_COMPLETE" ? "default" : "outline"}
+          >
+            {status === "ESTIMATION_COMPLETE"
+              ? "Ready for quotation"
+              : "Quotation · not built"}
+          </Badge>
+          {status === "ESTIMATION_COMPLETE" ? (
+            <span>Quotation is intentionally not implemented.</span>
+          ) : null}
         </div>
       </CardContent>
     </Card>

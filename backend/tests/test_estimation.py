@@ -227,8 +227,10 @@ def test_approval_locks_estimate_and_revision_preserves_history(
             comment="Approved",
         )
     submitted.refresh_from_db()
+    enquiry.refresh_from_db()
     assert submitted.status == CommercialEstimate.Status.APPROVED
     assert submitted.approved_at is not None
+    assert enquiry.status == Enquiry.Status.ESTIMATION_COMPLETE
     with pytest.raises(ValidationError, match="edited"):
         update_estimate(
             estimate_id=submitted.pk,
@@ -242,8 +244,10 @@ def test_approval_locks_estimate_and_revision_preserves_history(
         reason="Customer requested alternate enclosure",
     )
     submitted.refresh_from_db()
+    enquiry.refresh_from_db()
     assert submitted.is_current is False
     assert submitted.status == CommercialEstimate.Status.SUPERSEDED
+    assert enquiry.status == Enquiry.Status.ESTIMATION
     assert revised.revision_number == 2
     assert revised.cost_lines.count() == 3
     assert revised.approval_request is None

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -347,8 +348,9 @@ function Sidebar() {
 }
 
 function MobileNavigation() {
+  const [open, setOpen] = useState(false);
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           aria-label="Open navigation"
@@ -367,7 +369,7 @@ function MobileNavigation() {
           <SheetTitle className="sr-only">Application navigation</SheetTitle>
         </SheetHeader>
         <ProductMark />
-        <Navigation />
+        <Navigation onNavigate={() => setOpen(false)} />
         <UserFooter />
       </SheetContent>
     </Sheet>

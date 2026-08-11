@@ -10,6 +10,8 @@ import CustomerPage from "./customer-page";
 import CustomersPage from "./customers-page";
 import EnquiriesPage from "./enquiries-page";
 import EnquiryPage from "./enquiry-page";
+import EngineeringPage from "./engineering-page";
+import EngineeringReviewPage from "./engineering-review-page";
 
 const mocks = vi.hoisted(() => ({
   apiGet: vi.fn(),
@@ -43,6 +45,15 @@ const mocks = vi.hoisted(() => ({
       "enquiry.enquiry.submit_engineering",
       "enquiry.enquiry.mark_lost",
       "enquiry.enquiry.cancel",
+      "engineering.feasibility.view",
+      "engineering.feasibility.edit",
+      "engineering.feasibility.assign",
+      "engineering.feasibility.start",
+      "engineering.feasibility.request_clarification",
+      "engineering.feasibility.respond_clarification",
+      "engineering.feasibility.complete",
+      "engineering.feasibility.mark_not_feasible",
+      "engineering.feasibility.reassess",
     ],
   } as CurrentUser,
 }));
@@ -115,6 +126,60 @@ const customer = {
   created_at: "2026-08-01T09:00:00Z",
   updated_at: "2026-08-10T09:00:00Z",
   last_activity_at: "2026-08-10T09:00:00Z",
+};
+
+const engineeringReview = {
+  id: "review-1",
+  company: "company-1",
+  enquiry: "enquiry-1",
+  enquiry_number: "ENQ-0001",
+  enquiry_subject: "MCC control panel",
+  customer_id: "customer-1",
+  customer_code: "CUS-0001",
+  customer_name: "ABC Industries Pvt. Ltd.",
+  due_date: "2026-08-20",
+  priority: "HIGH",
+  sales_owner_name: "Development Administrator",
+  revision_number: 1,
+  is_current: true,
+  status: "FEASIBLE",
+  assigned_engineer: "employee-1",
+  assigned_engineer_name: "Development Administrator",
+  started_at: "2026-08-10T10:00:00Z",
+  started_by_name: "Development Administrator",
+  completed_at: "2026-08-11T10:00:00Z",
+  completed_by_name: "Development Administrator",
+  result: "FEASIBLE",
+  technical_summary: "Standard MCC panel architecture.",
+  feasibility_notes: "Can be manufactured in-house.",
+  assumptions: "",
+  exclusions: "",
+  constraints: "",
+  risks: "",
+  special_materials: "",
+  outsourced_processes: "",
+  tooling_requirements: "",
+  testing_requirements: "Routine FAT",
+  customer_clarification_summary: "",
+  preliminary_drawing_notes: "",
+  preliminary_bom_notes: "",
+  preliminary_routing_notes: "",
+  engineering_hours: "24.00",
+  manufacturing_hours: "120.00",
+  lead_time_days: 30,
+  completion_comment: "Ready for commercial estimation.",
+  supersedes: null,
+  open_clarifications: 0,
+  ready_for_estimation: true,
+  approval: {
+    required: false,
+    status: "NOT_REQUIRED",
+    request_id: null,
+    workflow_name: "",
+  },
+  clarifications: [],
+  created_at: "2026-08-10T09:00:00Z",
+  updated_at: "2026-08-11T10:00:00Z",
 };
 
 describe("Phase 2 commercial CRM frontend", () => {
@@ -255,27 +320,179 @@ describe("Phase 2 commercial CRM frontend", () => {
 
   it("renders the operational enquiry register with customer and due-date context", async () => {
     mocks.apiGet.mockResolvedValue({
-      results: [{ id: "enquiry-1", enquiry_number: "ENQ-0001", subject: "MCC control panel", status: "UNDER_REVIEW", customer_reference: "RFQ-431", due_date: "2026-08-20", responsible_salesperson_name: "Development Administrator", customer: "customer-1", customer_code: "CUS-0001", customer_name: "ABC Industries Pvt. Ltd.", priority: "HIGH", estimated_value: "1875000.00", currency_code: "INR", is_overdue: false, created_at: "2026-08-10T09:00:00Z", updated_at: "2026-08-10T09:00:00Z" }],
-      pagination: { count: 1, page: 1, page_size: 25, pages: 1, next: null, previous: null },
+      results: [
+        {
+          id: "enquiry-1",
+          enquiry_number: "ENQ-0001",
+          subject: "MCC control panel",
+          status: "UNDER_REVIEW",
+          customer_reference: "RFQ-431",
+          due_date: "2026-08-20",
+          responsible_salesperson_name: "Development Administrator",
+          customer: "customer-1",
+          customer_code: "CUS-0001",
+          customer_name: "ABC Industries Pvt. Ltd.",
+          priority: "HIGH",
+          estimated_value: "1875000.00",
+          currency_code: "INR",
+          is_overdue: false,
+          created_at: "2026-08-10T09:00:00Z",
+          updated_at: "2026-08-10T09:00:00Z",
+        },
+      ],
+      pagination: {
+        count: 1,
+        page: 1,
+        page_size: 25,
+        pages: 1,
+        next: null,
+        previous: null,
+      },
     });
     renderAt(<EnquiriesPage />);
     expect(await screen.findByText("MCC control panel")).toBeInTheDocument();
-    expect(screen.getByText("ABC Industries Pvt. Ltd.")).toBeInTheDocument();
+    expect(screen.getByText(/ABC Industries Pvt\. Ltd\./)).toBeInTheDocument();
     expect(screen.getByText(/INR 18,75,000/)).toBeInTheDocument();
     expect(screen.getByText("Ready for Estimation")).toBeInTheDocument();
   });
 
   it("uses the explicit engineering command and keeps future stages disabled", async () => {
     mocks.apiGet.mockResolvedValue({
-      enquiry: { id: "enquiry-1", enquiry_number: "ENQ-0001", subject: "MCC control panel", status: "UNDER_REVIEW", customer_reference: "RFQ-431", due_date: "2026-08-20", responsible_salesperson_name: "Development Administrator", customer: "customer-1", customer_code: "CUS-0001", customer_name: "ABC Industries Pvt. Ltd.", priority: "HIGH", estimated_value: "1875000.00", currency_code: "INR", is_overdue: false, created_at: "2026-08-10T09:00:00Z", updated_at: "2026-08-10T09:00:00Z", company: "company-1", company_name: "Monika Engineers", customer_contact: null, customer_contact_name: "", customer_site: null, customer_site_name: "", source: "Email", received_date: "2026-08-10", description: "Panel design and manufacture", responsible_salesperson: "employee-1", currency: "currency-1", lost_reason: "", cancellation_reason: "", competitor: "", customer_feedback: "", closed_at: null, requirements: [], items: [] },
-      next_follow_up: null, activities: [], documents: [], timeline: [], engineering_review: null,
+      enquiry: {
+        id: "enquiry-1",
+        enquiry_number: "ENQ-0001",
+        subject: "MCC control panel",
+        status: "UNDER_REVIEW",
+        customer_reference: "RFQ-431",
+        due_date: "2026-08-20",
+        responsible_salesperson_name: "Development Administrator",
+        customer: "customer-1",
+        customer_code: "CUS-0001",
+        customer_name: "ABC Industries Pvt. Ltd.",
+        priority: "HIGH",
+        estimated_value: "1875000.00",
+        currency_code: "INR",
+        is_overdue: false,
+        created_at: "2026-08-10T09:00:00Z",
+        updated_at: "2026-08-10T09:00:00Z",
+        company: "company-1",
+        company_name: "Monika Engineers",
+        customer_contact: null,
+        customer_contact_name: "",
+        customer_site: null,
+        customer_site_name: "",
+        source: "Email",
+        received_date: "2026-08-10",
+        description: "Panel design and manufacture",
+        responsible_salesperson: "employee-1",
+        currency: "currency-1",
+        lost_reason: "",
+        cancellation_reason: "",
+        competitor: "",
+        customer_feedback: "",
+        closed_at: null,
+        requirements: [],
+        items: [],
+      },
+      next_follow_up: null,
+      activities: [],
+      documents: [],
+      timeline: [],
+      engineering_review: null,
     });
     mocks.apiPost.mockResolvedValue({});
     const user = userEvent.setup();
-    renderAt(<Routes><Route path="/app/crm/enquiries/:enquiryId" element={<EnquiryPage />} /></Routes>, "/app/crm/enquiries/enquiry-1");
-    await user.click(await screen.findByRole("button", { name: "Send to engineering" }));
-    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith("/enquiries/enquiry-1/send-to-engineering/", {}));
+    renderAt(
+      <Routes>
+        <Route path="/app/crm/enquiries/:enquiryId" element={<EnquiryPage />} />
+      </Routes>,
+      "/app/crm/enquiries/enquiry-1",
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Send to engineering" }),
+    );
+    await waitFor(() =>
+      expect(mocks.apiPost).toHaveBeenCalledWith(
+        "/enquiries/enquiry-1/send-to-engineering/",
+        {},
+      ),
+    );
     expect(screen.getByText("Estimation · not built")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Estimation/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: /Estimation/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders the role-aware engineering work queue", async () => {
+    mocks.apiGet.mockResolvedValue({
+      results: [engineeringReview],
+      pagination: {
+        count: 1,
+        page: 1,
+        page_size: 25,
+        pages: 1,
+        next: null,
+        previous: null,
+      },
+    });
+    renderAt(<EngineeringPage />);
+    expect(await screen.findByText("MCC control panel")).toBeInTheDocument();
+    expect(screen.getByText(/ABC Industries Pvt\. Ltd\./)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /My reviews/ }),
+    ).toBeInTheDocument();
+    expect(mocks.apiGet).toHaveBeenCalledWith(
+      expect.stringContaining("/engineering-reviews/?queue=mine"),
+    );
+  });
+
+  it("shows the controlled engineering decision and ready gate", async () => {
+    mocks.apiGet.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.endsWith("/revisions/")
+          ? [engineeringReview]
+          : {
+              review: engineeringReview,
+              enquiry: {
+                id: "enquiry-1",
+                enquiry_number: "ENQ-0001",
+                subject: "MCC control panel",
+                customer: "customer-1",
+                requirements: [],
+                items: [],
+              },
+              documents: [],
+              approvals: [],
+              timeline: [],
+            },
+      ),
+    );
+    renderAt(
+      <Routes>
+        <Route
+          path="/app/crm/engineering/:reviewId"
+          element={<EngineeringReviewPage />}
+        />
+      </Routes>,
+      "/app/crm/engineering/review-1",
+    );
+    expect(
+      await screen.findByText("Ready for Estimation gate"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("READY FOR ESTIMATION")).toBeInTheDocument();
+    for (const name of [
+      "Assessment",
+      "Clarifications",
+      "Customer scope",
+      "Documents",
+      "Approvals",
+      "History",
+      "Revisions",
+    ]) {
+      expect(
+        screen.getByRole("tab", { name: new RegExp(name) }),
+      ).toBeInTheDocument();
+    }
+    expect(screen.queryByText(/Create estimate/i)).not.toBeInTheDocument();
   });
 });

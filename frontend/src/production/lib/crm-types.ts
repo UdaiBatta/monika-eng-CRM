@@ -176,6 +176,97 @@ export type EnquiryWorkspace = {
   } | null;
 };
 
+export type EngineeringClarification = {
+  id: Identifier;
+  company: Identifier;
+  review: Identifier;
+  subject: string;
+  question: string;
+  context: string;
+  status: string;
+  assigned_to: Identifier;
+  assigned_to_name: string;
+  due_at: string | null;
+  requested_by_name: string;
+  requested_at: string;
+  response: string;
+  responded_by_name: string;
+  responded_at: string | null;
+  closed_by_name: string;
+  closed_at: string | null;
+  closure_comment: string;
+  is_overdue: boolean;
+};
+
+export type EngineeringReview = {
+  id: Identifier;
+  company: Identifier;
+  enquiry: Identifier;
+  enquiry_number: string;
+  enquiry_subject: string;
+  customer_id: Identifier;
+  customer_code: string;
+  customer_name: string;
+  due_date: string | null;
+  priority: string;
+  sales_owner_name: string;
+  revision_number: number;
+  is_current: boolean;
+  status: string;
+  assigned_engineer: Identifier | null;
+  assigned_engineer_name: string;
+  started_at: string | null;
+  started_by_name: string;
+  completed_at: string | null;
+  completed_by_name: string;
+  result: string;
+  technical_summary: string;
+  feasibility_notes: string;
+  assumptions: string;
+  exclusions: string;
+  constraints: string;
+  risks: string;
+  special_materials: string;
+  outsourced_processes: string;
+  tooling_requirements: string;
+  testing_requirements: string;
+  customer_clarification_summary: string;
+  preliminary_drawing_notes: string;
+  preliminary_bom_notes: string;
+  preliminary_routing_notes: string;
+  engineering_hours: string | null;
+  manufacturing_hours: string | null;
+  lead_time_days: number | null;
+  completion_comment: string;
+  supersedes: Identifier | null;
+  open_clarifications: number;
+  ready_for_estimation: boolean;
+  approval: {
+    required: boolean;
+    status: string;
+    request_id: Identifier | null;
+    workflow_name: string;
+  };
+  clarifications: EngineeringClarification[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type EngineeringWorkspace = {
+  review: EngineeringReview;
+  enquiry: Enquiry;
+  documents: ERPDocument[];
+  approvals: Array<{
+    id: Identifier;
+    workflow_name: string;
+    status: string;
+    status_label: string;
+    current_step_name: string | null;
+    requested_at: string;
+  }>;
+  timeline: AuditEvent[];
+};
+
 export type CustomerTimelineItem = {
   kind: string;
   occurred_at: string;

@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Users,
   Warehouse,
+  Wrench,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -95,6 +96,12 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         to: "/app/crm/enquiries",
         icon: ClipboardList,
         permission: "enquiry.enquiry.view",
+      },
+      {
+        label: "Engineering reviews",
+        to: "/app/crm/engineering",
+        icon: Wrench,
+        permission: "engineering.feasibility.view",
       },
       {
         label: "Activities & follow-ups",
@@ -391,7 +398,8 @@ export default function AppShell() {
         </main>
         <Separator />
         <footer className="px-6 py-4 text-xs text-muted-foreground">
-          Monika Engineers Integrated ERP · Phase 2 Commercial CRM · Production foundation active
+          Monika Engineers Integrated ERP · Phase 2 Commercial CRM · Production
+          foundation active
         </footer>
       </div>
     </div>

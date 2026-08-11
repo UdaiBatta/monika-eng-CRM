@@ -46,6 +46,12 @@ const EnquiryCreatePage = lazy(
   () => import("@/production/pages/enquiry-create-page"),
 );
 const EnquiryPage = lazy(() => import("@/production/pages/enquiry-page"));
+const EngineeringPage = lazy(
+  () => import("@/production/pages/engineering-page"),
+);
+const EngineeringReviewPage = lazy(
+  () => import("@/production/pages/engineering-review-page"),
+);
 
 function PageLoading() {
   return (
@@ -108,6 +114,11 @@ export default function App() {
               <Route
                 path="crm/enquiries/:enquiryId"
                 element={<EnquiryPage />}
+              />
+              <Route path="crm/engineering" element={<EngineeringPage />} />
+              <Route
+                path="crm/engineering/:reviewId"
+                element={<EngineeringReviewPage />}
               />
 
               <Route

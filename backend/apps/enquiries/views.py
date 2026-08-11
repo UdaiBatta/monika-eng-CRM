@@ -121,14 +121,6 @@ class EnquiryViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Model
             "enquiry.enquiry.submit_engineering",
         )
 
-    @action(detail=True, methods=["post"], url_path="send-to-estimation")
-    def send_to_estimation(self, request, pk=None):
-        return self._transition(
-            request,
-            Enquiry.Status.ESTIMATION,
-            "enquiry.enquiry.edit",
-        )
-
     @action(detail=True, methods=["post"], url_path="mark-won")
     def mark_won(self, request, pk=None):
         return self._transition(
@@ -195,6 +187,9 @@ class EnquiryViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Model
             for event in events
         ]
         timeline.sort(key=lambda item: item["occurred_at"], reverse=True)
+        from apps.engineering_reviews.serializers import EngineeringReviewSerializer
+
+        engineering_review = enquiry.engineering_reviews.filter(is_current=True).first()
         return Response(
             {
                 "enquiry": self.get_serializer(enquiry).data,
@@ -215,6 +210,12 @@ class EnquiryViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Model
                     context={"request": request},
                 ).data,
                 "timeline": timeline[:40],
+                "engineering_review": EngineeringReviewSerializer(
+                    engineering_review,
+                    context={"request": request},
+                ).data
+                if engineering_review
+                else None,
             }
         )
 

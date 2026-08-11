@@ -46,6 +46,7 @@ def customer_360_data(customer, user):
             event_type__startswith="crm.customer",
         )
         | Q(event_type__startswith="enquiry.", metadata__customer_id=str(customer.pk))
+        | Q(event_type__startswith="engineering.", metadata__customer_id=str(customer.pk))
     ).order_by("-occurred_at")[:20]
     if not has_permission(user, "audit.event.view", customer):
         audit_events = AuditEvent.objects.none()

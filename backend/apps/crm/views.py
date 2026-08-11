@@ -1,7 +1,7 @@
+from django.db.models import Max
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
-from django.db.models import Max
 from rest_framework.response import Response
 
 from apps.audit.mixins import AuditModelViewSetMixin
@@ -25,15 +25,18 @@ from .services import change_activity_status, change_customer_status, find_custo
 
 
 class CustomerViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
-    queryset = Customer.objects.select_related(
-        "company",
-        "account_manager",
-        "payment_term",
-        "default_currency",
-        "default_tax",
-    ).prefetch_related("contacts", "sites").annotate(
-        last_activity_at=Max("activities__activity_date")
-    ).order_by("legal_name", "customer_code")
+    queryset = (
+        Customer.objects.select_related(
+            "company",
+            "account_manager",
+            "payment_term",
+            "default_currency",
+            "default_tax",
+        )
+        .prefetch_related("contacts", "sites")
+        .annotate(last_activity_at=Max("activities__activity_date"))
+        .order_by("legal_name", "customer_code")
+    )
     serializer_class = CustomerSerializer
     permission_classes = [HasFoundationPermission]
     http_method_names = ["get", "post", "put", "patch", "head", "options"]

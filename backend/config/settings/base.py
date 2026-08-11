@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "apps.notifications.apps.NotificationsConfig",
     "apps.crm.apps.CrmConfig",
     "apps.enquiries.apps.EnquiriesConfig",
+    "apps.engineering_reviews.apps.EngineeringReviewsConfig",
 ]
 
 MIDDLEWARE = [

@@ -81,9 +81,11 @@ def transition_enquiry(*, enquiry_id, actor, target_status, permission, reason="
                 f"to {Enquiry.Status(target_status).label}."
             )
         if target_status == Enquiry.Status.ESTIMATION:
-            review = getattr(enquiry, "engineering_review", None)
-            if not review or review.status != "COMPLETED":
-                raise ValidationError("Complete the engineering feasibility review first.")
+            from apps.engineering_reviews.services import is_ready_for_estimation
+
+            review = enquiry.engineering_reviews.filter(is_current=True).first()
+            if not is_ready_for_estimation(review):
+                raise ValidationError("The current engineering review is not ready for estimation.")
         old_status = enquiry.status
         enquiry.status = target_status
         enquiry.updated_by = actor
@@ -97,6 +99,10 @@ def transition_enquiry(*, enquiry_id, actor, target_status, permission, reason="
             enquiry.closed_at = timezone.now()
             enquiry.closed_by = actor
         enquiry.save()
+        if target_status == Enquiry.Status.ENGINEERING_REVIEW:
+            from apps.engineering_reviews.services import create_review_for_enquiry
+
+            create_review_for_enquiry(enquiry=enquiry, actor=actor)
         event_name = {
             Enquiry.Status.ENGINEERING_REVIEW: "enquiry.engineering_requested",
             Enquiry.Status.ESTIMATION: "enquiry.estimation_requested",

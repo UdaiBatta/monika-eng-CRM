@@ -59,7 +59,7 @@ def handle_domain_event(event):
                 message=event.summary,
                 entity_type=event.entity_type,
                 entity_id=event.entity_id,
-                action_url=f"/app/enquiries/{event.entity_id}",
+                action_url=f"/app/crm/enquiries/{event.entity_id}",
                 deduplication_key=f"{event.correlation_id}:{recipient.pk}:enquiry-assigned",
             )
     elif event.event_name == "crm.follow_up.assigned":
@@ -74,8 +74,55 @@ def handle_domain_event(event):
                 message=event.summary,
                 entity_type=event.entity_type,
                 entity_id=event.entity_id,
-                action_url="/app/follow-ups",
+                action_url="/app/crm/activities",
                 deduplication_key=f"{event.correlation_id}:{recipient.pk}:follow-up-assigned",
+            )
+    elif event.event_name == "engineering.review.assigned":
+        recipient = _user(event.metadata.get("recipient_user_id"))
+        if recipient:
+            notify(
+                recipient=recipient,
+                company=event.company_id,
+                notification_type="ENGINEERING_REVIEW_ASSIGNED",
+                severity=Notification.Severity.ACTION_REQUIRED,
+                title="Engineering review assigned",
+                message=event.summary,
+                entity_type=event.entity_type,
+                entity_id=event.entity_id,
+                action_url=f"/app/crm/engineering/{event.entity_id}",
+                deduplication_key=f"{event.correlation_id}:{recipient.pk}:engineering-assigned",
+            )
+    elif event.event_name in {"engineering.clarification.requested", "engineering.clarification.responded"}:
+        recipient = _user(event.metadata.get("recipient_user_id"))
+        if recipient:
+            notify(
+                recipient=recipient,
+                company=event.company_id,
+                notification_type=event.event_name.upper().replace(".", "_"),
+                severity=Notification.Severity.ACTION_REQUIRED,
+                title="Engineering clarification needs attention",
+                message=event.summary,
+                entity_type=event.entity_type,
+                entity_id=event.entity_id,
+                action_url=f"/app/crm/engineering/{event.metadata.get('review_id')}",
+                deduplication_key=f"{event.correlation_id}:{recipient.pk}:{event.event_name}",
+            )
+    elif event.event_name in {"engineering.review.completed", "engineering.review.not_feasible"}:
+        recipient = _user(event.metadata.get("recipient_user_id"))
+        if recipient:
+            notify(
+                recipient=recipient,
+                company=event.company_id,
+                notification_type=event.event_name.upper().replace(".", "_"),
+                severity=Notification.Severity.SUCCESS
+                if event.event_name.endswith("completed")
+                else Notification.Severity.WARNING,
+                title="Engineering feasibility completed",
+                message=event.summary,
+                entity_type=event.entity_type,
+                entity_id=event.entity_id,
+                action_url=f"/app/crm/enquiries/{event.metadata.get('enquiry_id')}",
+                deduplication_key=f"{event.correlation_id}:{recipient.pk}:{event.event_name}",
             )
     elif event.event_name in {"approval.step_opened", "approval.assignment_reassigned"}:
         _notify_approvers(event)

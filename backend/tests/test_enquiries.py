@@ -185,13 +185,13 @@ def test_enquiry_lifecycle_uses_commands_and_rejects_invalid_transition(
     repeated = api_client.post(f"/api/v1/enquiries/{enquiry.pk}/receive/", {}, format="json")
     assert repeated.status_code == 400
 
-    estimation = api_client.post(
+    future_estimation = api_client.post(
         f"/api/v1/enquiries/{enquiry.pk}/send-to-estimation/",
         {},
         format="json",
     )
-    assert estimation.status_code == 400
-    assert "engineering feasibility" in estimation.data["error"]["message"].lower()
+    assert future_estimation.status_code == 404
+    assert enquiry.engineering_reviews.filter(is_current=True).count() == 1
 
 
 @pytest.mark.django_db

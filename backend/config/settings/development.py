@@ -11,6 +11,7 @@ CACHES = {
         "LOCATION": "monika-erp-development",
     }
 }
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

@@ -16,3 +16,12 @@ class TimeStampedModel(UUIDModel):
 
     class Meta:
         abstract = True
+
+
+class VersionedModel(TimeStampedModel):
+    """Reusable optimistic-lock marker for user-editable business records."""
+
+    record_version = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        abstract = True

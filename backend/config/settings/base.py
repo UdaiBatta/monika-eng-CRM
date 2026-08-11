@@ -16,6 +16,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -40,6 +41,7 @@ INSTALLED_APPS = [
     "apps.engineering_reviews.apps.EngineeringReviewsConfig",
     "apps.external_enquiries.apps.ExternalEnquiriesConfig",
     "apps.estimation.apps.EstimationConfig",
+    "apps.realtime.apps.RealtimeConfig",
 ]
 
 MIDDLEWARE = [
@@ -89,6 +91,18 @@ CACHES = {
         "LOCATION": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1"),
     }
 }
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv("CHANNEL_REDIS_URL", "redis://127.0.0.1:6379/2")],
+            "capacity": 1000,
+            "expiry": 60,
+        },
+    }
+}
+REALTIME_PRESENCE_TTL_SECONDS = int(os.getenv("REALTIME_PRESENCE_TTL_SECONDS", "75"))
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

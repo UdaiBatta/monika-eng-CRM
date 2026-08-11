@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight, CircleDollarSign, FileText, Plus, Search, ShieldCheck, Zap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +34,7 @@ function money(value: string, currency = "INR") {
 
 export default function QuotationsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
   const [page, setPage] = useState(1);
@@ -41,7 +42,7 @@ export default function QuotationsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [path, setPath] = useState("");
-  const [queue, setQueue] = useState("team");
+  const queue = searchParams.get("queue") === "mine" ? "mine" : "team";
   const [showCreate, setShowCreate] = useState(false);
   const [createPath, setCreatePath] = useState<"STANDARD" | "QUICK">("STANDARD");
   const [estimateId, setEstimateId] = useState("");
@@ -137,7 +138,7 @@ export default function QuotationsPage() {
             </form>
             <NativeSelect aria-label="Quotation status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><NativeSelectOption value="">All statuses</NativeSelectOption>{["DRAFT", "IN_APPROVAL", "APPROVED", "READY_TO_SEND", "SENT", "UNDER_NEGOTIATION", "ACCEPTED", "READY_FOR_SALES_ORDER", "REJECTED", "EXPIRED", "CANCELLED"].map((item) => <NativeSelectOption key={item} value={item}>{item.replaceAll("_", " ")}</NativeSelectOption>)}</NativeSelect>
             <NativeSelect aria-label="Quotation path" value={path} onChange={(event) => { setPath(event.target.value); setPage(1); }}><NativeSelectOption value="">All paths</NativeSelectOption><NativeSelectOption value="STANDARD">Standard</NativeSelectOption><NativeSelectOption value="QUICK">Quick</NativeSelectOption></NativeSelect>
-            <NativeSelect aria-label="Quotation ownership" value={queue} onChange={(event) => { setQueue(event.target.value); setPage(1); }}><NativeSelectOption value="team">Team</NativeSelectOption><NativeSelectOption value="mine">Mine</NativeSelectOption></NativeSelect>
+            <NativeSelect aria-label="Quotation ownership" value={queue} onChange={(event) => { const value = event.target.value; setSearchParams(value === "mine" ? { queue: "mine" } : {}, { replace: true }); setPage(1); }}><NativeSelectOption value="team">Team</NativeSelectOption><NativeSelectOption value="mine">Mine</NativeSelectOption></NativeSelect>
           </div>
         </CardHeader>
         <CardContent>

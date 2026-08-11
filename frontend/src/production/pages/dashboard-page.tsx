@@ -17,8 +17,9 @@ const metrics = [
   { label: "Documents", endpoint: "/documents/?page_size=1", permission: "documents.document.view", icon: Files, href: "/app/documents" },
   { label: "Needs my approval", endpoint: "/approvals/requests/?bucket=needs-action&page_size=1", permission: "approvals.request.view", icon: ClipboardCheck, href: "/app/approvals" },
   { label: "Recorded activity", endpoint: "/audit/events/?page_size=1", permission: "audit.event.view", icon: Activity, href: "/app/activity-history" },
-  { label: "Unassigned enquiries", endpoint: "/external-enquiries/?queue=unassigned&page_size=1", permission: "crm.external_enquiry.review", icon: Inbox, href: "/app/crm/incoming-enquiries" },
-  { label: "My quotations", endpoint: "/quotations/?queue=mine&page_size=1", permission: "crm.quotation.view", icon: FileText, href: "/app/crm/quotations" },
+  { label: "Unassigned enquiries", endpoint: "/external-enquiries/?queue=unassigned&page_size=1", permission: "crm.external_enquiry.review", icon: Inbox, href: "/app/crm/incoming-enquiries?queue=unassigned" },
+  { label: "My enquiries", endpoint: "/external-enquiries/?queue=mine&page_size=1", permission: "crm.external_enquiry.review", icon: Inbox, href: "/app/crm/incoming-enquiries?queue=mine" },
+  { label: "My quotations", endpoint: "/quotations/?queue=mine&page_size=1", permission: "crm.quotation.view", icon: FileText, href: "/app/crm/quotations?queue=mine" },
 ]
 
 export default function DashboardPage() {

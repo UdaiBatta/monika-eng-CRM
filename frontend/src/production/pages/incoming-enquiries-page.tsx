@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpRight, Inbox, MessageSquareText, Phone, Plus, Search, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowUpRight, Download, FileSpreadsheet, Inbox, MessageSquareText, Phone, Plus, Search, Upload, Users } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,6 +18,7 @@ import {
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -26,7 +29,7 @@ import {
   ERPStatusBadge,
   formatDateTime,
 } from "@/production/components/shared";
-import { apiGet, apiPost } from "@/production/lib/api";
+import { apiGet, apiPost, apiUpload } from "@/production/lib/api";
 import { hasPermission, useCurrentUser } from "@/production/lib/auth";
 import type { ExternalEnquirySubmission } from "@/production/lib/crm-types";
 import type { Paginated } from "@/production/lib/types";
@@ -45,8 +48,23 @@ const blankCapture = {
   priority: "NORMAL",
 };
 
+const importTemplate = [
+  "received_at,channel,source_reference,person_name,company_name,email,phone,subject,message,priority",
+  "2025-04-01T10:30:00+05:30,PHONE,OLD-CALL-001,Ravi Shah,Legacy Controls,,919900001111,Old panel enquiry,Need replacement starter panel,HIGH",
+].join("\r\n");
+
+function downloadImportTemplate() {
+  const url = URL.createObjectURL(new Blob([`\uFEFF${importTemplate}\r\n`], { type: "text/csv;charset=utf-8" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "monika-enquiry-import-template.csv";
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function IncomingEnquiriesPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
   const [page, setPage] = useState(1);
@@ -54,8 +72,11 @@ export default function IncomingEnquiriesPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [channel, setChannel] = useState("");
-  const [queue, setQueue] = useState("team");
+  const queueParam = searchParams.get("queue");
+  const queue = queueParam === "mine" || queueParam === "unassigned" ? queueParam : "team";
   const [showCapture, setShowCapture] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
   const [capture, setCapture] = useState(blankCapture);
   const params = useMemo(() => {
     const next = new URLSearchParams({ page: String(page), page_size: "25", ordering: "-received_at" });
@@ -78,6 +99,24 @@ export default function IncomingEnquiriesPage() {
       navigate(`/app/crm/incoming-enquiries/${item.id}`);
     },
   });
+  const historyImport = useMutation({
+    mutationFn: (file: File) => {
+      const body = new FormData();
+      body.append("file", file);
+      return apiUpload<{ imported: number; possible_duplicates: number }>(
+        "/external-enquiries/import-history/",
+        body,
+      );
+    },
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ["incoming-enquiries"] });
+      setShowImport(false);
+      setImportFile(null);
+      toast.success(
+        `${result.imported} historical ${result.imported === 1 ? "enquiry" : "enquiries"} imported${result.possible_duplicates ? `; ${result.possible_duplicates} need duplicate review` : ""}.`,
+      );
+    },
+  });
   const results = query.data?.results ?? [];
   const unassigned = results.filter((item) => !item.assigned_to).length;
   const duplicates = results.filter((item) => item.duplicate_status === "POSSIBLE").length;
@@ -94,7 +133,10 @@ export default function IncomingEnquiriesPage() {
         title="Incoming enquiries"
         description="One controlled queue for website, TradeIndia, WhatsApp, phone, email, in-person and manual enquiries—with the original source preserved."
         actions={hasPermission(user, "crm.external_enquiry.review") ? (
-          <Button onClick={() => setShowCapture(true)}><Plus data-icon="inline-start" />Capture enquiry</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setShowImport(true)}><Upload data-icon="inline-start" />Import previous data</Button>
+            <Button onClick={() => setShowCapture(true)}><Plus data-icon="inline-start" />Capture enquiry</Button>
+          </div>
         ) : undefined}
       />
 
@@ -115,7 +157,7 @@ export default function IncomingEnquiriesPage() {
             </form>
             <NativeSelect aria-label="Review status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><NativeSelectOption value="">All states</NativeSelectOption><NativeSelectOption value="NEW">New</NativeSelectOption><NativeSelectOption value="NEEDS_REVIEW">Needs review</NativeSelectOption><NativeSelectOption value="POSSIBLE_DUPLICATE">Possible duplicate</NativeSelectOption><NativeSelectOption value="CONVERTED">Converted</NativeSelectOption><NativeSelectOption value="REJECTED">Rejected</NativeSelectOption></NativeSelect>
             <NativeSelect aria-label="Source channel" value={channel} onChange={(event) => { setChannel(event.target.value); setPage(1); }}><NativeSelectOption value="">All sources</NativeSelectOption><NativeSelectOption value="WEBSITE">Website</NativeSelectOption>{channels.map((item) => <NativeSelectOption key={item} value={item}>{item.replaceAll("_", " ")}</NativeSelectOption>)}</NativeSelect>
-            <NativeSelect aria-label="Ownership queue" value={queue} onChange={(event) => { setQueue(event.target.value); setPage(1); }}><NativeSelectOption value="team">Team queue</NativeSelectOption><NativeSelectOption value="mine">My enquiries</NativeSelectOption><NativeSelectOption value="unassigned">Unassigned</NativeSelectOption></NativeSelect>
+            <NativeSelect aria-label="Ownership queue" value={queue} onChange={(event) => { const value = event.target.value; setSearchParams(value === "team" ? {} : { queue: value }, { replace: true }); setPage(1); }}><NativeSelectOption value="team">Team queue</NativeSelectOption><NativeSelectOption value="mine">My enquiries</NativeSelectOption><NativeSelectOption value="unassigned">Unassigned</NativeSelectOption></NativeSelect>
           </div>
         </CardHeader>
         <CardContent>
@@ -148,6 +190,34 @@ export default function IncomingEnquiriesPage() {
           {create.isError ? <ERPErrorState title="Enquiry could not be captured" message={create.error.message} /> : null}
           <div className="grid grid-cols-2 gap-3 rounded-lg border p-3 text-xs text-muted-foreground"><span className="flex items-center gap-2"><Phone className="text-primary" />Manual channels supported</span><span className="flex items-center gap-2"><MessageSquareText className="text-primary" />Original wording retained</span></div>
           <DialogFooter><Button variant="outline" onClick={() => setShowCapture(false)}>Cancel</Button><Button onClick={() => create.mutate()} disabled={create.isPending || !capture.person_name.trim() || !capture.subject.trim() || !capture.message.trim()}>{create.isPending ? "Capturing…" : "Capture enquiry"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showImport} onOpenChange={(open) => { setShowImport(open); if (!open) setImportFile(null); }}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Import previous enquiries</DialogTitle>
+            <DialogDescription>Bring historical sales enquiries into the same controlled review queue from CSV or Excel.</DialogDescription>
+          </DialogHeader>
+          <Alert>
+            <FileSpreadsheet />
+            <AlertTitle>Safe, all-or-nothing import</AlertTitle>
+            <AlertDescription>Up to 500 rows and 5 MB. If any row is invalid, nothing is imported. Existing source references are rejected instead of duplicated.</AlertDescription>
+          </Alert>
+          <Field>
+            <FieldLabel htmlFor="history-import-file">CSV or Excel file</FieldLabel>
+            <Input id="history-import-file" type="file" accept=".csv,.xlsx" onChange={(event) => setImportFile(event.target.files?.[0] ?? null)} />
+            <FieldDescription>Required columns: received_at, channel, person_name, subject and message. Use PHONE, EMAIL, WHATSAPP, TRADEINDIA, IN_PERSON, MANUAL or OTHER.</FieldDescription>
+          </Field>
+          <Button variant="outline" className="justify-self-start" onClick={downloadImportTemplate}><Download data-icon="inline-start" />Download CSV template</Button>
+          {historyImport.isError ? <ERPErrorState title="Previous data could not be imported" message={historyImport.error.message} /> : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowImport(false)}>Cancel</Button>
+            <Button onClick={() => importFile && historyImport.mutate(importFile)} disabled={!importFile || historyImport.isPending}>
+              {historyImport.isPending ? <Spinner data-icon="inline-start" /> : <Upload data-icon="inline-start" />}
+              {historyImport.isPending ? "Importing…" : "Import data"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

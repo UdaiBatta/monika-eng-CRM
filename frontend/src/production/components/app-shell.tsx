@@ -11,6 +11,7 @@ import {
   Contact,
   Database,
   FileKey2,
+  FileText,
   Files,
   Gauge,
   GitBranch,
@@ -24,6 +25,8 @@ import {
   Users,
   Warehouse,
   Wrench,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -47,6 +50,7 @@ import {
   useCurrentUser,
 } from "@/production/lib/auth";
 import { getPageTitle } from "@/production/lib/page-title";
+import { RealtimeProvider, useRealtime } from "@/production/lib/realtime";
 
 type NavItem = {
   label: string;
@@ -102,8 +106,8 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         permission: "enquiry.enquiry.view",
       },
       {
-        label: "Website enquiries",
-        to: "/app/crm/website-enquiries",
+        label: "Incoming enquiries",
+        to: "/app/crm/incoming-enquiries",
         icon: Globe2,
         permission: "crm.external_enquiry.view",
       },
@@ -118,6 +122,12 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         to: "/app/crm/estimates",
         icon: CircleDollarSign,
         permission: "estimation.estimate.view",
+      },
+      {
+        label: "Quotations",
+        to: "/app/crm/quotations",
+        icon: FileText,
+        permission: "crm.quotation.view",
       },
       {
         label: "Activities & follow-ups",
@@ -386,6 +396,7 @@ function Header() {
           </p>
           <p className="text-xs text-muted-foreground">Secure session</p>
         </div>
+        <RealtimeIndicator />
         <ThemeToggle />
         <ERPNotificationBell />
       </div>
@@ -393,7 +404,23 @@ function Header() {
   );
 }
 
-export default function AppShell() {
+function RealtimeIndicator() {
+  const { status } = useRealtime();
+  const live = status === "live";
+  const Icon = live ? Wifi : WifiOff;
+  return (
+    <div
+      className="hidden items-center gap-2 rounded-full border px-3 py-1.5 text-xs sm:flex"
+      title={live ? "Live updates connected" : "Changes remain safe; refresh if needed"}
+    >
+      <span className={`size-2 rounded-full ${live ? "bg-status-success" : "bg-status-warning"}`} />
+      <Icon className="size-3.5" />
+      {live ? "Live" : status === "offline" ? "Offline" : "Reconnecting"}
+    </div>
+  );
+}
+
+function AppShellContent() {
   return (
     <div className="axis-erp min-h-svh bg-background text-foreground">
       <Sidebar />
@@ -409,5 +436,13 @@ export default function AppShell() {
         </footer>
       </div>
     </div>
+  );
+}
+
+export default function AppShell() {
+  return (
+    <RealtimeProvider>
+      <AppShellContent />
+    </RealtimeProvider>
   );
 }

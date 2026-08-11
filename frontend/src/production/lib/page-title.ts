@@ -6,6 +6,7 @@ const detailTitles: Array<[RegExp, string]> = [
   [/^\/app\/crm\/customers\/[^/]+$/, "Customer 360"],
   [/^\/app\/crm\/enquiries\/[^/]+$/, "Enquiry 360"],
   [/^\/app\/crm\/website-enquiries\/[^/]+$/, "Website enquiry review"],
+  [/^\/app\/crm\/incoming-enquiries\/[^/]+$/, "Incoming enquiry review"],
   [/^\/app\/crm\/engineering\/[^/]+$/, "Engineering review"],
   [/^\/app\/crm\/estimates\/[^/]+$/, "Commercial estimate"],
 ];
@@ -16,6 +17,7 @@ const listTitles: Record<string, string> = {
   engineering: "Engineering reviews",
   enquiries: "Enquiries & RFQs",
   "website-enquiries": "Website enquiry inbox",
+  "incoming-enquiries": "Incoming enquiries",
   estimates: "Commercial estimates",
 };
 

@@ -69,6 +69,7 @@ class Command(BaseCommand):
             ("CUSTOMER", "CUST-{number}", 5),
             ("ENQUIRY", "ENQ-{year}-{number}", 4),
             ("ESTIMATE", "EST-{year}-{number}", 4),
+            ("QUOTATION", "QUO-{year}-{number}", 4),
         ):
             DocumentSequence.objects.get_or_create(
                 company=company,

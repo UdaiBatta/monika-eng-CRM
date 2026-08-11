@@ -10,7 +10,8 @@ from rest_framework.exceptions import ValidationError
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
 from apps.core.entity_registry import entity_key
-from apps.documents.models import Document, DocumentCategory, DocumentVersion
+from apps.documents.models import Document, DocumentCategory, DocumentLink, DocumentVersion
+from apps.documents.serializers import DocumentLinkSerializer
 from apps.documents.services import (
     add_version,
     archive_document,
@@ -47,6 +48,16 @@ def category(company, **overrides):
 
 def test_document_category_is_registered_for_audit():
     assert entity_key(DocumentCategory()) == "document_category"
+
+
+def test_document_link_serializer_exposes_read_only_link_data():
+    serializer = DocumentLinkSerializer(
+        DocumentLink(entity_type="enquiry", entity_id="enquiry-1", relationship_type="CUSTOMER_RFQ")
+    )
+
+    assert serializer.data["entity_type"] == "enquiry"
+    assert serializer.data["entity_id"] == "enquiry-1"
+    assert all(field.read_only for field in serializer.fields.values())
 
 
 def grant(user, company, *codes):

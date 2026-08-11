@@ -201,7 +201,7 @@ def test_cost_build_up_and_markup_are_decimal_and_server_calculated(enquiry, adm
 
 @pytest.mark.django_db
 def test_approval_locks_estimate_and_revision_preserves_history(
-    enquiry, admin, employee, django_capture_on_commit_callbacks
+    api_client, enquiry, admin, employee, django_capture_on_commit_callbacks
 ):
     grant(employee.user, enquiry.company, "approvals.request.approve")
     approval_workflow(enquiry.company, employee.user)
@@ -214,6 +214,11 @@ def test_approval_locks_estimate_and_revision_preserves_history(
     )
     submitted = submit_estimate(estimate_id=estimate.pk, actor=admin, comment="Ready for approval")
     assert submitted.status == CommercialEstimate.Status.PENDING_APPROVAL
+
+    api_client.force_authenticate(admin)
+    workspace = api_client.get(f"/api/v1/commercial-estimates/{submitted.pk}/workspace/")
+    assert workspace.status_code == 200
+    assert workspace.data["approvals"][0]["status"] == "IN_PROGRESS"
 
     with django_capture_on_commit_callbacks(execute=True):
         approve_request(

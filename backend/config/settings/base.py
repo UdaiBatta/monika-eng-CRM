@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "apps.enquiries.apps.EnquiriesConfig",
     "apps.engineering_reviews.apps.EngineeringReviewsConfig",
     "apps.external_enquiries.apps.ExternalEnquiriesConfig",
+    "apps.estimation.apps.EstimationConfig",
 ]
 
 MIDDLEWARE = [

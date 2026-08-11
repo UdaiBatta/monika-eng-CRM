@@ -22,6 +22,7 @@ from apps.crm.views import (
 from apps.documents.views import DocumentCategoryViewSet, DocumentViewSet
 from apps.engineering_reviews.views import EngineeringClarificationViewSet, EngineeringReviewViewSet
 from apps.enquiries.views import EnquiryItemViewSet, EnquiryRequirementViewSet, EnquiryViewSet
+from apps.estimation.views import CommercialEstimateViewSet, EstimateCostLineViewSet
 from apps.external_enquiries.views import (
     ExternalEnquirySubmissionViewSet,
     WebsiteEnquiryIntakeView,
@@ -90,6 +91,8 @@ router.register("enquiry-requirements", EnquiryRequirementViewSet)
 router.register("enquiry-items", EnquiryItemViewSet)
 router.register("engineering-reviews", EngineeringReviewViewSet)
 router.register("engineering-clarifications", EngineeringClarificationViewSet)
+router.register("commercial-estimates", CommercialEstimateViewSet)
+router.register("estimate-cost-lines", EstimateCostLineViewSet)
 router.register(
     "external-enquiries",
     ExternalEnquirySubmissionViewSet,

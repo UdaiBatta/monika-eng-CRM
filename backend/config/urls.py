@@ -44,6 +44,12 @@ from apps.organization.views import (
     EmployeeViewSet,
     WarehouseViewSet,
 )
+from apps.quotations.views import (
+    QuotationRevisionViewSet,
+    QuotationTemplateViewSet,
+    QuotationTextTemplateViewSet,
+    QuotationViewSet,
+)
 from apps.rbac.views import (
     PermissionOverrideViewSet,
     PermissionViewSet,
@@ -93,6 +99,10 @@ router.register("engineering-reviews", EngineeringReviewViewSet)
 router.register("engineering-clarifications", EngineeringClarificationViewSet)
 router.register("commercial-estimates", CommercialEstimateViewSet)
 router.register("estimate-cost-lines", EstimateCostLineViewSet)
+router.register("quotations", QuotationViewSet, basename="quotation")
+router.register("quotation-revisions", QuotationRevisionViewSet, basename="quotation-revision")
+router.register("quotation-templates", QuotationTemplateViewSet)
+router.register("quotation-text-templates", QuotationTextTemplateViewSet)
 router.register(
     "external-enquiries",
     ExternalEnquirySubmissionViewSet,

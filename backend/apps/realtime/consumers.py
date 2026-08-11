@@ -16,6 +16,7 @@ ENTITY_VIEW_PERMISSIONS = {
     "commercial_estimate": "crm.estimate.view",
     "external_enquiry_submission": "crm.external_enquiry.view",
     "quotation": "crm.quotation.view",
+    "quotation_revision": "crm.quotation.view",
 }
 
 

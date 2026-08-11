@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "apps.engineering_reviews.apps.EngineeringReviewsConfig",
     "apps.external_enquiries.apps.ExternalEnquiriesConfig",
     "apps.estimation.apps.EstimationConfig",
+    "apps.quotations.apps.QuotationsConfig",
     "apps.realtime.apps.RealtimeConfig",
 ]
 
@@ -103,6 +104,8 @@ CHANNEL_LAYERS = {
     }
 }
 REALTIME_PRESENCE_TTL_SECONDS = int(os.getenv("REALTIME_PRESENCE_TTL_SECONDS", "75"))
+LIBREOFFICE_EXECUTABLE = os.getenv("LIBREOFFICE_EXECUTABLE", "")
+QUOTATION_PDF_TIMEOUT_SECONDS = int(os.getenv("QUOTATION_PDF_TIMEOUT_SECONDS", "90"))
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

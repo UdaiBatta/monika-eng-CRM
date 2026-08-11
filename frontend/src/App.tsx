@@ -41,6 +41,11 @@ const NotificationSettingsPage = lazy(
 const CustomersPage = lazy(() => import("@/production/pages/customers-page"));
 const CustomerPage = lazy(() => import("@/production/pages/customer-page"));
 const ActivitiesPage = lazy(() => import("@/production/pages/activities-page"));
+const EnquiriesPage = lazy(() => import("@/production/pages/enquiries-page"));
+const EnquiryCreatePage = lazy(
+  () => import("@/production/pages/enquiry-create-page"),
+);
+const EnquiryPage = lazy(() => import("@/production/pages/enquiry-page"));
 
 function PageLoading() {
   return (
@@ -98,6 +103,12 @@ export default function App() {
                 element={<CustomerPage />}
               />
               <Route path="crm/activities" element={<ActivitiesPage />} />
+              <Route path="crm/enquiries" element={<EnquiriesPage />} />
+              <Route path="crm/enquiries/new" element={<EnquiryCreatePage />} />
+              <Route
+                path="crm/enquiries/:enquiryId"
+                element={<EnquiryPage />}
+              />
 
               <Route
                 path="organization"

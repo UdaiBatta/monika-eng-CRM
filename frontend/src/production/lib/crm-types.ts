@@ -97,14 +97,83 @@ export type CrmActivity = {
 export type EnquirySummary = {
   id: Identifier;
   enquiry_number: string;
-  title: string;
+  subject: string;
   status: string;
-  status_label?: string;
   customer_reference: string;
   due_date: string | null;
   responsible_salesperson_name: string;
+  customer: Identifier;
+  customer_code: string;
+  customer_name: string;
+  priority: string;
+  estimated_value: string | null;
+  currency_code: string;
+  is_overdue: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type EnquiryRequirement = {
+  id: Identifier;
+  enquiry: Identifier;
+  requirement_type: string;
+  title: string;
+  description: string;
+  is_mandatory: boolean;
+  customer_specification_reference: string;
+  notes: string;
+};
+
+export type EnquiryItem = {
+  id: Identifier;
+  enquiry: Identifier;
+  line_number: number;
+  description: string;
+  customer_reference: string;
+  quantity: string;
+  uom: Identifier;
+  uom_code: string;
+  technical_specification: string;
+  requested_delivery: string | null;
+  notes: string;
+};
+
+export type Enquiry = EnquirySummary & {
+  company: Identifier;
+  company_name: string;
+  customer_contact: Identifier | null;
+  customer_contact_name: string;
+  customer_site: Identifier | null;
+  customer_site_name: string;
+  source: string;
+  received_date: string;
+  description: string;
+  responsible_salesperson: Identifier;
+  currency: Identifier | null;
+  lost_reason: string;
+  cancellation_reason: string;
+  competitor: string;
+  customer_feedback: string;
+  closed_at: string | null;
+  requirements: EnquiryRequirement[];
+  items: EnquiryItem[];
+};
+
+export type EnquiryWorkspace = {
+  enquiry: Enquiry;
+  next_follow_up: CrmActivity | null;
+  activities: CrmActivity[];
+  documents: ERPDocument[];
+  timeline: CustomerTimelineItem[];
+  engineering_review?: {
+    id: Identifier;
+    revision_number: number;
+    status: string;
+    result: string;
+    assigned_engineer_name: string;
+    open_clarifications: number;
+    ready_for_estimation: boolean;
+  } | null;
 };
 
 export type CustomerTimelineItem = {

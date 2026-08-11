@@ -395,10 +395,12 @@ export function SiteForm({
 export function ActivityForm({
   customer,
   activity,
+  initialEnquiryId = "",
   onSaved,
 }: {
   customer?: Customer;
   activity?: CrmActivity;
+  initialEnquiryId?: string;
   onSaved: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -418,7 +420,7 @@ export function ActivityForm({
   const form = useForm<ActivityValues>({
     defaultValues: {
       customer: customer?.id ?? activity?.customer ?? "",
-      enquiry: activity?.enquiry ?? "",
+      enquiry: activity?.enquiry ?? initialEnquiryId,
       contact: activity?.contact ?? "",
       activity_type: activity?.activity_type ?? "CALL",
       subject: activity?.subject ?? "",

@@ -604,16 +604,13 @@ export default function CustomerPage() {
                     >
                       <FileText />
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium">{enquiry.title}</p>
+                        <p className="font-medium">{enquiry.subject}</p>
                         <p className="text-xs text-muted-foreground">
                           {enquiry.enquiry_number} · Due{" "}
                           {enquiry.due_date || "not set"}
                         </p>
                       </div>
-                      <ERPStatusBadge
-                        value={enquiry.status}
-                        label={enquiry.status_label}
-                      />
+                      <ERPStatusBadge value={enquiry.status} />
                     </Link>
                   ))}
                 </div>

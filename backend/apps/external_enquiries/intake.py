@@ -89,7 +89,7 @@ def find_submission_candidates(submission):
             .filter(
                 customer__company=submission.company,
             )
-            .filter(contact_query if submission.email else Q())[:500]
+            .filter(contact_query if submission.email and not submission.normalized_phone else Q())[:500]
         ):
             reasons = []
             if submission.email and contact.email.lower() == submission.email:

@@ -150,15 +150,15 @@ export const resourceConfigs: Record<string, ResourceConfig> = {
     fields: [{ name: "company", label: "Company", type: "relation", relation: companyRelation, required: true }, { name: "code", label: "Code", required: true }, { name: "name", label: "Name", required: true }, activeField],
   },
   warehouses: {
-    key: "warehouses", endpoint: "/warehouses/", title: "Warehouses", singular: "warehouse",
-    description: "Branch-bound storage and inventory responsibility scopes.", viewPermission: "organization.warehouse.view", managePermission: "organization.warehouse.manage",
+    key: "warehouses", endpoint: "/warehouses/", title: "Inventory & workshop locations", singular: "location",
+    description: "The stores, warehouses, and workshop locations used for inventory responsibility. Stock quantities will use the later transaction-ledger module.", viewPermission: "organization.warehouse.view", managePermission: "organization.warehouse.manage",
     importTemplate: {
       headers: ["company_code", "branch_code", "code", "name", "address", "is_active"],
       required: ["company_code", "branch_code", "code", "name"],
-      example: ["MONIKA", "PUNE", "MAIN", "Main Stores", "Pune Works", "true"],
-      note: "Import companies and branches before their warehouses.",
+      example: ["MONIKA", "PUNE", "WORKSHOP", "Main Workshop", "Pune Works", "true"],
+      note: "This imports stores, warehouses, and workshop locations—not stock quantities. Import companies and branches first.",
     },
-    columns: [{ key: "code", label: "Code" }, { key: "name", label: "Warehouse" }, { key: "company_name", label: "Company" }, { key: "branch_name", label: "Branch" }, { key: "is_active", label: "Active" }],
+    columns: [{ key: "code", label: "Code" }, { key: "name", label: "Location" }, { key: "company_name", label: "Company" }, { key: "branch_name", label: "Branch" }, { key: "is_active", label: "Active" }],
     fields: [
       { name: "company", label: "Company", type: "relation", relation: companyRelation, required: true },
       { name: "branch", label: "Branch", type: "relation", relation: branchRelation, required: true },

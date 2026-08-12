@@ -14,7 +14,6 @@ import {
   Settings2,
   ShieldCheck,
   Users,
-  Warehouse,
   Wrench,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -89,13 +88,6 @@ const groups: Array<{ title: string; description: string; tools: Tool[] }> = [
         to: "/app/organization/departments",
         icon: Layers3,
         permission: "organization.department.view",
-      },
-      {
-        label: "Warehouses",
-        description: "Locations where stock is kept.",
-        to: "/app/organization/warehouses",
-        icon: Warehouse,
-        permission: "organization.warehouse.view",
       },
     ],
   },

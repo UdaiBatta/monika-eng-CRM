@@ -288,7 +288,7 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
         <div><h2 className="text-2xl font-semibold tracking-tight">{config.title}</h2><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{config.description}</p></div>
         {canManage ? (
           <div className="flex flex-wrap gap-2">
-            {config.importTemplate ? <Button variant="outline" onClick={() => setImportOpen(true)}><Upload data-icon="inline-start" />Import previous data</Button> : null}
+            {config.importTemplate ? <Button variant="outline" onClick={() => setImportOpen(true)}><Upload data-icon="inline-start" />Import Excel / CSV</Button> : null}
             <Button onClick={openCreate}><Plus data-icon="inline-start" />New {config.singular}</Button>
           </div>
         ) : null}

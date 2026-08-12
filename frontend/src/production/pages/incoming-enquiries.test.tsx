@@ -51,7 +51,7 @@ describe("incoming enquiry queues and history import", () => {
 
     expect(await screen.findByRole("combobox", { name: "Ownership queue" })).toHaveValue("unassigned");
     await waitFor(() => expect(mocks.apiGet).toHaveBeenCalledWith(expect.stringContaining("queue=unassigned")));
-    await user.click(screen.getByRole("button", { name: "Import previous data" }));
+    await user.click(screen.getByRole("button", { name: "Import Excel / CSV" }));
     const file = new File(["received_at,channel,person_name,subject,message\n2025-01-01,PHONE,Ravi,Old enquiry,Call back"], "history.csv", { type: "text/csv" });
     await user.upload(screen.getByLabelText("CSV or Excel file"), file);
     await user.click(screen.getByRole("button", { name: "Import data" }));

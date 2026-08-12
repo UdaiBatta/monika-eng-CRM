@@ -22,6 +22,7 @@ const listTitles: Record<string, string> = {
   estimates: "Cost estimates",
   quotations: "Quotations",
   settings: "Tools & settings",
+  warehouses: "Inventory & workshop",
 };
 
 export function getPageTitle(pathname: string) {

@@ -57,7 +57,7 @@ describe("spreadsheet imports for organization registers", () => {
       </QueryClientProvider>,
     )
 
-    await actor.click(await screen.findByRole("button", { name: "Import previous data" }))
+    await actor.click(await screen.findByRole("button", { name: "Import Excel / CSV" }))
     expect(screen.getByRole("dialog", { name: "Import previous companies" })).toBeInTheDocument()
     expect(screen.getByText(/Google Sheets/)).toBeInTheDocument()
     const upload = screen.getByLabelText("CSV or Excel file")

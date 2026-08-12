@@ -15,7 +15,11 @@ const user = {
   is_active: true,
   is_staff: true,
   employee: { id: "employee-1", employee_code: "ME-001", display_name: "Development Administrator", company_id: "company-1" },
-  permissions: ["crm.quotation.view", "configuration.settings.view"],
+  permissions: [
+    "crm.quotation.view",
+    "organization.warehouse.view",
+    "configuration.settings.view",
+  ],
 } as CurrentUser;
 
 vi.mock("@/production/lib/auth", () => ({
@@ -71,6 +75,9 @@ describe("mobile application navigation", () => {
 
     expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Quotations" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Inventory & workshop" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tools & settings" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Numbering" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Roles" })).not.toBeInTheDocument();

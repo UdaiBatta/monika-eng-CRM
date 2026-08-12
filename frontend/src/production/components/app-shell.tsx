@@ -14,6 +14,7 @@ import {
   Menu,
   Settings2,
   Users,
+  Warehouse,
   Wifi,
   WifiOff,
 } from "lucide-react";
@@ -83,6 +84,12 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         icon: Activity,
         permission: "crm.activity.view",
       },
+      {
+        label: "Inventory & workshop",
+        to: "/app/organization/warehouses",
+        icon: Warehouse,
+        permission: "organization.warehouse.view",
+      },
     ],
   },
   {
@@ -116,7 +123,6 @@ const toolPermissions = [
   "organization.company.view",
   "organization.branch.view",
   "organization.department.view",
-  "organization.warehouse.view",
   "rbac.role.view",
   "rbac.permission.view",
   "rbac.assignment.view",

@@ -134,7 +134,7 @@ export default function IncomingEnquiriesPage() {
         description="One controlled queue for website, TradeIndia, WhatsApp, phone, email, in-person and manual enquiries—with the original source preserved."
         actions={hasPermission(user, "crm.external_enquiry.review") ? (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setShowImport(true)}><Upload data-icon="inline-start" />Import previous data</Button>
+            <Button variant="outline" onClick={() => setShowImport(true)}><Upload data-icon="inline-start" />Import Excel / CSV</Button>
             <Button onClick={() => setShowCapture(true)}><Plus data-icon="inline-start" />Capture enquiry</Button>
           </div>
         ) : undefined}

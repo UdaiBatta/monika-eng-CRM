@@ -174,7 +174,7 @@ export const resourceConfigs: Record<string, ResourceConfig> = {
       { name: "company", label: "Company", type: "relation", relation: companyRelation, required: true },
       { name: "code", label: "Code", required: true }, { name: "name", label: "Name", required: true },
       { name: "description", label: "Description", type: "textarea" },
-      { name: "permission_ids", label: "Permissions", type: "multi-relation", relation: { endpoint: "/permissions/", labelFields: ["code", "name"] }, help: "Permissions aggregate across all active assignments." },
+      { name: "permission_ids", label: "Permissions", type: "multi-relation", relation: { endpoint: "/permissions/?is_active=true", labelFields: ["code", "name"] }, help: "Permissions aggregate across all active assignments." },
       activeField,
     ],
   },

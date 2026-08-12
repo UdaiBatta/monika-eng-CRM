@@ -9,9 +9,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -20,12 +21,195 @@ import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 import { ApiError, apiGet, apiPatch, apiPost, apiUpload } from "@/production/lib/api"
 import { hasPermission, useCurrentUser } from "@/production/lib/auth"
 import { resourceConfigs, type ResourceConfig, type ResourceField } from "@/production/lib/resource-config"
 import type { FoundationRecord, Paginated } from "@/production/lib/types"
 
 type FormValues = Record<string, unknown>
+
+const permissionGroupLabels: Record<string, string> = {
+  "crm.external_enquiry": "Incoming enquiries",
+  "crm.customer": "Customers",
+  "crm.contact": "Customer contacts",
+  "enquiry.enquiry": "Active enquiries",
+  "crm.activity": "Follow-ups",
+  "engineering.feasibility": "Engineering reviews",
+  "estimation.estimate": "Commercial estimates",
+  "crm.quotation": "Quotations",
+  "documents.document": "Documents",
+  "documents.category": "Document categories",
+  "approvals.request": "Approval requests",
+  "approvals.workflow": "Approval workflows",
+  "notifications.notification": "Notifications",
+  "organization.company": "Companies",
+  "organization.branch": "Branches",
+  "organization.department": "Departments",
+  "organization.designation": "Designations",
+  "organization.employee": "Employees",
+  "organization.warehouse": "Warehouses",
+  "accounts.user": "User accounts",
+  "rbac.role": "Roles",
+  "rbac.permission": "Permissions",
+  "rbac.assignment": "Role assignments",
+  "rbac.override": "Permission overrides",
+  "configuration.settings": "Company settings",
+  "configuration.feature_flag": "Feature flags",
+  "numbering.sequence": "Numbering",
+  "audit.event": "Activity history",
+  masters: "Foundation masters",
+}
+
+function permissionGroupKey(code: string) {
+  const parts = code.split(".")
+  return parts.length > 2 ? `${parts[0]}.${parts[1]}` : parts[0]
+}
+
+function permissionGroupLabel(key: string) {
+  return permissionGroupLabels[key] ?? key.replaceAll("_", " ").replaceAll(".", " · ")
+}
+
+async function fetchAllRelationOptions(endpoint: string) {
+  const separator = endpoint.includes("?") ? "&" : "?"
+  const results: FoundationRecord[] = []
+  let page = 1
+  let pages = 1
+  do {
+    const response = await apiGet<Paginated<FoundationRecord>>(`${endpoint}${separator}page=${page}&page_size=100`)
+    results.push(...response.results)
+    pages = response.pagination.pages
+    page += 1
+  } while (page <= pages)
+  return results
+}
+
+type PermissionGroup = {
+  key: string
+  label: string
+  permissions: FoundationRecord[]
+}
+
+function PermissionPicker({
+  options,
+  value,
+  onChange,
+  isLoading,
+  error,
+}: {
+  options: FoundationRecord[]
+  value: string[]
+  onChange: (value: string[]) => void
+  isLoading: boolean
+  error?: Error | null
+}) {
+  const [search, setSearch] = useState("")
+  const selected = useMemo(() => new Set(value), [value])
+  const groups = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    const grouped = new Map<string, PermissionGroup>()
+    for (const permission of options) {
+      const code = String(permission.code ?? "")
+      const name = String(permission.name ?? "")
+      if (query && !`${code} ${name}`.toLowerCase().includes(query)) continue
+      const key = permissionGroupKey(code)
+      const group = grouped.get(key) ?? { key, label: permissionGroupLabel(key), permissions: [] }
+      group.permissions.push(permission)
+      grouped.set(key, group)
+    }
+    return Array.from(grouped.values()).sort((left, right) => left.label.localeCompare(right.label))
+  }, [options, search])
+  const visibleIds = groups.flatMap((group) => group.permissions.map((permission) => String(permission.id)))
+
+  function togglePermission(id: string, checked: boolean) {
+    const next = new Set(value)
+    if (checked) next.add(id)
+    else next.delete(id)
+    onChange(Array.from(next))
+  }
+
+  function toggleGroup(group: PermissionGroup) {
+    const ids = group.permissions.map((permission) => String(permission.id))
+    const allSelected = ids.every((id) => selected.has(id))
+    const next = new Set(value)
+    for (const id of ids) {
+      if (allSelected) next.delete(id)
+      else next.add(id)
+    }
+    onChange(Array.from(next))
+  }
+
+  function selectVisible() {
+    onChange(Array.from(new Set([...value, ...visibleIds])))
+  }
+
+  if (isLoading) return <Skeleton className="h-64 w-full" />
+  if (error) return <Alert variant="destructive"><AlertTitle>Could not load permissions</AlertTitle><AlertDescription>{error.message}</AlertDescription></Alert>
+
+  return (
+    <FieldSet>
+      <FieldLegend>Permissions</FieldLegend>
+      <FieldDescription>Select individual actions or use a section checkbox to select the whole responsibility area.</FieldDescription>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Field className="flex-1">
+          <FieldLabel htmlFor="permission-search" className="sr-only">Search permissions</FieldLabel>
+          <Input id="permission-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search permissions" />
+        </Field>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">{value.length} of {options.length} selected</Badge>
+          <Button type="button" variant="outline" size="sm" onClick={selectVisible} disabled={!visibleIds.length}>Select visible</Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => onChange([])} disabled={!value.length}>Clear all</Button>
+        </div>
+      </div>
+      {groups.length ? (
+        <div className="grid items-start gap-4 lg:grid-cols-2">
+          {groups.map((group) => {
+            const ids = group.permissions.map((permission) => String(permission.id))
+            const selectedCount = ids.filter((id) => selected.has(id)).length
+            const groupChecked = selectedCount === ids.length ? true : selectedCount ? "indeterminate" : false
+            return (
+              <FieldSet key={group.key} className="rounded-lg border p-4">
+                <FieldLegend className="sr-only">{group.label}</FieldLegend>
+                <Field orientation="horizontal">
+                  <Checkbox
+                    id={`permission-group-${group.key}`}
+                    aria-label={`Select all ${group.label}`}
+                    checked={groupChecked}
+                    onCheckedChange={() => toggleGroup(group)}
+                  />
+                  <FieldContent>
+                    <FieldLabel htmlFor={`permission-group-${group.key}`}>{group.label}</FieldLabel>
+                    <FieldDescription>{selectedCount} of {ids.length} selected</FieldDescription>
+                  </FieldContent>
+                </Field>
+                <FieldGroup data-slot="checkbox-group" className="gap-3">
+                  {group.permissions.map((permission) => {
+                    const id = String(permission.id)
+                    return (
+                      <Field key={id} orientation="horizontal">
+                        <Checkbox
+                          id={`permission-${id}`}
+                          checked={selected.has(id)}
+                          onCheckedChange={(checked) => togglePermission(id, checked === true)}
+                        />
+                        <FieldContent>
+                          <FieldLabel htmlFor={`permission-${id}`}>{String(permission.name)}</FieldLabel>
+                          <FieldDescription>{String(permission.code)}</FieldDescription>
+                        </FieldContent>
+                      </Field>
+                    )
+                  })}
+                </FieldGroup>
+              </FieldSet>
+            )
+          })}
+        </div>
+      ) : (
+        <Empty><EmptyHeader><EmptyTitle>No permissions found</EmptyTitle><EmptyDescription>Try a different search term.</EmptyDescription></EmptyHeader></Empty>
+      )}
+    </FieldSet>
+  )
+}
 
 function recordValue(record: FoundationRecord | undefined, field: ResourceField) {
   if (!record) return field.defaultValue ?? (field.type === "boolean" ? false : field.type === "multi-relation" ? [] : "")
@@ -87,7 +271,7 @@ export function ResourceRecordForm({
   const relationQueries = useQueries({
     queries: relationFields.map((field) => ({
       queryKey: ["options", field.relation?.endpoint],
-      queryFn: () => apiGet<Paginated<FoundationRecord>>(`${field.relation?.endpoint}?page_size=100`),
+      queryFn: () => fetchAllRelationOptions(String(field.relation?.endpoint)),
       staleTime: 60_000,
     })),
   })
@@ -122,7 +306,8 @@ export function ResourceRecordForm({
           const apiFieldError = serverErrors[field.name]
           const error = fieldError || (Array.isArray(apiFieldError) ? apiFieldError[0] : apiFieldError)
           const relationIndex = relationFields.indexOf(field)
-          const relationOptions = relationIndex >= 0 ? relationQueries[relationIndex]?.data?.results ?? [] : []
+          const relationQuery = relationIndex >= 0 ? relationQueries[relationIndex] : undefined
+          const relationOptions = relationQuery?.data ?? []
 
           if (field.type === "boolean") {
             return (
@@ -140,6 +325,27 @@ export function ResourceRecordForm({
                   </Field>
                 )}
               />
+            )
+          }
+
+          if (field.name === "permission_ids" && field.type === "multi-relation") {
+            return (
+              <Field key={field.name} data-invalid={Boolean(error)}>
+                <Controller
+                  name={field.name}
+                  control={form.control}
+                  render={({ field: controlled }) => (
+                    <PermissionPicker
+                      options={relationOptions}
+                      value={Array.isArray(controlled.value) ? controlled.value as string[] : []}
+                      onChange={controlled.onChange}
+                      isLoading={Boolean(relationQuery?.isPending)}
+                      error={relationQuery?.error}
+                    />
+                  )}
+                />
+                <FieldError>{error}</FieldError>
+              </Field>
             )
           }
 
@@ -358,7 +564,14 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
       </Card>
 
       <Sheet open={formRecord !== undefined} onOpenChange={(open) => { if (!open) setFormRecord(undefined) }}>
-        <SheetContent className="axis-erp w-full overflow-y-auto sm:max-w-xl">
+        <SheetContent
+          className={cn(
+            "axis-erp w-full overflow-x-hidden overflow-y-auto",
+            config.key === "roles"
+              ? "data-[side=right]:w-[92vw] data-[side=right]:sm:max-w-5xl"
+              : "data-[side=right]:sm:max-w-xl",
+          )}
+        >
           <SheetHeader>
             <SheetTitle>{formRecord ? `Edit ${config.singular}` : `New ${config.singular}`}</SheetTitle>
             <SheetDescription>{config.description}</SheetDescription>

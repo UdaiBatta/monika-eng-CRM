@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import pytest
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -80,6 +81,36 @@ def test_customer_api_allocates_number_and_records_audit(
         entity_id=response.data["id"],
         action=AuditEvent.Action.CREATE,
     ).exists()
+
+
+@pytest.mark.django_db
+def test_customer_history_import_accepts_csv(
+    api_client, admin, company, currency, customer_sequence
+):
+    api_client.force_authenticate(admin)
+    upload = SimpleUploadedFile(
+        "customers.csv",
+        (
+            "company_code,legal_name,trade_name,customer_type,primary_email,"
+            "default_currency_code,source\n"
+            f"{company.code},Delta Control Systems,Delta Controls,ORGANIZATION,"
+            f"sales@delta.example,{currency.code},Existing spreadsheet\n"
+        ).encode(),
+        content_type="text/csv",
+    )
+
+    response = api_client.post(
+        "/api/v1/customers/import-history/",
+        {"file": upload},
+        format="multipart",
+    )
+
+    assert response.status_code == 201, response.data
+    assert response.data == {"imported": 1}
+    imported = Customer.objects.get(legal_name="Delta Control Systems")
+    assert imported.company == company
+    assert imported.default_currency == currency
+    assert imported.source == "Existing spreadsheet"
 
 
 @pytest.mark.django_db

@@ -70,6 +70,45 @@ import {
   ERPStatusBadge,
   formatDateTime,
 } from "@/production/components/shared";
+import SpreadsheetImport from "@/production/components/spreadsheet-import";
+
+const customerImport = {
+  headers: [
+    "company_code",
+    "legal_name",
+    "trade_name",
+    "customer_type",
+    "gstin",
+    "pan",
+    "cin",
+    "industry",
+    "website",
+    "primary_email",
+    "primary_phone",
+    "account_manager_code",
+    "default_currency_code",
+    "source",
+    "notes",
+  ],
+  required: ["company_code", "legal_name", "default_currency_code"],
+  example: [
+    "ME",
+    "ABC Industries Pvt. Ltd.",
+    "ABC Industries",
+    "ORGANIZATION",
+    "",
+    "",
+    "",
+    "Electrical panels",
+    "",
+    "purchase@abc.example",
+    "+91 99000 01111",
+    "ME-001",
+    "INR",
+    "Existing spreadsheet",
+    "",
+  ],
+};
 
 const emptyCustomer: CustomerFormValues = {
   legal_name: "",
@@ -503,10 +542,22 @@ export default function CustomersPage() {
         description="A single account register for contacts, sites, enquiries, follow-ups, documents, and commercial history."
         actions={
           canCreate ? (
-            <Button onClick={() => setFormCustomer(null)}>
-              <Plus data-icon="inline-start" />
-              New customer
-            </Button>
+            <>
+              <SpreadsheetImport
+                endpoint="/customers/import-history/"
+                label="customers"
+                templateName="customers"
+                headers={customerImport.headers}
+                required={customerImport.required}
+                example={customerImport.example}
+                queryKey={["customers"]}
+                note="Company, employee and currency codes must already exist. Download the template before preparing your sheet."
+              />
+              <Button onClick={() => setFormCustomer(null)}>
+                <Plus data-icon="inline-start" />
+                New customer
+              </Button>
+            </>
           ) : undefined
         }
       />

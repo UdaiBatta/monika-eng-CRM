@@ -47,10 +47,49 @@ import {
   ERPPageHeader,
   ERPStatusBadge,
 } from "@/production/components/shared";
+import SpreadsheetImport from "@/production/components/spreadsheet-import";
 import { apiGet } from "@/production/lib/api";
 import { hasPermission, useCurrentUser } from "@/production/lib/auth";
 import type { Enquiry } from "@/production/lib/crm-types";
 import type { Paginated } from "@/production/lib/types";
+
+const enquiryImport = {
+  headers: [
+    "company_code",
+    "customer_code",
+    "subject",
+    "customer_reference",
+    "received_date",
+    "due_date",
+    "priority",
+    "responsible_salesperson_code",
+    "estimated_value",
+    "currency_code",
+    "source",
+    "description",
+  ],
+  required: [
+    "company_code",
+    "customer_code",
+    "subject",
+    "received_date",
+    "responsible_salesperson_code",
+  ],
+  example: [
+    "ME",
+    "CUS-0001",
+    "MCC control panel",
+    "RFQ-431",
+    "2026-08-10",
+    "2026-08-20",
+    "HIGH",
+    "ME-001",
+    "1875000",
+    "INR",
+    "Existing spreadsheet",
+    "Design and manufacture as per customer RFQ.",
+  ],
+};
 
 function money(amount: string | null, currency: string) {
   if (!amount) return "—";
@@ -90,10 +129,22 @@ export default function EnquiriesPage() {
         description="Qualify incoming requirements, control response dates, and hand complete scopes into engineering feasibility."
         actions={
           canCreate ? (
-            <Button onClick={openForm}>
-              <Plus data-icon="inline-start" />
-              New enquiry
-            </Button>
+            <>
+              <SpreadsheetImport
+                endpoint="/enquiries/import-history/"
+                label="enquiries"
+                templateName="enquiries"
+                headers={enquiryImport.headers}
+                required={enquiryImport.required}
+                example={enquiryImport.example}
+                queryKey={["enquiries"]}
+                note="Customers and employees must already exist. Use YYYY-MM-DD for dates."
+              />
+              <Button onClick={openForm}>
+                <Plus data-icon="inline-start" />
+                New enquiry
+              </Button>
+            </>
           ) : undefined
         }
       />

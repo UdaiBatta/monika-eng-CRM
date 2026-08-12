@@ -2,6 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -109,6 +110,47 @@ def test_enquiry_create_allocates_number_audits_and_notifies_owner(
     assert AuditEvent.objects.filter(
         entity_type="enquiry",
         entity_id=response.data["id"],
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_enquiry_history_import_accepts_csv(
+    api_client,
+    admin,
+    company,
+    customer,
+    currency,
+    employee,
+    enquiry_sequence,
+):
+    api_client.force_authenticate(admin)
+    upload = SimpleUploadedFile(
+        "enquiries.csv",
+        (
+            "company_code,customer_code,subject,received_date,due_date,priority,"
+            "responsible_salesperson_code,estimated_value,currency_code,source\n"
+            f"{company.code},{customer.customer_code},Legacy MCC enquiry,2026-07-01,"
+            f"2026-07-20,HIGH,{employee.employee_code},750000,{currency.code},Google Sheets\n"
+        ).encode(),
+        content_type="text/csv",
+    )
+
+    response = api_client.post(
+        "/api/v1/enquiries/import-history/",
+        {"file": upload},
+        format="multipart",
+    )
+
+    assert response.status_code == 201, response.data
+    assert response.data == {"imported": 1}
+    imported = Enquiry.objects.get(subject="Legacy MCC enquiry")
+    assert imported.company == company
+    assert imported.customer == customer
+    assert imported.responsible_salesperson == employee
+    assert imported.currency == currency
+    assert AuditEvent.objects.filter(
+        entity_type="enquiry",
+        entity_id=str(imported.pk),
     ).exists()
 
 

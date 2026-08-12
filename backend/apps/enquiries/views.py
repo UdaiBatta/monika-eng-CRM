@@ -1,14 +1,16 @@
 from django.utils import timezone
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.audit.mixins import AuditModelViewSetMixin
 from apps.audit.serializers import AuditEventSerializer
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
+from apps.core.tabular_imports import TabularImportUploadSerializer
 from apps.crm.serializers import CrmActivitySerializer
 from apps.documents.serializers import DocumentSerializer
 
+from .imports import import_enquiries
 from .models import Enquiry, EnquiryItem, EnquiryRequirement
 from .selectors import enquiry_workspace_data
 from .serializers import (
@@ -40,6 +42,7 @@ class EnquiryViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Model
         "list": "enquiry.enquiry.view",
         "retrieve": "enquiry.enquiry.view",
         "create": "enquiry.enquiry.create",
+        "import_history": "enquiry.enquiry.create",
         "update": "enquiry.enquiry.edit",
         "partial_update": "enquiry.enquiry.edit",
         "assign": "enquiry.enquiry.assign",
@@ -50,6 +53,13 @@ class EnquiryViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Model
         "workspace": "enquiry.enquiry.view",
         "default": "enquiry.enquiry.edit",
     }
+
+    @action(detail=False, methods=["post"], url_path="import-history")
+    def import_history(self, request):
+        upload_serializer = TabularImportUploadSerializer(data=request.data)
+        upload_serializer.is_valid(raise_exception=True)
+        created = import_enquiries(self, upload_serializer.validated_data["file"])
+        return Response({"imported": len(created)}, status=status.HTTP_201_CREATED)
     search_fields = [
         "enquiry_number",
         "subject",

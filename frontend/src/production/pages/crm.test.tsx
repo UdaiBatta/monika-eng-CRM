@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   apiGet: vi.fn(),
   apiPost: vi.fn(),
   apiPatch: vi.fn(),
+  apiUpload: vi.fn(),
   user: {
     id: "user-1",
     email: "admin@monika.local",
@@ -63,6 +64,7 @@ vi.mock("@/production/lib/api", async (importOriginal) => ({
   apiGet: mocks.apiGet,
   apiPost: mocks.apiPost,
   apiPatch: mocks.apiPatch,
+  apiUpload: mocks.apiUpload,
 }));
 vi.mock("@/production/lib/auth", () => ({
   useCurrentUser: () => ({ data: mocks.user }),
@@ -188,6 +190,7 @@ describe("Phase 2 commercial CRM frontend", () => {
     mocks.apiGet.mockReset();
     mocks.apiPost.mockReset();
     mocks.apiPatch.mockReset();
+    mocks.apiUpload.mockReset();
   });
 
   it("renders the searchable customer register from the API", async () => {
@@ -210,8 +213,48 @@ describe("Phase 2 commercial CRM frontend", () => {
     expect(
       screen.getByRole("button", { name: "New customer" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Import Excel / CSV" }),
+    ).toBeInTheDocument();
     expect(mocks.apiGet).toHaveBeenCalledWith(
       expect.stringContaining("/customers/?"),
+    );
+  });
+
+  it("uploads previous customer data from the visible register action", async () => {
+    mocks.apiGet.mockResolvedValue({
+      results: [],
+      pagination: {
+        count: 0,
+        page: 1,
+        page_size: 25,
+        pages: 1,
+        next: null,
+        previous: null,
+      },
+    });
+    mocks.apiUpload.mockResolvedValue({ imported: 1 });
+    const actor = userEvent.setup();
+    renderAt(<CustomersPage />);
+
+    await actor.click(
+      await screen.findByRole("button", { name: "Import Excel / CSV" }),
+    );
+    await actor.upload(
+      screen.getByLabelText("CSV or Excel file"),
+      new File(
+        ["company_code,legal_name,default_currency_code\nME,ABC Industries,INR"],
+        "customers.csv",
+        { type: "text/csv" },
+      ),
+    );
+    await actor.click(screen.getByRole("button", { name: "Import data" }));
+
+    await waitFor(() =>
+      expect(mocks.apiUpload).toHaveBeenCalledWith(
+        "/customers/import-history/",
+        expect.any(FormData),
+      ),
     );
   });
 
@@ -354,6 +397,9 @@ describe("Phase 2 commercial CRM frontend", () => {
     expect(screen.getByText(/ABC Industries Pvt\. Ltd\./)).toBeInTheDocument();
     expect(screen.getByText(/INR 18,75,000/)).toBeInTheDocument();
     expect(screen.getByText("Ready for Estimation")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Import Excel / CSV" }),
+    ).toBeInTheDocument();
   });
 
   it("uses the explicit engineering command and keeps future stages disabled", async () => {

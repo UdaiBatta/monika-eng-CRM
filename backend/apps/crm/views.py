@@ -1,5 +1,5 @@
 from django.db.models import Max
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
@@ -7,10 +7,12 @@ from rest_framework.response import Response
 from apps.audit.mixins import AuditModelViewSetMixin
 from apps.audit.serializers import AuditEventSerializer
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
+from apps.core.tabular_imports import TabularImportUploadSerializer
 from apps.documents.serializers import DocumentSerializer
 from apps.organization.models import Company
 from apps.rbac.services import has_permission
 
+from .imports import import_customers
 from .models import CrmActivity, Customer, CustomerContact, CustomerSite
 from .selectors import customer_360_data
 from .serializers import (
@@ -44,6 +46,7 @@ class CustomerViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Mode
         "list": "crm.customer.view",
         "retrieve": "crm.customer.view",
         "create": "crm.customer.create",
+        "import_history": "crm.customer.create",
         "update": "crm.customer.edit",
         "partial_update": "crm.customer.edit",
         "duplicate_check": "crm.customer.create",
@@ -53,6 +56,13 @@ class CustomerViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.Mode
         "customer_360": "crm.customer.view",
         "default": "crm.customer.view",
     }
+
+    @action(detail=False, methods=["post"], url_path="import-history")
+    def import_history(self, request):
+        upload_serializer = TabularImportUploadSerializer(data=request.data)
+        upload_serializer.is_valid(raise_exception=True)
+        created = import_customers(self, upload_serializer.validated_data["file"])
+        return Response({"imported": len(created)}, status=status.HTTP_201_CREATED)
     search_fields = [
         "customer_code",
         "legal_name",

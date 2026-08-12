@@ -1,6 +1,6 @@
 # Shared Services Integration and Operations
 
-Status: Phase 1A–H implementation and automated gates complete; final signed-in browser acceptance pending. CRM and operational modules are not started.
+Status: Phase 1A–H implementation, automated gates and signed-in browser acceptance complete on 2026-08-11. CRM and operational modules retain their own delivery gates.
 
 ## Integration contract
 
@@ -42,4 +42,4 @@ bun run test
 bun run build
 ```
 
-The preserved design references remain `/mockups/axis?view=home` and `/mockups/axis?view=project`; the production shared-service routes use real Django/PostgreSQL data.
+The preserved design references remain `/mockups/axis?view=home` and `/mockups/axis?view=project`; the production shared-service routes use real Django/PostgreSQL data. Signed-in acceptance evidence is recorded in `14-browser-acceptance.md`.

@@ -33,7 +33,7 @@ class DocumentLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentLink
         fields = "__all__"
-        read_only_fields = fields
+        read_only_fields = [field.name for field in DocumentLink._meta.fields]
 
 
 class DocumentSerializer(serializers.ModelSerializer):

@@ -75,5 +75,25 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  celery-beat:
+    build: ./backend
+    command: celery -A config beat --loglevel=info
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-unsafe-local-compose-key}
+      POSTGRES_DB: ${POSTGRES_DB:-monika_erp}
+      POSTGRES_USER: ${POSTGRES_USER:-monika_erp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-monika_erp_dev}
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:

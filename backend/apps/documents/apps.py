@@ -9,6 +9,11 @@ class DocumentsConfig(AppConfig):
         from apps.core.entity_registry import register_entity
 
         register_entity(
+            "document_category",
+            lambda: apps.get_model("documents", "DocumentCategory"),
+            {"audit"},
+        )
+        register_entity(
             "document",
             lambda: apps.get_model("documents", "Document"),
             {"audit", "documents", "approvals", "notifications"},

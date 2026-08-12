@@ -1,8 +1,11 @@
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from apps.audit.mixins import AuditModelViewSetMixin
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 
+from .imports import import_organization_records
 from .models import Branch, Company, Department, Designation, Employee, Warehouse
 from .serializers import (
     BranchSerializer,
@@ -10,6 +13,7 @@ from .serializers import (
     DepartmentSerializer,
     DesignationSerializer,
     EmployeeSerializer,
+    OrganizationImportUploadSerializer,
     WarehouseSerializer,
 )
 
@@ -18,6 +22,13 @@ class FoundationModelViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewse
     permission_classes = [HasFoundationPermission]
     filterset_fields = ["is_active"]
     ordering_fields = ["name", "code", "created_at", "updated_at"]
+
+    @action(detail=False, methods=["post"], url_path="import-history")
+    def import_history(self, request):
+        upload_serializer = OrganizationImportUploadSerializer(data=request.data)
+        upload_serializer.is_valid(raise_exception=True)
+        created = import_organization_records(self, upload_serializer.validated_data["file"])
+        return Response({"imported": len(created)}, status=status.HTTP_201_CREATED)
 
 
 class CompanyViewSet(FoundationModelViewSet):

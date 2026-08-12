@@ -20,6 +20,13 @@ export type ResourceColumn = {
   label: string
 }
 
+export type ResourceImportConfig = {
+  headers: string[]
+  required: string[]
+  example: string[]
+  note?: string
+}
+
 export type ResourceConfig = {
   key: string
   endpoint: string
@@ -32,6 +39,7 @@ export type ResourceConfig = {
   fields: ResourceField[]
   searchPlaceholder?: string
   dedicatedEmployeeRoutes?: boolean
+  importTemplate?: ResourceImportConfig
 }
 
 const activeField: ResourceField = { name: "is_active", label: "Active", type: "boolean", defaultValue: true }
@@ -46,6 +54,12 @@ export const resourceConfigs: Record<string, ResourceConfig> = {
     description: "People, reporting lines, employment state, and optional user-account linkage.",
     viewPermission: "organization.employee.view", managePermission: "organization.employee.manage",
     dedicatedEmployeeRoutes: true,
+    importTemplate: {
+      headers: ["company_code", "branch_code", "department_code", "designation_code", "reporting_manager_code", "employee_code", "first_name", "last_name", "company_email", "phone", "joining_date", "employment_type", "employment_status"],
+      required: ["company_code", "employee_code", "first_name", "joining_date", "employment_type"],
+      example: ["MONIKA", "PUNE", "SALES", "SALES-ENG", "", "ME-001", "Asha", "Rao", "asha@monika.example", "919900001111", "2025-04-01", "PERMANENT", "ACTIVE"],
+      note: "Import reporting managers before employees who report to them. User sign-in accounts remain separate and are not created by this import.",
+    },
     searchPlaceholder: "Search code, name, email or phone",
     columns: [
       { key: "employee_code", label: "Employee code" }, { key: "display_name", label: "Employee" },
@@ -77,6 +91,11 @@ export const resourceConfigs: Record<string, ResourceConfig> = {
   companies: {
     key: "companies", endpoint: "/companies/", title: "Companies", singular: "company",
     description: "Legal entities and organization boundaries.",
+    importTemplate: {
+      headers: ["code", "name", "legal_name", "gstin", "pan", "timezone", "is_active"],
+      required: ["code", "name"],
+      example: ["MONIKA", "Monika Engineers", "Monika Engineers Pvt. Ltd.", "", "", "Asia/Kolkata", "true"],
+    },
     viewPermission: "organization.company.view", managePermission: "organization.company.manage",
     columns: [{ key: "code", label: "Code" }, { key: "name", label: "Name" }, { key: "legal_name", label: "Legal name" }, { key: "gstin", label: "GSTIN" }, { key: "is_active", label: "Active" }],
     fields: [
@@ -88,6 +107,12 @@ export const resourceConfigs: Record<string, ResourceConfig> = {
   branches: {
     key: "branches", endpoint: "/branches/", title: "Branches", singular: "branch",
     description: "Physical and administrative operating locations.", viewPermission: "organization.branch.view", managePermission: "organization.branch.manage",
+    importTemplate: {
+      headers: ["company_code", "code", "name", "address", "is_active"],
+      required: ["company_code", "code", "name"],
+      example: ["MONIKA", "PUNE", "Pune Works", "Pune, Maharashtra", "true"],
+      note: "Import companies before their branches.",
+    },
     columns: [{ key: "code", label: "Code" }, { key: "name", label: "Branch" }, { key: "company_name", label: "Company" }, { key: "is_active", label: "Active" }],
     fields: [
       { name: "company", label: "Company", type: "relation", relation: companyRelation, required: true },
@@ -98,6 +123,12 @@ export const resourceConfigs: Record<string, ResourceConfig> = {
   departments: {
     key: "departments", endpoint: "/departments/", title: "Departments", singular: "department",
     description: "Company and optional branch-aligned organization units.", viewPermission: "organization.department.view", managePermission: "organization.department.manage",
+    importTemplate: {
+      headers: ["company_code", "branch_code", "parent_department_code", "code", "name", "is_active"],
+      required: ["company_code", "code", "name"],
+      example: ["MONIKA", "PUNE", "", "SALES", "Sales", "true"],
+      note: "Import companies and branches first. Put parent departments before their child departments in the file.",
+    },
     columns: [{ key: "code", label: "Code" }, { key: "name", label: "Department" }, { key: "company_name", label: "Company" }, { key: "branch_name", label: "Branch" }, { key: "is_active", label: "Active" }],
     fields: [
       { name: "company", label: "Company", type: "relation", relation: companyRelation, required: true },
@@ -109,13 +140,25 @@ export const resourceConfigs: Record<string, ResourceConfig> = {
   designations: {
     key: "designations", endpoint: "/designations/", title: "Designations", singular: "designation",
     description: "Company-specific job titles and responsibility markers.", viewPermission: "organization.designation.view", managePermission: "organization.designation.manage",
+    importTemplate: {
+      headers: ["company_code", "code", "name", "is_active"],
+      required: ["company_code", "code", "name"],
+      example: ["MONIKA", "SALES-ENG", "Sales Engineer", "true"],
+      note: "Import companies before their designations.",
+    },
     columns: [{ key: "code", label: "Code" }, { key: "name", label: "Designation" }, { key: "company_name", label: "Company" }, { key: "is_active", label: "Active" }],
     fields: [{ name: "company", label: "Company", type: "relation", relation: companyRelation, required: true }, { name: "code", label: "Code", required: true }, { name: "name", label: "Name", required: true }, activeField],
   },
   warehouses: {
-    key: "warehouses", endpoint: "/warehouses/", title: "Warehouses", singular: "warehouse",
-    description: "Branch-bound storage and inventory responsibility scopes.", viewPermission: "organization.warehouse.view", managePermission: "organization.warehouse.manage",
-    columns: [{ key: "code", label: "Code" }, { key: "name", label: "Warehouse" }, { key: "company_name", label: "Company" }, { key: "branch_name", label: "Branch" }, { key: "is_active", label: "Active" }],
+    key: "warehouses", endpoint: "/warehouses/", title: "Inventory & workshop locations", singular: "location",
+    description: "The stores, warehouses, and workshop locations used for inventory responsibility. Stock quantities will use the later transaction-ledger module.", viewPermission: "organization.warehouse.view", managePermission: "organization.warehouse.manage",
+    importTemplate: {
+      headers: ["company_code", "branch_code", "code", "name", "address", "is_active"],
+      required: ["company_code", "branch_code", "code", "name"],
+      example: ["MONIKA", "PUNE", "WORKSHOP", "Main Workshop", "Pune Works", "true"],
+      note: "This imports stores, warehouses, and workshop locations—not stock quantities. Import companies and branches first.",
+    },
+    columns: [{ key: "code", label: "Code" }, { key: "name", label: "Location" }, { key: "company_name", label: "Company" }, { key: "branch_name", label: "Branch" }, { key: "is_active", label: "Active" }],
     fields: [
       { name: "company", label: "Company", type: "relation", relation: companyRelation, required: true },
       { name: "branch", label: "Branch", type: "relation", relation: branchRelation, required: true },

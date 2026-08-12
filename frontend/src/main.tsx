@@ -10,7 +10,7 @@ import { queryClient } from "@/production/lib/query-client"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <QueryClientProvider client={queryClient}>
         <App />
         <Toaster richColors closeButton />

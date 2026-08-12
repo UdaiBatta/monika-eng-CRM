@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -15,6 +16,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -34,6 +36,13 @@ INSTALLED_APPS = [
     "apps.documents.apps.DocumentsConfig",
     "apps.approvals.apps.ApprovalsConfig",
     "apps.notifications.apps.NotificationsConfig",
+    "apps.crm.apps.CrmConfig",
+    "apps.enquiries.apps.EnquiriesConfig",
+    "apps.engineering_reviews.apps.EngineeringReviewsConfig",
+    "apps.external_enquiries.apps.ExternalEnquiriesConfig",
+    "apps.estimation.apps.EstimationConfig",
+    "apps.quotations.apps.QuotationsConfig",
+    "apps.realtime.apps.RealtimeConfig",
 ]
 
 MIDDLEWARE = [
@@ -84,6 +93,20 @@ CACHES = {
     }
 }
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv("CHANNEL_REDIS_URL", "redis://127.0.0.1:6379/2")],
+            "capacity": 1000,
+            "expiry": 60,
+        },
+    }
+}
+REALTIME_PRESENCE_TTL_SECONDS = int(os.getenv("REALTIME_PRESENCE_TTL_SECONDS", "75"))
+LIBREOFFICE_EXECUTABLE = os.getenv("LIBREOFFICE_EXECUTABLE", "")
+QUOTATION_PDF_TIMEOUT_SECONDS = int(os.getenv("QUOTATION_PDF_TIMEOUT_SECONDS", "90"))
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -125,6 +148,12 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://127.0.0.1:63
 CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_RESULT_SERIALIZER = "json"
+CELERY_BEAT_SCHEDULE = {
+    "crm-follow-up-reminders-hourly": {
+        "task": "apps.crm.tasks.notify_due_follow_ups",
+        "schedule": 3600.0,
+    }
+}
 LOGIN_FAILURE_LIMIT = int(os.getenv("LOGIN_FAILURE_LIMIT", "5"))
 LOGIN_FAILURE_WINDOW_SECONDS = int(os.getenv("LOGIN_FAILURE_WINDOW_SECONDS", "900"))
 
@@ -138,6 +167,12 @@ LOCAL_PRIVATE_STORAGE_ROOT = os.getenv(
 )
 DOCUMENT_ALLOWED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg", "csv", "docx", "xlsx"]
 DOCUMENT_MAX_UPLOAD_SIZE_MB = int(os.getenv("DOCUMENT_MAX_UPLOAD_SIZE_MB", "50"))
+INTEGRATION_SECRETS = json.loads(os.getenv("INTEGRATION_SECRETS_JSON", "{}"))
+WEBSITE_INTAKE_SIGNATURE_TTL_SECONDS = int(os.getenv("WEBSITE_INTAKE_SIGNATURE_TTL_SECONDS", "300"))
+WEBSITE_INTAKE_RATE_LIMIT_PER_MINUTE = int(os.getenv("WEBSITE_INTAKE_RATE_LIMIT_PER_MINUTE", "30"))
+WEBSITE_INTAKE_MAX_PAYLOAD_BYTES = int(os.getenv("WEBSITE_INTAKE_MAX_PAYLOAD_BYTES", str(8 * 1024 * 1024)))
+WEBSITE_INTAKE_ATTACHMENT_MAX_MB = int(os.getenv("WEBSITE_INTAKE_ATTACHMENT_MAX_MB", "5"))
+WEBSITE_INTAKE_ALLOWED_EXTENSIONS = ["pdf", "png", "jpg", "jpeg"]
 R2_ENDPOINT_URL = os.getenv("R2_ENDPOINT_URL", "")
 R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME", "")
 R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "")

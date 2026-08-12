@@ -13,7 +13,20 @@ from apps.approvals.views import (
 from apps.audit.views import AuditEventViewSet
 from apps.configuration.views import CompanySettingsViewSet, FeatureFlagViewSet
 from apps.core.views import HealthView
+from apps.crm.views import (
+    CrmActivityViewSet,
+    CustomerContactViewSet,
+    CustomerSiteViewSet,
+    CustomerViewSet,
+)
 from apps.documents.views import DocumentCategoryViewSet, DocumentViewSet
+from apps.engineering_reviews.views import EngineeringClarificationViewSet, EngineeringReviewViewSet
+from apps.enquiries.views import EnquiryItemViewSet, EnquiryRequirementViewSet, EnquiryViewSet
+from apps.estimation.views import CommercialEstimateViewSet, EstimateCostLineViewSet
+from apps.external_enquiries.views import (
+    ExternalEnquirySubmissionViewSet,
+    WebsiteEnquiryIntakeView,
+)
 from apps.masters.views import (
     CurrencyViewSet,
     DeliveryTermViewSet,
@@ -30,6 +43,12 @@ from apps.organization.views import (
     DesignationViewSet,
     EmployeeViewSet,
     WarehouseViewSet,
+)
+from apps.quotations.views import (
+    QuotationRevisionViewSet,
+    QuotationTemplateViewSet,
+    QuotationTextTemplateViewSet,
+    QuotationViewSet,
 )
 from apps.rbac.views import (
     PermissionOverrideViewSet,
@@ -69,6 +88,26 @@ router.register("approval-step-definitions", ApprovalStepDefinitionViewSet)
 router.register("approval-conditions", ApprovalConditionViewSet)
 router.register("approvals/requests", ApprovalRequestViewSet, basename="approval-request")
 router.register("notifications", NotificationViewSet, basename="notification")
+router.register("customers", CustomerViewSet)
+router.register("customer-contacts", CustomerContactViewSet)
+router.register("customer-sites", CustomerSiteViewSet)
+router.register("crm-activities", CrmActivityViewSet)
+router.register("enquiries", EnquiryViewSet)
+router.register("enquiry-requirements", EnquiryRequirementViewSet)
+router.register("enquiry-items", EnquiryItemViewSet)
+router.register("engineering-reviews", EngineeringReviewViewSet)
+router.register("engineering-clarifications", EngineeringClarificationViewSet)
+router.register("commercial-estimates", CommercialEstimateViewSet)
+router.register("estimate-cost-lines", EstimateCostLineViewSet)
+router.register("quotations", QuotationViewSet, basename="quotation")
+router.register("quotation-revisions", QuotationRevisionViewSet, basename="quotation-revision")
+router.register("quotation-templates", QuotationTemplateViewSet)
+router.register("quotation-text-templates", QuotationTextTemplateViewSet)
+router.register(
+    "external-enquiries",
+    ExternalEnquirySubmissionViewSet,
+    basename="external-enquiry",
+)
 router.register(
     "notification-preferences",
     NotificationPreferenceViewSet,
@@ -79,5 +118,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/health/", HealthView.as_view(), name="health"),
     path("api/v1/auth/", include("apps.accounts.urls")),
+    path(
+        "api/v1/integrations/website/enquiries/",
+        WebsiteEnquiryIntakeView.as_view(),
+        name="website-enquiry-intake",
+    ),
     path("api/v1/", include(router.urls)),
 ]

@@ -110,7 +110,7 @@ class ApprovalDecisionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApprovalDecision
         fields = "__all__"
-        read_only_fields = fields
+        read_only_fields = [field.name for field in ApprovalDecision._meta.fields]
 
 
 class ApprovalAssignmentSerializer(serializers.ModelSerializer):
@@ -119,7 +119,7 @@ class ApprovalAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApprovalAssignment
         fields = "__all__"
-        read_only_fields = fields
+        read_only_fields = [field.name for field in ApprovalAssignment._meta.fields]
 
 
 class ApprovalStepInstanceSerializer(serializers.ModelSerializer):
@@ -129,7 +129,7 @@ class ApprovalStepInstanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApprovalStepInstance
         fields = "__all__"
-        read_only_fields = fields
+        read_only_fields = [field.name for field in ApprovalStepInstance._meta.fields]
 
 
 class ApprovalRequestSerializer(serializers.ModelSerializer):
@@ -141,7 +141,7 @@ class ApprovalRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = ApprovalRequest
         fields = "__all__"
-        read_only_fields = fields
+        read_only_fields = [field.name for field in ApprovalRequest._meta.fields]
 
 
 class ApprovalRequestCreateSerializer(serializers.Serializer):

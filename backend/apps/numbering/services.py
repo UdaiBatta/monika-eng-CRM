@@ -1,5 +1,6 @@
 from datetime import date
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from .models import DocumentSequence
@@ -35,3 +36,21 @@ def allocate_number(sequence_id):
     sequence.next_number += 1
     sequence.save(update_fields=["next_number", "updated_at"])
     return allocated
+
+
+def allocate_company_number(*, company, code, branch=None, on_date=None):
+    """Allocate from the active company/FY sequence for a business document type."""
+    financial_year = financial_year_label(company, on_date)
+    try:
+        sequence = DocumentSequence.objects.only("id").get(
+            company=company,
+            branch=branch,
+            code=code,
+            financial_year=financial_year,
+            is_active=True,
+        )
+    except DocumentSequence.DoesNotExist as exc:
+        raise ValidationError(
+            {"numbering": f"Configure an active {code} sequence for {financial_year}."}
+        ) from exc
+    return allocate_number(sequence.pk)

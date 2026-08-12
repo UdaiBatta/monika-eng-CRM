@@ -45,4 +45,16 @@ describe("dashboard work queue links", () => {
     expect((await within(mineCard as HTMLElement).findByRole("button", { name: "Open register" })).closest("a")).toHaveAttribute("href", "/app/crm/incoming-enquiries?queue=mine");
     expect((await within(quotationsCard as HTMLElement).findByRole("button", { name: "Open register" })).closest("a")).toHaveAttribute("href", "/app/crm/quotations?queue=mine");
   });
+
+  it("shows sales work without administrator or engineering panels", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={client}><MemoryRouter><DashboardPage /></MemoryRouter></QueryClientProvider>);
+
+    expect(await screen.findByText("Sales workspace")).toBeInTheDocument();
+    expect(screen.getByText("Review and claim enquiries")).toBeInTheDocument();
+    expect(screen.queryByText("Foundation readiness")).not.toBeInTheDocument();
+    expect(screen.queryByText("Django API")).not.toBeInTheDocument();
+    expect(screen.queryByText("Engineering canvas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Access posture")).not.toBeInTheDocument();
+  });
 });

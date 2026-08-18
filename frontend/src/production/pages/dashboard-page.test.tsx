@@ -16,7 +16,24 @@ const mocks = vi.hoisted(() => ({
     is_active: true,
     is_staff: true,
     employee: { id: "employee-1", employee_code: "ME-001", display_name: "Development Administrator", company_id: "company-1" },
-    permissions: ["crm.external_enquiry.review", "crm.quotation.view"],
+    roles: [{ name: "Sales", scope: "Company" }],
+    permissions: [
+      "crm.external_enquiry.review",
+      "crm.customer.view",
+      "crm.customer.edit",
+      "crm.activity.edit",
+      "enquiry.enquiry.view",
+      "enquiry.enquiry.edit",
+      "crm.quotation.view",
+      "crm.quotation.change",
+      "sales.customer_po.view",
+      "sales.customer_po.create",
+      "sales.sales_order.view",
+      "sales.sales_order.submit",
+      "projects.project.view",
+      "projects.handoff.view",
+      "projects.handoff.submit",
+    ],
   } as CurrentUser,
 }));
 
@@ -56,5 +73,9 @@ describe("dashboard work queue links", () => {
     expect(screen.queryByText("Django API")).not.toBeInTheDocument();
     expect(screen.queryByText("Engineering canvas")).not.toBeInTheDocument();
     expect(screen.queryByText("Access posture")).not.toBeInTheDocument();
+    expect(screen.getByText("Your daily sales flow")).toBeInTheDocument();
+    expect(screen.getByText("Your access")).toBeInTheDocument();
+    expect(screen.getByText("Manager-controlled actions")).toBeInTheDocument();
+    expect(screen.getByText(/Approval, release, cancellation/)).toBeInTheDocument();
   });
 });

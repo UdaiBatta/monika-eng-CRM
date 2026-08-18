@@ -1,5 +1,11 @@
 # Phase 3 Staff Guide
 
+## Sales role: what you can access
+
+The standard **Sales** role is company-wide for commercial work. It can review and assign incoming enquiries, maintain customers and follow-ups, create and progress quotations, record Customer POs, prepare and submit Sales Orders, view the resulting Projects, prepare the Sales-to-Engineering handoff, and answer Engineering clarifications.
+
+The standard role cannot approve or release its own Sales Order, accept a critical Customer PO difference, cancel operational records, or take Engineering ownership. Those actions remain with an authorized manager or Engineering role. The Home page shows this boundary in plain language under **Your access**.
+
 ## Sales: record a Customer PO
 
 Open **Customer POs** and choose **Record Customer PO**. Enter the customer, PO number and date, received date, value, related quotation when available, and upload the original customer document. Less common delivery, payment, and note fields are under **More details**.
@@ -14,7 +20,7 @@ Use **Create Sales Order** from the Sales Order register, or **Create Sales Orde
 - **Direct Sales Order** is shown only with permission. Choose the genuine business reason, record how the customer confirmed, and enter at least one order line.
 - Leave **Customer PO pending** on when the customer has confirmed but the formal PO will arrive later.
 
-Review customer, prices, tax, delivery, payment, warranty, scope, and PO state. Save the draft, submit for approval when required, then choose **Release Order**. Release protects the current revision. If project work is required, Project 360 is created automatically.
+Review customer, prices, tax, delivery, payment, warranty, scope, and PO state. Save the draft and choose **Submit for approval**. An authorized manager approves and releases the order. Release protects the current revision. If project work is required, Project 360 is created automatically.
 
 To change a released order, choose **Create amendment**. Do not edit released history. When the amendment is later released, Engineering sees a commercial-change warning in Project 360.
 

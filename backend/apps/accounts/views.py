@@ -19,6 +19,7 @@ from apps.audit.mixins import AuditModelViewSetMixin
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
 from apps.core.concurrency import VersionedUpdateMixin
+from apps.core.owner_services import bulk_reassign, work_items
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 from apps.rbac.safety import active_business_owners
 from apps.rbac.services import effective_permission_codes
@@ -171,6 +172,7 @@ class UserViewSet(
         "destroy": "accounts.user.manage",
         "activate": "accounts.user.manage",
         "deactivate": "accounts.user.manage",
+        "deactivation_impact": "accounts.user.manage",
     }
     search_fields = ["email", "username", "first_name", "last_name"]
     ordering_fields = ["email", "date_joined", "last_login"]
@@ -209,6 +211,25 @@ class UserViewSet(
                 "This is the final active business Owner account. Give Owner access to another "
                 "active account before disabling it."
             )
+        assigned_work = work_items(employee.company, employee_id=employee.pk) if employee else []
+        action_name = serializer.validated_data.get("open_work_action")
+        if assigned_work and not action_name:
+            raise ValidationError(
+                {
+                    "open_work_action": [
+                        f"This account has {len(assigned_work)} open work items. Reassign them or "
+                        "choose Leave Temporarily."
+                    ]
+                }
+            )
+        if assigned_work and action_name == "REASSIGN":
+            bulk_reassign(
+                company=employee.company,
+                items=[{"work_type": item["work_type"], "id": item["id"]} for item in assigned_work],
+                employee_id=serializer.validated_data["replacement_employee_id"],
+                reason=serializer.validated_data["reason"],
+                actor=request.user,
+            )
         user.is_active = False
         user.record_version += 1
         user.save(update_fields=["is_active", "record_version"])
@@ -222,3 +243,18 @@ class UserViewSet(
             metadata={"reason": serializer.validated_data["reason"]},
         )
         return Response(self.get_serializer(user).data)
+
+    @action(detail=True, methods=["get"], url_path="deactivation-impact")
+    def deactivation_impact(self, request, pk=None):
+        user = self.get_object()
+        employee = getattr(user, "employee", None)
+        assigned_work = work_items(employee.company, employee_id=employee.pk) if employee else []
+        return Response(
+            {
+                "user_id": str(user.pk),
+                "employee_id": str(employee.pk) if employee else None,
+                "open_work_count": len(assigned_work),
+                "work": assigned_work,
+                "options": ["REASSIGN", "LEAVE_TEMPORARILY"] if assigned_work else [],
+            }
+        )

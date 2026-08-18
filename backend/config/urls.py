@@ -12,6 +12,7 @@ from apps.approvals.views import (
 )
 from apps.audit.views import AuditEventViewSet
 from apps.configuration.views import CompanySettingsViewSet, FeatureFlagViewSet
+from apps.core.owner_views import OwnerControlViewSet
 from apps.core.views import HealthView
 from apps.crm.views import (
     CrmActivityViewSet,
@@ -66,6 +67,7 @@ from apps.sales.views import (
 
 router = DefaultRouter()
 router.register("users", UserViewSet)
+router.register("owner", OwnerControlViewSet, basename="owner-control")
 router.register("companies", CompanyViewSet)
 router.register("branches", BranchViewSet)
 router.register("departments", DepartmentViewSet)

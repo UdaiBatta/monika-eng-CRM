@@ -1,7 +1,20 @@
+from datetime import date
+
 import pytest
 
 from apps.accounts.models import User
-from apps.rbac.models import Permission, PermissionOverride, Role, RoleAssignment, RolePermission, ScopeType
+from apps.audit.models import AuditEvent
+from apps.configuration.models import FeatureFlag
+from apps.external_enquiries.models import ExternalEnquirySubmission
+from apps.organization.models import Employee
+from apps.rbac.models import (
+    Permission,
+    PermissionOverride,
+    Role,
+    RoleAssignment,
+    RolePermission,
+    ScopeType,
+)
 from apps.rbac.services import explain_permission
 
 
@@ -107,3 +120,86 @@ def test_final_business_owner_account_cannot_be_disabled(api_client, company, us
     assert response.status_code == 400
     user.refresh_from_db()
     assert user.is_active is True
+
+
+@pytest.mark.django_db
+def test_owner_overview_reports_real_company_counts(api_client, company, employee):
+    admin = User.objects.create_superuser(email="overview-owner@example.test", password="SafePassword-2741")
+    api_client.force_authenticate(admin)
+
+    response = api_client.get(f"/api/v1/owner/?company={company.pk}")
+
+    assert response.status_code == 200
+    assert response.data["company"]["name"] == company.name
+    assert response.data["people"]["active_employees"] == 1
+    assert response.data["work"]["open"] == 0
+
+
+@pytest.mark.django_db
+def test_owner_feature_change_is_versioned_and_audited(api_client, company):
+    admin = User.objects.create_superuser(email="feature-owner@example.test", password="SafePassword-2741")
+    api_client.force_authenticate(admin)
+    flag = FeatureFlag.objects.get(company=company, key="quick_quotation")
+
+    response = api_client.post(
+        "/api/v1/owner/change-feature/",
+        {
+            "company": str(company.pk),
+            "key": "quick_quotation",
+            "is_enabled": False,
+            "reason": "Use the approved estimate route while pricing is reviewed",
+            "record_version": flag.record_version,
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200
+    flag.refresh_from_db()
+    assert flag.is_enabled is False
+    assert flag.record_version == 2
+    assert AuditEvent.objects.filter(entity_type="feature_flag", action="DEACTIVATE").exists()
+
+
+@pytest.mark.django_db
+def test_owner_reassigns_open_work_once(api_client, company, employee):
+    replacement_user = User.objects.create_user(
+        email="replacement@example.test", password="SafePassword-2741"
+    )
+    replacement = Employee.objects.create(
+        user=replacement_user,
+        company=company,
+        employee_code="ME-TEST-002",
+        first_name="Replacement",
+        joining_date=date(2026, 1, 2),
+        employment_type=Employee.EmploymentType.PERMANENT,
+    )
+    submission = ExternalEnquirySubmission.objects.create(
+        company=company,
+        channel=ExternalEnquirySubmission.Channel.MANUAL,
+        source_type=ExternalEnquirySubmission.SourceType.MANUAL_ENTRY,
+        external_submission_id="MANUAL-OWNER-1",
+        person_name="Customer",
+        subject="Control panel enquiry",
+        message="Please quote",
+        assigned_to=employee,
+    )
+    admin = User.objects.create_superuser(email="work-owner@example.test", password="SafePassword-2741")
+    api_client.force_authenticate(admin)
+    payload = {
+        "company": str(company.pk),
+        "work_type": "incoming_enquiry",
+        "record_id": str(submission.pk),
+        "employee_id": str(replacement.pk),
+        "reason": "Covering the Sales queue during planned leave",
+    }
+
+    first = api_client.post("/api/v1/owner/reassign-work/", payload, format="json")
+    second = api_client.post("/api/v1/owner/reassign-work/", payload, format="json")
+
+    assert first.status_code == 200
+    assert first.data["reassigned"] == 1
+    assert second.status_code == 200
+    assert second.data["reassigned"] == 0
+    submission.refresh_from_db()
+    assert submission.assigned_to == replacement
+    assert AuditEvent.objects.filter(entity_id=str(submission.pk), action="ASSIGN").count() == 1

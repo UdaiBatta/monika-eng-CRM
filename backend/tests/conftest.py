@@ -4,6 +4,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.configuration.models import FeatureFlag
 from apps.organization.models import Branch, Company, Department, Employee
 
 
@@ -14,7 +15,10 @@ def api_client():
 
 @pytest.fixture
 def company(db):
-    return Company.objects.create(name="Monika Engineers Test", code="METEST")
+    company = Company.objects.create(name="Monika Engineers Test", code="METEST")
+    FeatureFlag.objects.create(company=company, key="quick_quotation", is_enabled=True)
+    FeatureFlag.objects.create(company=company, key="website_enquiries", is_enabled=True)
+    return company
 
 
 @pytest.fixture

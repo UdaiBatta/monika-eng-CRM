@@ -27,6 +27,17 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserDeactivateSerializer(serializers.Serializer):
     reason = serializers.CharField(min_length=3, max_length=500)
+    open_work_action = serializers.ChoiceField(
+        choices=["LEAVE_TEMPORARILY", "REASSIGN"], required=False
+    )
+    replacement_employee_id = serializers.UUIDField(required=False)
+
+    def validate(self, attrs):
+        if attrs.get("open_work_action") == "REASSIGN" and not attrs.get("replacement_employee_id"):
+            raise serializers.ValidationError(
+                {"replacement_employee_id": "Choose who will receive the open work."}
+            )
+        return attrs
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)

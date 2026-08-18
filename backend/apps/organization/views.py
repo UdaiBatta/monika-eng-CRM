@@ -1,10 +1,16 @@
+from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.audit.mixins import AuditModelViewSetMixin
+from apps.audit.models import AuditEvent
+from apps.audit.services import record_event
 from apps.core.concurrency import VersionedUpdateMixin
+from apps.core.owner_services import bulk_reassign, work_items
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
+from apps.rbac.safety import active_business_owners
 
 from .imports import import_organization_records
 from .models import Branch, Company, Department, Designation, Employee, Warehouse
@@ -13,6 +19,7 @@ from .serializers import (
     CompanySerializer,
     DepartmentSerializer,
     DesignationSerializer,
+    EmployeeDeactivateSerializer,
     EmployeeSerializer,
     OrganizationImportUploadSerializer,
     WarehouseSerializer,
@@ -114,3 +121,78 @@ class EmployeeViewSet(FoundationModelViewSet):
         "retrieve": "organization.employee.view",
         "default": "organization.employee.manage",
     }
+
+    @action(detail=True, methods=["get"], url_path="deactivation-impact")
+    def deactivation_impact(self, request, pk=None):
+        employee = self.get_object()
+        assigned_work = work_items(employee.company, employee_id=employee.pk)
+        return Response(
+            {
+                "employee_id": str(employee.pk),
+                "open_work_count": len(assigned_work),
+                "work": assigned_work,
+                "options": ["REASSIGN", "LEAVE_TEMPORARILY"] if assigned_work else [],
+            }
+        )
+
+    @action(detail=True, methods=["post"])
+    @transaction.atomic
+    def deactivate(self, request, pk=None):
+        serializer = EmployeeDeactivateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        employee = Employee.objects.select_for_update().select_related("user", "company").get(
+            pk=self.get_object().pk
+        )
+        if employee.user_id == request.user.pk:
+            raise ValidationError("You cannot deactivate your own employee record.")
+        owners = active_business_owners(employee.company)
+        if employee.user in owners and len(owners) == 1:
+            raise ValidationError(
+                "This employee has the final business Owner account. Give Owner access to another "
+                "active account first."
+            )
+        assigned_work = work_items(employee.company, employee_id=employee.pk)
+        action_name = serializer.validated_data.get("open_work_action")
+        if assigned_work and not action_name:
+            raise ValidationError(
+                {
+                    "open_work_action": [
+                        f"This employee has {len(assigned_work)} open work items. Reassign them or "
+                        "choose Leave Temporarily."
+                    ]
+                }
+            )
+        if assigned_work and action_name == "REASSIGN":
+            bulk_reassign(
+                company=employee.company,
+                items=[{"work_type": item["work_type"], "id": item["id"]} for item in assigned_work],
+                employee_id=serializer.validated_data["replacement_employee_id"],
+                reason=serializer.validated_data["reason"],
+                actor=request.user,
+            )
+        previous_status = employee.employment_status
+        employee.employment_status = Employee.EmploymentStatus.INACTIVE
+        employee.record_version += 1
+        employee.save(update_fields=["employment_status", "record_version", "updated_at"])
+        if employee.user:
+            employee.user.is_active = False
+            employee.user.record_version += 1
+            employee.user.save(update_fields=["is_active", "record_version"])
+        record_event(
+            actor=request.user,
+            company=employee.company,
+            action=AuditEvent.Action.DEACTIVATE,
+            entity=employee,
+            summary=f"Employee deactivated: {employee.display_name}",
+            changes={
+                "employment_status": {
+                    "old": previous_status,
+                    "new": Employee.EmploymentStatus.INACTIVE,
+                }
+            },
+            metadata={
+                "reason": serializer.validated_data["reason"],
+                "open_work_action": action_name or "NO_OPEN_WORK",
+            },
+        )
+        return Response(self.get_serializer(employee).data)

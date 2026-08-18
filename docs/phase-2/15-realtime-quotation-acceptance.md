@@ -6,20 +6,26 @@ Branch: `phase-2-quotation-realtime`
 
 Assessment: **Implementation complete; production acceptance conditional**
 
+Verification refresh: 18 August 2026
+
 ## Automated release gates
 
 | Gate | Result |
 |---|---|
-| Frontend tests | PASS — 36/36 across 9 files |
+| Frontend tests | PASS — 48/48 across 14 files |
 | Frontend lint | PASS — exit 0; 10 warning-only Fast Refresh/exhaustive-dependency findings |
-| TypeScript and Vite production build | PASS — 2,620 modules transformed |
-| Backend PostgreSQL tests | PASS — 106/106 |
+| TypeScript and Vite production build | PASS — 2,622 modules transformed |
+| Backend PostgreSQL tests | PASS — 113/113 |
 | Ruff | PASS — all checks passed |
 | Django system check | PASS — no issues |
+| Django deployment check | PASS — command completed; six expected local-development security warnings remain go-live gates |
 | Migration drift | PASS — no changes detected |
+| Docker Compose configuration | PASS — configuration validates without starting services |
 | Git whitespace check | PASS |
 
-Pytest reported one teardown warning because two other local PostgreSQL sessions still had the test database open. No test failed, but those stale sessions should be closed before the next clean-room regression run.
+The 18 August clean regression run completed without the earlier test-database teardown warning.
+
+Post-milestone regression coverage now also includes spreadsheet import workflows, the focused Sales workspace, and the uniform grouped role-permission editor. Docker Compose configuration validation passes without starting Docker services. Django's deployment check continues to report the six expected local-development settings: HSTS, HTTPS redirect, production secret, secure session cookie, secure CSRF cookie, and `DEBUG=False`; these remain explicit go-live gates.
 
 ## Browser acceptance completed
 

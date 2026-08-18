@@ -22,9 +22,20 @@ const metrics = [
   { label: "My quotations", endpoint: "/quotations/?queue=mine&page_size=1", permission: "crm.quotation.view", icon: FileText, href: "/app/crm/quotations?queue=mine" },
 ]
 
+const administrationPermissions = [
+  "organization.employee.manage",
+  "rbac.role.manage",
+  "configuration.settings.manage",
+  "numbering.sequence.manage",
+  "documents.category.manage",
+  "approvals.workflow.manage",
+]
+
 export default function DashboardPage() {
   const { data: user } = useCurrentUser()
-  const health = useQuery({ queryKey: ["health"], queryFn: () => apiGet<{ status: string; database: string; cache: string }>("/health/") })
+  const canAdminister = administrationPermissions.some((permission) => hasPermission(user, permission))
+  const canWorkEngineering = hasPermission(user, "engineering.feasibility.review")
+  const health = useQuery({ queryKey: ["health"], queryFn: () => apiGet<{ status: string; database: string; cache: string }>("/health/"), enabled: canAdminister })
   const visibleMetrics = metrics.filter((metric) => hasPermission(user, metric.permission))
   const metricQueries = useQueries({
     queries: visibleMetrics.map((metric) => ({
@@ -35,26 +46,35 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col gap-6">
-      <section className="grid gap-4 xl:grid-cols-[1.5fr_0.8fr]">
+      <section className={canAdminister ? "grid gap-4 xl:grid-cols-[1.5fr_0.8fr]" : "grid gap-4"}>
         <Card className="overflow-hidden border-erp-sidebar/20">
           <CardHeader className="bg-erp-sidebar text-white">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <Badge variant="secondary" className="mb-3">Phase 2 commercial CRM</Badge>
+                <Badge variant="secondary" className="mb-3">{canAdminister ? "Phase 2 commercial CRM" : "Sales workspace"}</Badge>
                 <CardTitle className="text-2xl">Good to see you, {user?.employee?.display_name || user?.first_name || "administrator"}.</CardTitle>
                 <CardDescription className="mt-2 max-w-2xl text-white/60">
-                  Incoming enquiries, customer and enquiry workspaces, engineering, estimates, quotations, and shared enterprise controls are connected to live services.
+                  {canAdminister
+                    ? "Incoming enquiries, customer and enquiry workspaces, engineering, estimates, quotations, and shared enterprise controls are connected to live services."
+                    : "Review new enquiries, keep customer follow-ups moving, and prepare quotations from one daily workspace."}
                 </CardDescription>
               </div>
               <ServerCog aria-hidden="true" className="opacity-40" />
             </div>
           </CardHeader>
           <CardContent className="grid gap-4 pt-5 sm:grid-cols-3">
-            {[
-              ["Django API", health.data?.status === "ok" ? "Operational" : "Checking"],
-              ["PostgreSQL", health.data?.database === "ok" ? "Connected" : "Checking"],
-              ["Realtime & cache", health.data?.cache === "ok" ? "Operational" : "Checking"],
-            ].map(([label, value]) => (
+            {(canAdminister
+              ? [
+                  ["Django API", health.data?.status === "ok" ? "Operational" : "Checking"],
+                  ["PostgreSQL", health.data?.database === "ok" ? "Connected" : "Checking"],
+                  ["Realtime & cache", health.data?.cache === "ok" ? "Operational" : "Checking"],
+                ]
+              : [
+                  ["New business", "Review and claim enquiries"],
+                  ["Customer response", "Keep follow-ups on time"],
+                  ["Commercial work", "Prepare and track quotations"],
+                ]
+            ).map(([label, value]) => (
               <div key={label} className="border-l-2 border-primary pl-4">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
                 <p className="mt-1 font-semibold">{value}</p>
@@ -63,7 +83,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        {canAdminister ? <Card>
           <CardHeader><CardTitle>Foundation readiness</CardTitle><CardDescription>Current delivery boundary</CardDescription></CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div><div className="mb-2 flex justify-between text-sm"><span>Phase 1A–H</span><span>Implemented</span></div><Progress value={100} /></div>
@@ -73,10 +93,10 @@ export default function DashboardPage() {
               <div className="border p-3"><p className="font-semibold">Next gate</p><p className="text-muted-foreground">Sales Order and operations</p></div>
             </div>
           </CardContent>
-        </Card>
+        </Card> : null}
       </section>
 
-      {health.isError ? <Alert variant="destructive"><AlertTitle>Health check failed</AlertTitle><AlertDescription>{health.error.message}</AlertDescription></Alert> : null}
+      {canAdminister && health.isError ? <Alert variant="destructive"><AlertTitle>Health check failed</AlertTitle><AlertDescription>{health.error.message}</AlertDescription></Alert> : null}
 
       <section aria-labelledby="foundation-metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <h2 id="foundation-metrics" className="sr-only">Foundation metrics</h2>
@@ -111,8 +131,8 @@ export default function DashboardPage() {
         </Card>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card>
+      {canWorkEngineering || canAdminister ? <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        {canWorkEngineering ? <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
               <div><CardTitle>Engineering canvas</CardTitle><CardDescription>Drawing and BOM experience direction</CardDescription></div>
@@ -130,9 +150,9 @@ export default function DashboardPage() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> : null}
 
-        <Card>
+        {canAdminister ? <Card>
           <CardHeader><CardTitle>Access posture</CardTitle><CardDescription>What this session can administer</CardDescription></CardHeader>
           <CardContent className="flex flex-col gap-3">
             {[
@@ -149,8 +169,8 @@ export default function DashboardPage() {
             ))}
             <Button variant="outline" render={<Link to="/app/access/roles" />} nativeButton={false}><FileKey2 data-icon="inline-start" />Review access model</Button>
           </CardContent>
-        </Card>
-      </section>
+        </Card> : null}
+      </section> : null}
     </div>
   )
 }

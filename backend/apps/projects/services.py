@@ -627,3 +627,79 @@ def acknowledge_commercial_change(*, project_id, actor):
             )
         )
         return project
+
+
+def hold_project(*, project_id, actor, reason):
+    with transaction.atomic():
+        project = Project.objects.select_for_update().get(pk=project_id)
+        _require(actor, "projects.project.hold", project, "Project hold")
+        if project.status in {Project.Status.ON_HOLD, Project.Status.CANCELLED}:
+            raise ValidationError("This Project cannot be put on hold from its current status.")
+        previous_status = project.status
+        project.status = Project.Status.ON_HOLD
+        project.record_version += 1
+        project.save(update_fields=["status", "record_version", "updated_at"])
+        publish(
+            _event(
+                "project.held",
+                project,
+                actor,
+                "HOLD",
+                f"{project.project_number} was put on hold",
+                metadata={"status": project.status, "reason": reason.strip()},
+                changes={"status": {"from": previous_status, "to": project.status}},
+            )
+        )
+        return project
+
+
+def resume_project(*, project_id, actor):
+    with transaction.atomic():
+        project = Project.objects.select_for_update().get(pk=project_id)
+        _require(actor, "projects.project.hold", project, "Project resume")
+        if project.status != Project.Status.ON_HOLD:
+            raise ValidationError("Only an On Hold Project can be resumed.")
+        handoff = ProjectEngineeringHandoff.objects.filter(project=project).first()
+        project.status = {
+            ProjectEngineeringHandoff.Status.ACCEPTED: Project.Status.ENGINEERING_ACCEPTED,
+            ProjectEngineeringHandoff.Status.ENGINEERING_REVIEWING: Project.Status.ENGINEERING_REVIEW,
+            ProjectEngineeringHandoff.Status.CLARIFICATION_REQUIRED: Project.Status.ENGINEERING_REVIEW,
+            ProjectEngineeringHandoff.Status.READY_FOR_ENGINEERING: Project.Status.HANDOFF_PENDING,
+        }.get(handoff.status if handoff else "", Project.Status.NEW)
+        project.record_version += 1
+        project.save(update_fields=["status", "record_version", "updated_at"])
+        publish(
+            _event(
+                "project.resumed",
+                project,
+                actor,
+                "RESUME",
+                f"{project.project_number} was resumed",
+                metadata={"status": project.status},
+            )
+        )
+        return project
+
+
+def cancel_project(*, project_id, actor, reason):
+    with transaction.atomic():
+        project = Project.objects.select_for_update().get(pk=project_id)
+        _require(actor, "projects.project.cancel", project, "Project cancellation")
+        if project.status == Project.Status.CANCELLED:
+            return project
+        previous_status = project.status
+        project.status = Project.Status.CANCELLED
+        project.record_version += 1
+        project.save(update_fields=["status", "record_version", "updated_at"])
+        publish(
+            _event(
+                "project.cancelled",
+                project,
+                actor,
+                "CANCEL",
+                f"{project.project_number} was cancelled",
+                metadata={"status": project.status, "reason": reason.strip()},
+                changes={"status": {"from": previous_status, "to": project.status}},
+            )
+        )
+        return project

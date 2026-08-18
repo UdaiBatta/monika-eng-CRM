@@ -140,6 +140,8 @@ class SalesOrderViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyModelViewSet):
     filterset_fields = [
         "company",
         "customer",
+        "accepted_quotation",
+        "customer_purchase_order",
         "status",
         "order_mode",
         "responsible_sales_employee",

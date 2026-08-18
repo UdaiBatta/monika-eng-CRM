@@ -181,3 +181,7 @@ class ClarificationRequestInputSerializer(serializers.Serializer):
 class ClarificationResponseInputSerializer(serializers.Serializer):
     response = serializers.CharField()
     document_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class ProjectReasonInputSerializer(serializers.Serializer):
+    reason = serializers.CharField()

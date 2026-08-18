@@ -12,6 +12,7 @@ from .serializers import (
     HandoffUpdateInputSerializer,
     ProjectClarificationSerializer,
     ProjectHandoffSerializer,
+    ProjectReasonInputSerializer,
     ProjectSerializer,
     ProjectUpdateInputSerializer,
 )
@@ -19,9 +20,12 @@ from .services import (
     accept_engineering_handoff,
     acknowledge_commercial_change,
     assign_engineering_handoff,
+    cancel_project,
+    hold_project,
     prepare_engineering_handoff,
     request_project_clarification,
     respond_project_clarification,
+    resume_project,
     submit_engineering_handoff,
     take_engineering_handoff,
     update_project,
@@ -71,6 +75,9 @@ class ProjectViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyModelViewSet):
         "request_clarification": "projects.handoff.request_clarification",
         "accept_handoff": "projects.handoff.accept",
         "acknowledge_commercial_change": "projects.handoff.acknowledge_commercial_change",
+        "hold": "projects.project.hold",
+        "resume": "projects.project.hold",
+        "cancel": "projects.project.cancel",
         "default": "projects.project.view",
     }
     search_fields = [
@@ -178,6 +185,33 @@ class ProjectViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["post"], url_path="acknowledge-commercial-change")
     def acknowledge_commercial_change(self, request, pk=None):
         project = acknowledge_commercial_change(project_id=self.get_object().pk, actor=request.user)
+        return Response(ProjectSerializer(project, context={"request": request}).data)
+
+    @action(detail=True, methods=["post"])
+    def hold(self, request, pk=None):
+        serializer = ProjectReasonInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = hold_project(
+            project_id=self.get_object().pk,
+            actor=request.user,
+            reason=serializer.validated_data["reason"],
+        )
+        return Response(ProjectSerializer(project, context={"request": request}).data)
+
+    @action(detail=True, methods=["post"])
+    def resume(self, request, pk=None):
+        project = resume_project(project_id=self.get_object().pk, actor=request.user)
+        return Response(ProjectSerializer(project, context={"request": request}).data)
+
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        serializer = ProjectReasonInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = cancel_project(
+            project_id=self.get_object().pk,
+            actor=request.user,
+            reason=serializer.validated_data["reason"],
+        )
         return Response(ProjectSerializer(project, context={"request": request}).data)
 
 

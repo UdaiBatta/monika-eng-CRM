@@ -1,19 +1,27 @@
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date
 from decimal import Decimal
 
 import pytest
+from django.db import close_old_connections, connections
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
+from apps.accounts.models import User
 from apps.crm.models import Customer
 from apps.enquiries.models import Enquiry
 from apps.masters.models import Currency
 from apps.numbering.models import DocumentSequence
 from apps.numbering.services import financial_year_label
+from apps.organization.models import Employee
 from apps.projects.models import Project, ProjectEngineeringHandoff, ProjectHandoffClarification
 from apps.projects.services import (
     accept_engineering_handoff,
+    cancel_project,
+    hold_project,
     request_project_clarification,
     respond_project_clarification,
+    resume_project,
     submit_engineering_handoff,
     take_engineering_handoff,
 )
@@ -233,3 +241,96 @@ def test_amendment_updates_project_commercial_baseline(user, phase3_context):
     assert project.current_sales_order_revision.revision_number == 1
     assert project.previous_sales_order_revision.revision_number == 0
     assert project.commercial_change_pending is True
+
+
+@pytest.mark.django_db
+def test_project_hold_resume_and_cancel_are_command_controlled(user, phase3_context):
+    order = create_sales_order_from_quotation(
+        quotation_id=phase3_context["quotation"].pk,
+        actor=user,
+        data={"project_required": True},
+    )
+    submit_sales_order(order_id=order.pk, actor=user)
+    release_sales_order(order_id=order.pk, actor=user)
+    project = Project.objects.get(sales_order=order)
+
+    hold_project(project_id=project.pk, actor=user, reason="Customer asked us to pause.")
+    project.refresh_from_db()
+    assert project.status == Project.Status.ON_HOLD
+
+    resume_project(project_id=project.pk, actor=user)
+    project.refresh_from_db()
+    assert project.status == Project.Status.NEW
+
+    cancel_project(project_id=project.pk, actor=user, reason="Customer cancelled the job.")
+    project.refresh_from_db()
+    assert project.status == Project.Status.CANCELLED
+
+
+@pytest.mark.django_db
+def test_project_360_api_serializes_the_real_commercial_baseline(
+    api_client, user, phase3_context
+):
+    order = create_sales_order_from_quotation(
+        quotation_id=phase3_context["quotation"].pk,
+        actor=user,
+        data={"project_required": True},
+    )
+    submit_sales_order(order_id=order.pk, actor=user)
+    release_sales_order(order_id=order.pk, actor=user)
+    project = Project.objects.get(sales_order=order)
+    api_client.force_authenticate(user)
+
+    response = api_client.get(f"/api/v1/projects/{project.pk}/")
+
+    assert response.status_code == 200
+    assert response.data["project_number"] == project.project_number
+    assert response.data["sales_order_detail"]["sales_order_number"] == order.sales_order_number
+    assert response.data["current_commercial_baseline"] == str(order.current_revision)
+    assert response.data["engineering_handoff"]["status"] == "DRAFT"
+
+
+@pytest.mark.django_db(transaction=True)
+def test_two_engineers_cannot_take_the_same_handoff(
+    user, employee, company, branch, department, phase3_context
+):
+    second_user = User.objects.create_superuser(
+        email="second-engineer@example.test", password="SafePassword-2741"
+    )
+    second_employee = Employee.objects.create(
+        user=second_user,
+        company=company,
+        branch=branch,
+        department=department,
+        employee_code="ME-TEST-002",
+        first_name="Second",
+        last_name="Engineer",
+        joining_date=date(2026, 1, 1),
+        employment_type=Employee.EmploymentType.PERMANENT,
+    )
+    order = create_sales_order_from_quotation(
+        quotation_id=phase3_context["quotation"].pk,
+        actor=user,
+        data={"project_required": True},
+    )
+    submit_sales_order(order_id=order.pk, actor=user)
+    release_sales_order(order_id=order.pk, actor=user)
+    project = Project.objects.get(sales_order=order)
+    submit_engineering_handoff(project_id=project.pk, actor=user)
+
+    def take(actor):
+        close_old_connections()
+        try:
+            handoff = take_engineering_handoff(project_id=project.pk, actor=actor)
+            return ("taken", handoff.assigned_engineer_id)
+        except ValidationError as exc:
+            return ("rejected", str(exc))
+        finally:
+            connections.close_all()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(pool.map(take, [user, second_user]))
+
+    project.refresh_from_db()
+    assert sorted(item[0] for item in outcomes) == ["rejected", "taken"]
+    assert project.engineering_owner_id in {employee.pk, second_employee.pk}

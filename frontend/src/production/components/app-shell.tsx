@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   Contact,
+  FolderKanban,
   FileText,
   Files,
   Gauge,
@@ -13,8 +14,10 @@ import {
   LogOut,
   Menu,
   Settings2,
+  ShoppingCart,
   Users,
   Warehouse,
+  Wrench,
   Wifi,
   WifiOff,
 } from "lucide-react";
@@ -77,6 +80,30 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         to: "/app/crm/quotations",
         icon: FileText,
         permission: "crm.quotation.view",
+      },
+      {
+        label: "Customer POs",
+        to: "/app/sales/customer-pos",
+        icon: ShoppingCart,
+        permission: "sales.customer_po.view",
+      },
+      {
+        label: "Sales orders",
+        to: "/app/sales/orders",
+        icon: ClipboardCheck,
+        permission: "sales.sales_order.view",
+      },
+      {
+        label: "Projects",
+        to: "/app/projects",
+        icon: FolderKanban,
+        permission: "projects.project.view",
+      },
+      {
+        label: "Engineering work",
+        to: "/app/engineering/work",
+        icon: Wrench,
+        permission: "projects.handoff.view",
       },
       {
         label: "Follow-ups",
@@ -353,8 +380,8 @@ function AppShellContent() {
         </main>
         <Separator />
         <footer className="px-6 py-4 text-xs text-muted-foreground">
-          Monika Engineers Integrated ERP · Phase 2 Commercial CRM · Production
-          foundation active
+          Monika Engineers Integrated ERP · Phase 3 Sales Order & Project 360 ·
+          Production foundation active
         </footer>
       </div>
     </div>

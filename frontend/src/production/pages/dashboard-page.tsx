@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from "@tanstack/react-query"
-import { Activity, ArrowRight, ClipboardCheck, FileKey2, Files, FileText, Inbox, PencilRuler, ServerCog, Users } from "lucide-react"
+import { Activity, ArrowRight, ClipboardCheck, FileKey2, Files, FileText, FolderKanban, Inbox, PencilRuler, ServerCog, ShoppingCart, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -20,6 +20,9 @@ const metrics = [
   { label: "Unassigned enquiries", endpoint: "/external-enquiries/?queue=unassigned&page_size=1", permission: "crm.external_enquiry.review", icon: Inbox, href: "/app/crm/incoming-enquiries?queue=unassigned" },
   { label: "My enquiries", endpoint: "/external-enquiries/?queue=mine&page_size=1", permission: "crm.external_enquiry.review", icon: Inbox, href: "/app/crm/incoming-enquiries?queue=mine" },
   { label: "My quotations", endpoint: "/quotations/?queue=mine&page_size=1", permission: "crm.quotation.view", icon: FileText, href: "/app/crm/quotations?queue=mine" },
+  { label: "My Sales Orders", endpoint: "/sales/orders/?queue=mine&page_size=1", permission: "sales.sales_order.view", icon: ShoppingCart, href: "/app/sales/orders?queue=mine" },
+  { label: "Unassigned Engineering", endpoint: "/projects/?queue=unassigned&page_size=1", permission: "projects.handoff.view", icon: FolderKanban, href: "/app/engineering/work?queue=unassigned" },
+  { label: "My Engineering work", endpoint: "/projects/?queue=mine&page_size=1", permission: "projects.handoff.view", icon: PencilRuler, href: "/app/engineering/work?queue=mine" },
 ]
 
 const administrationPermissions = [
@@ -51,12 +54,12 @@ export default function DashboardPage() {
           <CardHeader className="bg-erp-sidebar text-white">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <Badge variant="secondary" className="mb-3">{canAdminister ? "Phase 2 commercial CRM" : "Sales workspace"}</Badge>
+                <Badge variant="secondary" className="mb-3">{canAdminister ? "Phase 3 order-to-project" : "Sales workspace"}</Badge>
                 <CardTitle className="text-2xl">Good to see you, {user?.employee?.display_name || user?.first_name || "administrator"}.</CardTitle>
                 <CardDescription className="mt-2 max-w-2xl text-white/60">
                   {canAdminister
-                    ? "Incoming enquiries, customer and enquiry workspaces, engineering, estimates, quotations, and shared enterprise controls are connected to live services."
-                    : "Review new enquiries, keep customer follow-ups moving, and prepare quotations from one daily workspace."}
+                    ? "Customer orders now continue through Sales Order release, Project 360, and an accountable Sales-to-Engineering handoff."
+                    : "Review new enquiries, keep customer follow-ups moving, prepare quotations, and release confirmed Sales Orders from one daily workspace."}
                 </CardDescription>
               </div>
               <ServerCog aria-hidden="true" className="opacity-40" />
@@ -72,7 +75,7 @@ export default function DashboardPage() {
               : [
                   ["New business", "Review and claim enquiries"],
                   ["Customer response", "Keep follow-ups on time"],
-                  ["Commercial work", "Prepare and track quotations"],
+                  ["Commercial work", "Quotation through Sales Order"],
                 ]
             ).map(([label, value]) => (
               <div key={label} className="border-l-2 border-primary pl-4">
@@ -88,9 +91,10 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col gap-4">
             <div><div className="mb-2 flex justify-between text-sm"><span>Phase 1A–H</span><span>Implemented</span></div><Progress value={100} /></div>
             <div><div className="mb-2 flex justify-between text-sm"><span>Phase 2 commercial CRM</span><span>Through quotation handoff</span></div><Progress value={100} /></div>
+            <div><div className="mb-2 flex justify-between text-sm"><span>Phase 3 order-to-project</span><span>Core operational flow</span></div><Progress value={100} /></div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="border p-3"><p className="font-semibold">Live scope</p><p className="text-muted-foreground">Enquiry to quotation handoff</p></div>
-              <div className="border p-3"><p className="font-semibold">Next gate</p><p className="text-muted-foreground">Sales Order and operations</p></div>
+              <div className="border p-3"><p className="font-semibold">Live scope</p><p className="text-muted-foreground">Enquiry to Engineering handoff</p></div>
+              <div className="border p-3"><p className="font-semibold">Next gate</p><p className="text-muted-foreground">Detailed Engineering</p></div>
             </div>
           </CardContent>
         </Card> : null}
@@ -121,12 +125,14 @@ export default function DashboardPage() {
         })}
       </section>
 
-      {hasPermission(user, "crm.external_enquiry.review") || hasPermission(user, "crm.quotation.create") ? (
+      {hasPermission(user, "crm.external_enquiry.review") || hasPermission(user, "crm.quotation.create") || hasPermission(user, "sales.sales_order.view") ? (
         <Card className="border-primary/25">
           <CardHeader><CardTitle>Commercial quick actions</CardTitle><CardDescription>Start from the real business event; each path enters the controlled CRM workflow.</CardDescription></CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             {hasPermission(user, "crm.external_enquiry.review") ? <Button render={<Link to="/app/crm/incoming-enquiries" />} nativeButton={false}><Inbox data-icon="inline-start" />Review or capture enquiry</Button> : null}
             {hasPermission(user, "crm.quotation.create") ? <Button variant="outline" render={<Link to="/app/crm/quotations" />} nativeButton={false}><FileText data-icon="inline-start" />Create quotation</Button> : null}
+            {hasPermission(user, "sales.sales_order.view") ? <Button variant="outline" render={<Link to="/app/sales/orders" />} nativeButton={false}><ShoppingCart data-icon="inline-start" />Sales Orders</Button> : null}
+            {hasPermission(user, "projects.handoff.view") ? <Button variant="outline" render={<Link to="/app/engineering/work" />} nativeButton={false}><FolderKanban data-icon="inline-start" />Engineering work</Button> : null}
           </CardContent>
         </Card>
       ) : null}

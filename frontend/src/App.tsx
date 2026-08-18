@@ -65,6 +65,11 @@ const EstimatesPage = lazy(() => import("@/production/pages/estimates-page"));
 const EstimatePage = lazy(() => import("@/production/pages/estimate-page"));
 const QuotationsPage = lazy(() => import("@/production/pages/quotations-page"));
 const QuotationPage = lazy(() => import("@/production/pages/quotation-page"));
+const CustomerPOsPage = lazy(() => import("@/production/pages/customer-pos-page"));
+const SalesOrdersPage = lazy(() => import("@/production/pages/sales-orders-page"));
+const SalesOrderPage = lazy(() => import("@/production/pages/sales-order-page"));
+const ProjectsPage = lazy(() => import("@/production/pages/projects-page"));
+const ProjectPage = lazy(() => import("@/production/pages/project-page"));
 
 function PageLoading() {
   return (
@@ -153,6 +158,13 @@ export default function App() {
               <Route path="crm/estimates/:estimateId" element={<EstimatePage />} />
               <Route path="crm/quotations" element={<QuotationsPage />} />
               <Route path="crm/quotations/:quotationId" element={<QuotationPage />} />
+
+              <Route path="sales/customer-pos" element={<CustomerPOsPage />} />
+              <Route path="sales/orders" element={<SalesOrdersPage />} />
+              <Route path="sales/orders/:salesOrderId" element={<SalesOrderPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/:projectId" element={<ProjectPage />} />
+              <Route path="engineering/work" element={<ProjectsPage />} />
 
               <Route
                 path="organization"

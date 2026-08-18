@@ -49,7 +49,7 @@ function validateFile(file: File | null, category?: Category) {
   return ""
 }
 
-function ERPDocumentUpload({ onUploaded }: { onUploaded: (document: ERPDocument) => void }) {
+export function ERPDocumentUpload({ onUploaded }: { onUploaded: (document: ERPDocument) => void }) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [categoryId, setCategoryId] = useState("")

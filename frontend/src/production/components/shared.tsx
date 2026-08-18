@@ -84,6 +84,8 @@ const statusVariants: Record<string, string> = {
   ENGINEERING_REVIEW: warningStatus,
   CLARIFICATION_REQUIRED: warningStatus,
   DIFFERENCE_REVIEW: warningStatus,
+  DIFFERENCES: warningStatus,
+  ACCEPTED_DIFFERENCES: successStatus,
   READY_FOR_ENGINEERING: warningStatus,
   ON_HOLD: warningStatus,
   OPEN: warningStatus,

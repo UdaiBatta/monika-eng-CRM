@@ -55,7 +55,7 @@ export default function CustomerPOsPage() {
     onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["customer-pos"] }); if (selected) setSelected((await apiGet<CustomerPO>(`/sales/customer-pos/${selected.id}/`))); },
   });
   const results = query.data?.results ?? [];
-  const differences = results.filter((item) => item.current_revision.match_status === "DIFFERENCE_REVIEW").length;
+  const differences = results.filter((item) => item.current_revision.match_status === "DIFFERENCES").length;
   const update = (field: keyof typeof blankForm, value: string) => setForm((current) => ({ ...current, [field]: value }));
 
   return <div className="mx-auto flex max-w-[1580px] flex-col gap-5">

@@ -72,6 +72,8 @@ describe("dashboard work queue links", () => {
     expect(screen.queryByText("Foundation readiness")).not.toBeInTheDocument();
     expect(screen.queryByText("Django API")).not.toBeInTheDocument();
     expect(screen.queryByText("Engineering canvas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Unassigned Engineering")).not.toBeInTheDocument();
+    expect(screen.queryByText("My Engineering work")).not.toBeInTheDocument();
     expect(screen.queryByText("Access posture")).not.toBeInTheDocument();
     expect(screen.getByText("Your daily sales flow")).toBeInTheDocument();
     expect(screen.getByText("Your access")).toBeInTheDocument();

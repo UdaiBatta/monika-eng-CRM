@@ -103,7 +103,7 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         label: "Engineering work",
         to: "/app/engineering/work",
         icon: Wrench,
-        permission: "projects.handoff.view",
+        permission: "projects.handoff.take_ownership",
       },
       {
         label: "Follow-ups",

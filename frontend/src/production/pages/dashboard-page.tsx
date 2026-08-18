@@ -21,8 +21,8 @@ const metrics = [
   { label: "My enquiries", endpoint: "/external-enquiries/?queue=mine&page_size=1", permission: "crm.external_enquiry.review", icon: Inbox, href: "/app/crm/incoming-enquiries?queue=mine" },
   { label: "My quotations", endpoint: "/quotations/?queue=mine&page_size=1", permission: "crm.quotation.view", icon: FileText, href: "/app/crm/quotations?queue=mine" },
   { label: "My Sales Orders", endpoint: "/sales/orders/?queue=mine&page_size=1", permission: "sales.sales_order.view", icon: ShoppingCart, href: "/app/sales/orders?queue=mine" },
-  { label: "Unassigned Engineering", endpoint: "/projects/?queue=unassigned&page_size=1", permission: "projects.handoff.view", icon: FolderKanban, href: "/app/engineering/work?queue=unassigned" },
-  { label: "My Engineering work", endpoint: "/projects/?queue=mine&page_size=1", permission: "projects.handoff.view", icon: PencilRuler, href: "/app/engineering/work?queue=mine" },
+  { label: "Unassigned Engineering", endpoint: "/projects/?queue=unassigned&page_size=1", permission: "projects.handoff.take_ownership", icon: FolderKanban, href: "/app/engineering/work?queue=unassigned" },
+  { label: "My Engineering work", endpoint: "/projects/?queue=mine&page_size=1", permission: "projects.handoff.take_ownership", icon: PencilRuler, href: "/app/engineering/work?queue=mine" },
 ]
 
 const administrationPermissions = [

@@ -1,0 +1,235 @@
+from decimal import Decimal
+
+import pytest
+from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied, ValidationError
+
+from apps.crm.models import Customer
+from apps.enquiries.models import Enquiry
+from apps.masters.models import Currency
+from apps.numbering.models import DocumentSequence
+from apps.numbering.services import financial_year_label
+from apps.projects.models import Project, ProjectEngineeringHandoff, ProjectHandoffClarification
+from apps.projects.services import (
+    accept_engineering_handoff,
+    request_project_clarification,
+    respond_project_clarification,
+    submit_engineering_handoff,
+    take_engineering_handoff,
+)
+from apps.quotations.models import CustomerCommercialConfirmation, Quotation
+from apps.quotations.services import create_quotation
+from apps.rbac.models import Permission, Role, RoleAssignment, RolePermission, ScopeType
+from apps.sales.models import CustomerPurchaseOrder, SalesOrder
+from apps.sales.services import (
+    create_direct_sales_order,
+    create_sales_order_amendment,
+    create_sales_order_from_quotation,
+    record_customer_po,
+    release_sales_order,
+    submit_sales_order,
+    update_sales_order_draft,
+)
+
+
+@pytest.fixture
+def phase3_context(company, employee, user):
+    user.is_superuser = True
+    user.is_staff = True
+    user.save(update_fields=["is_superuser", "is_staff"])
+    currency = Currency.objects.get_or_create(
+        code="INR",
+        defaults={"name": "Indian Rupee", "symbol": "₹", "decimal_places": 2},
+    )[0]
+    customer = Customer.objects.create(
+        company=company,
+        customer_code="CUST-P3-001",
+        legal_name="ABC Industries Pvt. Ltd.",
+        default_currency=currency,
+        status=Customer.Status.ACTIVE,
+        created_by=user,
+        updated_by=user,
+    )
+    enquiry = Enquiry.objects.create(
+        company=company,
+        enquiry_number="ENQ-P3-001",
+        customer=customer,
+        subject="Two MCC control panels",
+        responsible_salesperson=employee,
+        status=Enquiry.Status.WON,
+        closed_at=timezone.now(),
+        closed_by=user,
+        created_by=user,
+        updated_by=user,
+    )
+    for code, template in (
+        ("QUOTATION", "QTN-2026-{number}"),
+        ("SO", "SO-2026-{number}"),
+        ("PRJ", "PRJ-2026-{number}"),
+        ("ENQUIRY", "ENQ-2026-{number}"),
+    ):
+        DocumentSequence.objects.create(
+            company=company,
+            code=code,
+            financial_year=financial_year_label(company),
+            template=template,
+            padding=4,
+        )
+    quotation = create_quotation(
+        actor=user,
+        data={
+            "path": Quotation.Path.QUICK,
+            "customer_id": customer.pk,
+            "enquiry_id": enquiry.pk,
+            "quick_reason": "Repeat configuration requested urgently.",
+            "scope": "Supply of two MCC control panels.",
+            "payment_terms": "30% advance",
+            "delivery_terms": "8–10 weeks",
+            "warranty_terms": "12 months",
+            "lines": [
+                {
+                    "description": "MCC Control Panel",
+                    "quantity": "2",
+                    "unit_of_measure": "NOS",
+                    "unit_price": "500000",
+                    "tax_percent": "18",
+                }
+            ],
+        },
+    )
+    quotation.status = Quotation.Status.READY_FOR_SALES_ORDER
+    quotation.save(update_fields=["status", "updated_at"])
+    CustomerCommercialConfirmation.objects.create(
+        quotation=quotation,
+        revision=quotation.current_revision,
+        method=CustomerCommercialConfirmation.Method.VERBAL,
+        confirmation_reference="Phone confirmation",
+        po_pending=True,
+        confirmed_by=user,
+        ready_for_sales_order_at=timezone.now(),
+        ready_for_sales_order_by=user,
+    )
+    return {"currency": currency, "customer": customer, "quotation": quotation}
+
+
+@pytest.mark.django_db
+def test_customer_po_duplicate_and_variance(user, phase3_context):
+    context = phase3_context
+    payload = {
+        "customer_id": context["customer"].pk,
+        "po_number": "PO-ABC-107",
+        "po_date": timezone.localdate(),
+        "quotation_id": context["quotation"].pk,
+        "currency_id": context["currency"].pk,
+        "stated_total": "1200000",
+        "delivery_information": "6 weeks",
+        "payment_terms": "45 days",
+    }
+    po = record_customer_po(actor=user, data=payload)
+    assert po.current_revision.match_status == "DIFFERENCES"
+    assert {item["field"] for item in po.current_revision.variance_snapshot} >= {
+        "order_value",
+        "delivery",
+        "payment_terms",
+    }
+    with pytest.raises(ValidationError, match="already exists"):
+        record_customer_po(actor=user, data={**payload, "po_number": "po-abc-107"})
+    assert CustomerPurchaseOrder.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_quote_release_creates_project_and_handoff(user, phase3_context):
+    order = create_sales_order_from_quotation(
+        quotation_id=phase3_context["quotation"].pk,
+        actor=user,
+        data={"project_required": True},
+    )
+    assert order.current_revision.grand_total == Decimal("1180000.00")
+    submit_sales_order(order_id=order.pk, actor=user)
+    release_sales_order(order_id=order.pk, actor=user)
+    project = Project.objects.get(sales_order=order)
+    assert project.project_number == "PRJ-2026-0001"
+    submit_engineering_handoff(project_id=project.pk, actor=user)
+    take_engineering_handoff(project_id=project.pk, actor=user)
+    clarification = request_project_clarification(
+        project_id=project.pk, actor=user, question="Confirm the final panel depth."
+    )
+    assert clarification.status == ProjectHandoffClarification.Status.OPEN
+    respond_project_clarification(
+        clarification_id=clarification.pk,
+        actor=user,
+        response="Customer confirmed 600 mm depth.",
+    )
+    handoff = accept_engineering_handoff(project_id=project.pk, actor=user)
+    project.refresh_from_db()
+    assert handoff.status == ProjectEngineeringHandoff.Status.ACCEPTED
+    assert project.status == Project.Status.ENGINEERING_ACCEPTED
+    assert handoff.accepted_snapshot["sales_order_revision"] == 0
+
+
+@pytest.mark.django_db
+def test_direct_order_permission_and_crm_history(user, employee, company, phase3_context):
+    user.is_superuser = False
+    user.save(update_fields=["is_superuser"])
+    payload = {
+        "customer_id": phase3_context["customer"].pk,
+        "currency_id": phase3_context["currency"].pk,
+        "confirmation_channel": "PHONE",
+        "direct_reason": "REPEAT_ORDER",
+        "po_pending": True,
+        "project_required": False,
+        "lines": [
+            {
+                "description": "Spare contactor",
+                "quantity": "2",
+                "unit_of_measure": "NOS",
+                "unit_price": "2500",
+                "tax_percent": "18",
+            }
+        ],
+    }
+    with pytest.raises(PermissionDenied):
+        create_direct_sales_order(actor=user, data=payload)
+    role = Role.objects.create(company=company, code="DIRECT-SALES", name="Direct Sales test")
+    RolePermission.objects.create(
+        role=role, permission=Permission.objects.get(code="sales.sales_order.direct_create")
+    )
+    RoleAssignment.objects.create(user=user, role=role, scope_type=ScopeType.COMPANY, company=company)
+    order = create_direct_sales_order(actor=user, data=payload)
+    assert order.order_mode == SalesOrder.Mode.DIRECT
+    assert order.po_pending and not order.project_required
+    assert order.enquiry.status == Enquiry.Status.WON
+
+
+@pytest.mark.django_db
+def test_amendment_updates_project_commercial_baseline(user, phase3_context):
+    order = create_sales_order_from_quotation(
+        quotation_id=phase3_context["quotation"].pk,
+        actor=user,
+        data={"project_required": True},
+    )
+    submit_sales_order(order_id=order.pk, actor=user)
+    release_sales_order(order_id=order.pk, actor=user)
+    released = order.current_revision
+    with pytest.raises(ValidationError, match="current draft"):
+        update_sales_order_draft(
+            revision_id=released.pk,
+            actor=user,
+            submitted_version=released.record_version,
+            data={"delivery_terms": "6 weeks"},
+        )
+    amendment = create_sales_order_amendment(
+        order_id=order.pk, actor=user, reason="Customer changed delivery and quantity."
+    )
+    update_sales_order_draft(
+        revision_id=amendment.pk,
+        actor=user,
+        submitted_version=amendment.record_version,
+        data={"delivery_terms": "6 weeks"},
+    )
+    submit_sales_order(order_id=order.pk, actor=user)
+    release_sales_order(order_id=order.pk, actor=user)
+    project = Project.objects.get(sales_order=order)
+    assert project.current_sales_order_revision.revision_number == 1
+    assert project.previous_sales_order_revision.revision_number == 0
+    assert project.commercial_change_pending is True

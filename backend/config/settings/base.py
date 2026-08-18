@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     "apps.external_enquiries.apps.ExternalEnquiriesConfig",
     "apps.estimation.apps.EstimationConfig",
     "apps.quotations.apps.QuotationsConfig",
+    "apps.sales.apps.SalesConfig",
+    "apps.projects.apps.ProjectsConfig",
     "apps.realtime.apps.RealtimeConfig",
 ]
 

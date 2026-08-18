@@ -44,6 +44,7 @@ from apps.organization.views import (
     EmployeeViewSet,
     WarehouseViewSet,
 )
+from apps.projects.views import ProjectClarificationViewSet, ProjectViewSet
 from apps.quotations.views import (
     QuotationRevisionViewSet,
     QuotationTemplateViewSet,
@@ -56,6 +57,11 @@ from apps.rbac.views import (
     RoleAssignmentViewSet,
     RolePermissionViewSet,
     RoleViewSet,
+)
+from apps.sales.views import (
+    CustomerPurchaseOrderViewSet,
+    SalesOrderRevisionViewSet,
+    SalesOrderViewSet,
 )
 
 router = DefaultRouter()
@@ -103,6 +109,11 @@ router.register("quotations", QuotationViewSet, basename="quotation")
 router.register("quotation-revisions", QuotationRevisionViewSet, basename="quotation-revision")
 router.register("quotation-templates", QuotationTemplateViewSet)
 router.register("quotation-text-templates", QuotationTextTemplateViewSet)
+router.register("sales/customer-pos", CustomerPurchaseOrderViewSet, basename="customer-purchase-order")
+router.register("sales/orders", SalesOrderViewSet, basename="sales-order")
+router.register("sales/order-revisions", SalesOrderRevisionViewSet, basename="sales-order-revision")
+router.register("projects", ProjectViewSet, basename="project")
+router.register("project-clarifications", ProjectClarificationViewSet, basename="project-clarification")
 router.register(
     "external-enquiries",
     ExternalEnquirySubmissionViewSet,

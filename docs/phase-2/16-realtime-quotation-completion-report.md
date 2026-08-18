@@ -1,12 +1,12 @@
 # Phase 2 Realtime and Quotation Completion Report
 
-Report date: 12 August 2026
+Report date: 18 August 2026
 
-1. **Overall summary.** The realtime, unified incoming-enquiry, and internal quotation vertical slice is implemented through Ready for Sales Order. Automated gates pass; production acceptance is conditional on Redis, distinct-user UAT, and approved DOCX/PDF operations.
+1. **Overall summary.** The realtime, unified incoming-enquiry, and internal quotation vertical slice is implemented through Ready for Sales Order. Post-milestone work also added spreadsheet migration paths, simpler CRM navigation, a focused Sales workspace, inventory/workshop visibility, and a uniform role-permission editor. Automated gates pass; production acceptance remains conditional on Redis, distinct-user UAT, and approved DOCX/PDF operations.
 2. **Branch.** Work is isolated on `phase-2-quotation-realtime` from the accepted website/estimation baseline.
-3. **Commits.** `1701e4b` realtime foundation; `e7ffd5e` unified intake; `340edd7` quotation lifecycle; `10a6731` realtime intake UI; `564fac5` Axis quotation workspace; `257e6bd` realtime draft protection; `89bf3b8` numbering seed; `206c289` prospect quick-quote fix; followed by the documentation checkpoint containing this report.
+3. **Commits.** Core milestone: `1701e4b` realtime foundation; `e7ffd5e` unified intake; `340edd7` quotation lifecycle; `10a6731` realtime intake UI; `564fac5` Axis quotation workspace; `257e6bd` realtime draft protection; `89bf3b8` numbering seed; `206c289` prospect quick-quote fix; `56a49db` milestone documentation. Subsequent operational refinements: spreadsheet imports and work queues through `219b193`, simplified navigation `c82aea7`, inventory/workshop visibility `b31b75a`, focused Sales workspace `c46907d`, and standardized role permissions `08224c4`.
 4. **Working tree status.** The target handoff state is clean after the documentation checkpoint; verified separately with `git status --short`.
-5. **Baseline verification.** The inherited Phase 2 website/estimation slice was preserved. The new definitive gate is 106 backend and 36 frontend tests, both fully passing.
+5. **Baseline verification.** The inherited Phase 2 website/estimation slice was preserved. The definitive 18 August gate is 113 backend and 48 frontend tests, both fully passing.
 6. **Realtime architecture.** Django Channels publishes small signals while REST/PostgreSQL remain authoritative. The client refetches server state through TanStack Query.
 7. **ASGI configuration.** `config.asgi.application` uses `ProtocolTypeRouter` for HTTP and WebSocket traffic.
 8. **Django Channels configuration.** Channels/Daphne are installed, the workspace route is `/ws/workspace/`, and HTTP remains standard Django ASGI.
@@ -77,23 +77,23 @@ Report date: 12 August 2026
 73. **Notifications.** Shared notification/domain-event hooks are reused for relevant changes; notification preference behavior remains centralized.
 74. **Customer 360.** Customer detail includes a permission-aware quotation tab with latest value, status, revision, and link.
 75. **Enquiry workspace.** Enquiry detail includes its quotation trail and the approved-estimate-to-quotation handoff.
-76. **Employee Home.** Home shows incoming/quotation work counts and actions according to permissions.
+76. **Employee Home.** Home shows incoming/quotation work counts and actions according to permissions. The Sales role receives a focused daily-work view instead of the full administrative dashboard.
 77. **Realtime counters.** Entity events invalidate active counter queries; the server is not trusted to push precomputed secret counts.
 78. **Team activity.** Communication, negotiation, approval, confirmation, and domain events feed the shared activity/audit visibility foundation.
-79. **Permissions.** Migration `0008_quotation_permissions` registers granular quotation, quick-path, template, generation, communication, negotiation, confirmation, and handoff permissions.
+79. **Permissions.** Migration `0008_quotation_permissions` registers granular quotation, quick-path, template, generation, communication, negotiation, confirmation, and handoff permissions. Migration `0009_deactivate_legacy_quotation_permissions` removes obsolete duplicates from the active catalogue; the role editor now loads all pages and presents 112 active permissions in consistent responsibility groups.
 80. **Company isolation tests.** Cross-company REST/entity access and realtime subscription behavior have automated coverage.
 81. **WebSocket tests.** Authentication, anonymous close, company group isolation, safe routing, and consumer behavior are covered.
 82. **Presence tests.** Heartbeat, cache TTL, removal, permission checks, and company boundaries are covered.
 83. **Optimistic concurrency tests.** Stale versions return 409 and cannot overwrite the newer draft; the frontend conflict state also has regression coverage.
 84. **PostgreSQL concurrency tests.** Real two-thread quotation-number creation verifies unique sequence allocation under database locking.
-85. **Backend test command/result.** `.\.venv\Scripts\python.exe -m pytest backend -q` -> 106 passed; one test-database teardown session warning.
-86. **Frontend test command/result.** `bun run test` -> 9 files and 36 tests passed.
+85. **Backend test command/result.** `.\.venv\Scripts\python.exe -m pytest backend -q` -> 113 passed in the 18 August verification run.
+86. **Frontend test command/result.** `bun x vitest run` -> 14 files and 48 tests passed in the 18 August verification run.
 87. **Ruff.** `.\.venv\Scripts\ruff.exe check backend` -> all checks passed.
-88. **Django checks.** `manage.py check` -> no issues.
+88. **Django checks.** `manage.py check` -> no issues. `manage.py check --deploy` completes with the six expected local-development warnings for HSTS, HTTPS redirect, production secret, secure session/CSRF cookies, and `DEBUG=False`; these are go-live configuration gates.
 89. **Migration consistency.** `manage.py makemigrations --check --dry-run` -> no changes detected; all new migrations are applied locally.
-90. **Docker validation.** Not run by design because the user requested Docker-free local development. Native PostgreSQL, Daphne/Django, and Vite run successfully; container deployment remains a separate environment check.
+90. **Docker validation.** `docker compose config --quiet` passes. Docker services were not started because local development is intentionally Docker-free; native PostgreSQL, Daphne/Django, and Vite have run successfully. Container runtime/deployment validation remains a separate environment gate.
 91. **Frontend lint.** `bun run lint` exits 0 with ten warning-only findings: nine Fast Refresh export warnings and one existing effect-dependency warning.
-92. **TypeScript/build.** `bun run build` passes and Vite transforms 2,620 modules.
+92. **TypeScript/build.** `bun run build` passes and Vite transforms 2,622 modules.
 93. **Multi-user Sales UAT.** Two-tab live/conflict behavior passed under one real signed-in local employee; the required two-distinct-employee session remains pending.
 94. **Cross-department realtime UAT.** Architecture/tests cover cross-module events, but a named Sales-to-Engineering two-user browser exercise remains pending.
 95. **Formal quotation UAT.** Approved estimate -> standard quotation -> revise -> communicate -> negotiate -> confirm -> Ready for Sales Order passed; live Word/PDF was blocked by missing active template/LibreOffice.
@@ -103,11 +103,11 @@ Report date: 12 August 2026
 99. **Disconnect/reconnect UAT.** Reconnect/offline client behavior is implemented/tested; a timed manual network-disconnect recording remains pending.
 100. **Responsive QA.** Desktop dark mode and narrow viewport remained usable; dense headers truncate conservatively on very narrow screens.
 101. **Browser console.** Checked quotation/incoming flows produced no console errors or warnings.
-102. **User-friendliness review.** Axis CRM shell, human labels, progressive disclosure, explicit ownership, safe conflict language, responsive cards/tables, and restrained status messaging are in place.
+102. **User-friendliness review.** Axis CRM shell, human labels, progressive disclosure, explicit ownership, safe conflict language, responsive cards/tables, restrained status messaging, simpler navigation, spreadsheet migration actions, focused Sales home, and grouped role permissions are in place.
 103. **Documentation.** Architecture, staff guide, acceptance record, traceability, and this completion report are stored under `docs/phase-2/`.
 104. **Traceability.** Realtime, incoming enquiries, and quotation are marked implemented with conditional operational acceptance; Sales Order, Project, and downstream ERP remain Not Started.
 105. **Business decisions still required.** Approve quotation DOCX design, wording/defaults, GST/freight display, validity, numbering ownership, real role assignments, approval thresholds, PO policy, and retention.
 106. **Security/go-live requirements.** Configure production secrets, HTTPS/HSTS, secure cookies, Redis, allowed hosts/origins, malware scanning, logging/alerts, backups/restore, DR, and deployment smoke/load tests.
-107. **Known technical debt.** Ten warning-only frontend lint items, test-database session cleanup, no generated OpenAPI publication, no production Redis UAT, and no local LibreOffice/template validation.
+107. **Known technical debt.** Ten warning-only frontend lint items, no generated OpenAPI publication, no production Redis UAT, and no local LibreOffice/template validation.
 108. **Explicitly deferred work.** Live WhatsApp/TradeIndia connectors, customer portal/acceptance links, Sales Order, Project, Drawing Management, BOM, Purchase, Production, Inventory execution, Quality, Dispatch, and Service are not implemented.
 109. **Recommendation for Sales Order / Project milestone.** Review and accept this report, finish the conditional operational/UAT items, and approve the Sales Order input contract before starting that milestone. Do not create Sales Order or Project code from this branch yet.

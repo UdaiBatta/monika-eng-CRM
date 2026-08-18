@@ -327,6 +327,8 @@ function Header() {
   const location = useLocation();
   const { data: user } = useCurrentUser();
   const pathLabel = getPageTitle(location.pathname);
+  const roleLabel = user?.roles?.map((role) => role.name).join(" + ")
+    || (user?.is_staff ? "Administrator" : "Role-based access");
   return (
     <header className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur sm:px-6">
       <div className="flex items-center gap-3">
@@ -343,7 +345,7 @@ function Header() {
           <p className="text-sm font-medium">
             {user?.employee?.display_name || user?.email}
           </p>
-          <p className="text-xs text-muted-foreground">Secure session</p>
+          <p className="text-xs text-muted-foreground">{roleLabel}</p>
         </div>
         <RealtimeIndicator />
         <ThemeToggle />

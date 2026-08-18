@@ -112,6 +112,16 @@ class MeView(APIView):
                 "designation_id": employee.designation_id,
             }
         )
+        data["roles"] = [
+            {
+                "name": assignment.role.name,
+                "scope": assignment.get_scope_type_display(),
+            }
+            for assignment in request.user.role_assignments.select_related("role").filter(
+                is_active=True,
+                role__is_active=True,
+            )
+        ]
         data["permissions"] = effective_permission_codes(request.user)
         return Response(data)
 

@@ -33,10 +33,10 @@ Completion here means the baseline artifact exists; business review is still req
 
 | ID | Requirement section | Phase | Status | Evidence / next gate |
 |---|---|---:|---|---|
-| R-000 | Primary objective | All | IN DEVELOPMENT | Production foundation and Website-to-approved-Estimation vertical slice complete; Quotation and downstream ERP modules remain phased |
+| R-000 | Primary objective | All | IN DEVELOPMENT | Production foundation through Project Ready for Detailed Engineering is implemented; downstream operational ERP remains phased |
 | R-001 | Technology architecture | 1 | COMPLETE | React/Django/PostgreSQL/Redis/Celery workspace and Docker services implemented |
 | R-002 | System architecture principles | 1 | COMPLETE | Modular-monolith boundaries, versioned API and separate frontend implemented |
-| R-003 | Controlled state transitions | 1+ | COMPLETE | Explicit document, approval, customer, enquiry, website-intake, engineering, and estimation commands enforce tested transitions; mutable status PATCH is rejected |
+| R-003 | Controlled state transitions | 1+ | COMPLETE | Explicit document, approval, CRM, quotation, Customer PO, Sales Order, Project, and handoff commands enforce tested transitions; mutable status PATCH is rejected |
 | R-004 | User, employee and organization foundation | 1 | COMPLETE | Separate User/Employee and organization models, APIs, UI and tests implemented |
 | R-005 | RBAC framework | 1 | COMPLETE | Data-driven roles, scoped assignments, allow/deny overrides and tests implemented; business roles intentionally unseeded |
 | R-006 | Common data model | 1 | COMPLETE | UUID/timestamp base models and Django migrations implemented |
@@ -50,11 +50,11 @@ Completion here means the baseline artifact exists; business review is still req
 | R-014 | BOM management | 3 | NOT STARTED | BOM ownership/release policy required |
 | R-015 | Routing | 3 | NOT STARTED | Work centres and operations required |
 | R-016 | Estimation and costing | 2 | COMPLETE | Controlled revisions/cost lines, Decimal pricing, Engineering gate, shared approval, confidential RBAC, Axis workspaces, concurrency tests, and live UAT |
-| R-017 | Quotation module | 2 | NOT STARTED | Explicitly stopped before implementation; template, taxes, terms, numbering, approval, PDF, and revision policy require review |
+| R-017 | Quotation module | 2 | COMPLETE | Controlled quotation revisions, Decimal lines/tax, approval, documents, communication, confirmation, PO pending, and Sales Order handoff are implemented and tested |
 | R-018 | Customer negotiation history | 2 | COMPLETE | Customer/enquiry activities and immutable history are linked and visible in context |
-| R-019 | Sales order | 3 | NOT STARTED | Conversion and partial-delivery rules required |
-| R-020 | Project management | 3 | IN DEVELOPMENT | Project 360 UI proof-of-concept only |
-| R-021 | Project document repository | 3 | NOT STARTED | Category/access/retention policy required |
+| R-019 | Sales order | 3 | COMPLETE | Quote-based and permission-controlled direct entry, immutable releases, amendments, shared approval, PO pending/linking, Project bootstrap, security, and tests implemented; fulfillment is explicitly deferred |
+| R-020 | Project management | 3 | COMPLETE | Project 360 core, numbering, idempotent bootstrap, ownership, commercial baseline, Engineering handoff, clarification, acceptance, hold/cancel, and tests implemented |
+| R-021 | Project document repository | 3 | IN DEVELOPMENT | Project 360 reads permission-controlled shared Document links; project-specific upload/link ergonomics and final category/retention policy remain |
 | R-022 | Material master | 4-5 | NOT STARTED | Material coding/UOM policy required |
 | R-023 | MRP | 4 | NOT STARTED | Planning calculation acceptance tests required |
 | R-024 | Purchase requisition | 4 | NOT STARTED | PR approval matrix required |
@@ -144,7 +144,7 @@ Completion here means the baseline artifact exists; business review is still req
 | R-108 | Versioned API/OpenAPI | 1+ | IN DEVELOPMENT | `/api/v1/` implemented and documented; generated OpenAPI schema remains pending |
 | R-109 | Enterprise frontend design | 1+ | COMPLETE | Axis CRM visual system applied to live foundation, Customer/Enquiry/Engineering, Website Enquiry, and Commercial Estimate routes |
 | R-110 | Permission-aware navigation | 1+ | COMPLETE | Navigation consumes effective permission codes while APIs enforce authorization independently |
-| R-111 | Project 360 view | 3 | IN DEVELOPMENT | Axis UI proof-of-concept exists; production data/actions pending |
+| R-111 | Project 360 view | 3 | COMPLETE | Production Axis Project 360 shows overview, commercial baseline, Customer PO, Engineering handoff, Documents, Activity, ownership, next action, presence, and controlled actions |
 | R-112 | Customer 360 view | 2 | COMPLETE | Live production Customer 360 with Overview, Contacts, Sites, Enquiries, Activities, Documents and History |
 | R-113 | Material 360 view | 5 | NOT STARTED | UI/data contract required |
 | R-114 | Asset 360 view | 9 | NOT STARTED | UI/data contract required |

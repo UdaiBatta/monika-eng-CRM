@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import User
+from apps.core.conflicts import VersionConflict
 from apps.crm.models import Customer
 from apps.enquiries.models import Enquiry
 from apps.masters.models import Currency
@@ -19,6 +20,7 @@ from apps.projects.services import (
     accept_engineering_handoff,
     cancel_project,
     hold_project,
+    prepare_engineering_handoff,
     request_project_clarification,
     respond_project_clarification,
     resume_project,
@@ -334,3 +336,45 @@ def test_two_engineers_cannot_take_the_same_handoff(
     project.refresh_from_db()
     assert sorted(item[0] for item in outcomes) == ["rejected", "taken"]
     assert project.engineering_owner_id in {employee.pk, second_employee.pk}
+
+
+@pytest.mark.django_db
+def test_sales_order_and_handoff_reject_stale_edits(user, phase3_context):
+    order = create_sales_order_from_quotation(
+        quotation_id=phase3_context["quotation"].pk,
+        actor=user,
+        data={"project_required": True},
+    )
+    original_version = order.current_revision.record_version
+    update_sales_order_draft(
+        revision_id=order.current_revision_id,
+        actor=user,
+        submitted_version=original_version,
+        data={"delivery_terms": "Confirmed 8 weeks"},
+    )
+    with pytest.raises(VersionConflict):
+        update_sales_order_draft(
+            revision_id=order.current_revision_id,
+            actor=user,
+            submitted_version=original_version,
+            data={"delivery_terms": "Stale 6 week edit"},
+        )
+
+    order.refresh_from_db()
+    submit_sales_order(order_id=order.pk, actor=user)
+    release_sales_order(order_id=order.pk, actor=user)
+    project = Project.objects.get(sales_order=order)
+    handoff = ProjectEngineeringHandoff.objects.get(project=project)
+    prepare_engineering_handoff(
+        project_id=project.pk,
+        actor=user,
+        submitted_version=handoff.record_version,
+        data={"project_scope_summary": "Confirmed MCC panel scope"},
+    )
+    with pytest.raises(VersionConflict):
+        prepare_engineering_handoff(
+            project_id=project.pk,
+            actor=user,
+            submitted_version=handoff.record_version,
+            data={"project_scope_summary": "Stale handoff scope"},
+        )

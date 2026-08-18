@@ -18,11 +18,18 @@ from rest_framework.views import APIView
 from apps.audit.mixins import AuditModelViewSetMixin
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
+from apps.core.concurrency import VersionedUpdateMixin
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
+from apps.rbac.safety import active_business_owners
 from apps.rbac.services import effective_permission_codes
 
 from .models import User
-from .serializers import ChangePasswordSerializer, LoginSerializer, UserSerializer
+from .serializers import (
+    ChangePasswordSerializer,
+    LoginSerializer,
+    UserDeactivateSerializer,
+    UserSerializer,
+)
 
 
 def _login_cache_key(request, identifier):
@@ -149,7 +156,9 @@ class ChangePasswordView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class UserViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
+class UserViewSet(
+    VersionedUpdateMixin, AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet
+):
     queryset = User.objects.all().order_by("email")
     serializer_class = UserSerializer
     permission_classes = [HasFoundationPermission]
@@ -165,13 +174,15 @@ class UserViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelVie
     }
     search_fields = ["email", "username", "first_name", "last_name"]
     ordering_fields = ["email", "date_joined", "last_login"]
+    http_method_names = ["get", "post", "put", "patch", "head", "options"]
 
     @action(detail=True, methods=["post"])
     @transaction.atomic
     def activate(self, request, pk=None):
-        user = self.get_object()
+        user = User.objects.select_for_update().get(pk=self.get_object().pk)
         user.is_active = True
-        user.save(update_fields=["is_active"])
+        user.record_version += 1
+        user.save(update_fields=["is_active", "record_version"])
         employee = getattr(user, "employee", None)
         record_event(
             actor=request.user,
@@ -186,12 +197,21 @@ class UserViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelVie
     @action(detail=True, methods=["post"])
     @transaction.atomic
     def deactivate(self, request, pk=None):
-        user = self.get_object()
+        serializer = UserDeactivateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = User.objects.select_for_update().get(pk=self.get_object().pk)
         if user == request.user:
             raise ValidationError("You cannot deactivate your own account.")
-        user.is_active = False
-        user.save(update_fields=["is_active"])
         employee = getattr(user, "employee", None)
+        owners = active_business_owners(employee.company) if employee else []
+        if user in owners and len(owners) == 1:
+            raise ValidationError(
+                "This is the final active business Owner account. Give Owner access to another "
+                "active account before disabling it."
+            )
+        user.is_active = False
+        user.record_version += 1
+        user.save(update_fields=["is_active", "record_version"])
         record_event(
             actor=request.user,
             company=getattr(employee, "company", None),
@@ -199,5 +219,6 @@ class UserViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelVie
             entity=user,
             summary=f"User deactivated: {user.email}",
             changes={"is_active": {"old": True, "new": False}},
+            metadata={"reason": serializer.validated_data["reason"]},
         )
         return Response(self.get_serializer(user).data)

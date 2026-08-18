@@ -12,7 +12,7 @@ class DocumentSequenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentSequence
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at", "preview"]
+        read_only_fields = ["id", "record_version", "created_at", "updated_at", "preview"]
 
     def get_preview(self, obj):
         return preview_number(obj)

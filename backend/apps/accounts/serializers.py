@@ -17,11 +17,16 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "is_active",
             "is_staff",
+            "record_version",
             "password",
             "last_login",
             "date_joined",
         ]
-        read_only_fields = ["id", "last_login", "date_joined"]
+        read_only_fields = ["id", "is_active", "is_staff", "record_version", "last_login", "date_joined"]
+
+
+class UserDeactivateSerializer(serializers.Serializer):
+    reason = serializers.CharField(min_length=3, max_length=500)
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)

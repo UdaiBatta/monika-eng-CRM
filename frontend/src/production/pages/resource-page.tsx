@@ -281,9 +281,15 @@ export function ResourceRecordForm({
   )
   const form = useForm<FormValues>({ defaultValues })
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => record
-      ? apiPatch<FoundationRecord>(`${config.endpoint}${record.id}/`, cleanValues(config, values))
-      : apiPost<FoundationRecord>(config.endpoint, cleanValues(config, values)),
+    mutationFn: (values: FormValues) => {
+      const payload = cleanValues(config, values)
+      return record
+        ? apiPatch<FoundationRecord>(`${config.endpoint}${record.id}/`, {
+            ...payload,
+            record_version: record.record_version,
+          })
+        : apiPost<FoundationRecord>(config.endpoint, payload)
+    },
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ["resource", config.key] })
       toast.success(`${config.singular[0].toUpperCase()}${config.singular.slice(1)} saved.`)

@@ -22,7 +22,7 @@ class CompanySerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "record_version", "created_at", "updated_at"]
 
 
 class BranchSerializer(CleanModelSerializer):
@@ -31,7 +31,7 @@ class BranchSerializer(CleanModelSerializer):
     class Meta:
         model = Branch
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "record_version", "created_at", "updated_at"]
 
 
 class DepartmentSerializer(CleanModelSerializer):
@@ -41,7 +41,7 @@ class DepartmentSerializer(CleanModelSerializer):
     class Meta:
         model = Department
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "record_version", "created_at", "updated_at"]
 
 
 class DesignationSerializer(CleanModelSerializer):
@@ -50,7 +50,7 @@ class DesignationSerializer(CleanModelSerializer):
     class Meta:
         model = Designation
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "record_version", "created_at", "updated_at"]
 
 
 class WarehouseSerializer(CleanModelSerializer):
@@ -60,7 +60,7 @@ class WarehouseSerializer(CleanModelSerializer):
     class Meta:
         model = Warehouse
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "record_version", "created_at", "updated_at"]
 
 
 class EmployeeSerializer(CleanModelSerializer):
@@ -74,4 +74,4 @@ class EmployeeSerializer(CleanModelSerializer):
     class Meta:
         model = Employee
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "record_version", "created_at", "updated_at"]

@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import VersionedModel
 
 
 def _validate_gstin(value):
@@ -17,7 +17,7 @@ def _validate_pan(value):
         raise ValidationError("Enter a valid PAN.")
 
 
-class ValidatedModel(TimeStampedModel):
+class ValidatedModel(VersionedModel):
     class Meta:
         abstract = True
 

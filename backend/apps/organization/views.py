@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.audit.mixins import AuditModelViewSetMixin
+from apps.core.concurrency import VersionedUpdateMixin
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
 
 from .imports import import_organization_records
@@ -18,8 +19,11 @@ from .serializers import (
 )
 
 
-class FoundationModelViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
+class FoundationModelViewSet(
+    VersionedUpdateMixin, AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet
+):
     permission_classes = [HasFoundationPermission]
+    http_method_names = ["get", "post", "put", "patch", "head", "options"]
     filterset_fields = ["is_active"]
     ordering_fields = ["name", "code", "created_at", "updated_at"]
 

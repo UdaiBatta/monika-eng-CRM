@@ -2,11 +2,11 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import VersionedModel
 from apps.organization.models import Branch, Company, Department, Warehouse
 
 
-class Permission(TimeStampedModel):
+class Permission(VersionedModel):
     code = models.CharField(max_length=120, unique=True)
     name = models.CharField(max_length=160)
     description = models.TextField(blank=True)
@@ -19,7 +19,7 @@ class Permission(TimeStampedModel):
         return self.code
 
 
-class Role(TimeStampedModel):
+class Role(VersionedModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="roles")
     code = models.CharField(max_length=60)
     name = models.CharField(max_length=160)
@@ -35,7 +35,7 @@ class Role(TimeStampedModel):
         return f"{self.company.code} · {self.name}"
 
 
-class RolePermission(TimeStampedModel):
+class RolePermission(VersionedModel):
     role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name="role_permissions")
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE, related_name="role_permissions")
 
@@ -51,7 +51,7 @@ class ScopeType(models.TextChoices):
     SELF = "SELF", "Self"
 
 
-class ScopedModel(TimeStampedModel):
+class ScopedModel(VersionedModel):
     scope_type = models.CharField(max_length=20, choices=ScopeType.choices)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, null=True, blank=True)

@@ -47,7 +47,9 @@ def test_foundation_update_creates_audit_event(api_client, company):
     admin = User.objects.create_superuser(email="audit-admin@example.test", password="SafePassword-2741")
     api_client.force_authenticate(admin)
     response = api_client.patch(
-        f"/api/v1/companies/{company.pk}/", {"name": "Updated Company"}, format="json"
+        f"/api/v1/companies/{company.pk}/",
+        {"name": "Updated Company", "record_version": company.record_version},
+        format="json",
     )
     assert response.status_code == 200
     event = AuditEvent.objects.get(entity_type="company", entity_id=str(company.pk), action="UPDATE")

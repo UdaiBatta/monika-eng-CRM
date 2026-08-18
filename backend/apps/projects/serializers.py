@@ -107,6 +107,10 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def get_next_action(instance):
+        if instance.status == Project.Status.ON_HOLD:
+            return "Project is on hold. Resume it when work may continue."
+        if instance.status == Project.Status.CANCELLED:
+            return "Project is cancelled; its history remains available."
         if instance.commercial_change_pending:
             return "Engineering must review the changed Sales Order revision."
         handoff = getattr(instance, "engineering_handoff", None)

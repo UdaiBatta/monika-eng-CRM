@@ -15,6 +15,7 @@ The current production path is unified Incoming Enquiry -> Human Review -> Custo
 - `docs/phase-1/` - implementation decisions, API and operating notes.
 - `docs/phase-2/` - commercial CRM design, operator guide, acceptance evidence, and traceability.
 - `docs/phase-3/` - Customer PO, Sales Order, Project 360, Engineering handoff, operator guide, acceptance, and traceability.
+- `docs/global-foundation/` - Owner Control Centre, multi-user working guides, and honest cross-cutting acceptance status.
 - `deploy/` - deployment notes; production provisioning remains a go-live activity.
 
 The browser uses same-origin session authentication and CSRF protection. Django owns authorization, validation, transactions, and persistence. `User` and `Employee` are separate records with an optional one-to-one link.
@@ -34,6 +35,7 @@ The browser uses same-origin session authentication and CSRF protection. Django 
 | Sales orders | `http://127.0.0.1:5173/app/sales/orders` |
 | Projects | `http://127.0.0.1:5173/app/projects` |
 | Engineering daily work | `http://127.0.0.1:5173/app/engineering/work` |
+| Owner Control Centre | `http://127.0.0.1:5173/app/owner` |
 | Sign in | `http://127.0.0.1:5173/login` |
 | Preserved Axis mockup | `http://127.0.0.1:5173/mockups/axis?view=home` |
 | Project 360 reference | `http://127.0.0.1:5173/mockups/axis?view=project` |

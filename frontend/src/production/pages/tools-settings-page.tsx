@@ -4,7 +4,6 @@ import {
   BadgeCheck,
   Bell,
   Building2,
-  CircleDollarSign,
   Database,
   FileKey2,
   Files,
@@ -14,7 +13,6 @@ import {
   Settings2,
   ShieldCheck,
   Users,
-  Wrench,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -47,26 +45,6 @@ const groups: Array<{ title: string; description: string; tools: Tool[] }> = [
         to: "/app/owner",
         icon: ShieldCheck,
         permission: "system.owner_control.view",
-      },
-    ],
-  },
-  {
-    title: "Sales support",
-    description: "Specialist work used while preparing an enquiry or quotation.",
-    tools: [
-      {
-        label: "Engineering checks",
-        description: "Record whether an enquiry can be built.",
-        to: "/app/crm/engineering",
-        icon: Wrench,
-        permission: "engineering.feasibility.view",
-      },
-      {
-        label: "Cost estimates",
-        description: "Work out material and labour costs.",
-        to: "/app/crm/estimates",
-        icon: CircleDollarSign,
-        permission: "estimation.estimate.view",
       },
     ],
   },

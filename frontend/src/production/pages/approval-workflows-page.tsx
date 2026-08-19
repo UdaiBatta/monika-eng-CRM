@@ -329,7 +329,7 @@ function StepDialog({
                 id="step-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Engineering manager review"
+                placeholder="Workshop manager review"
                 required
               />
             </Field>

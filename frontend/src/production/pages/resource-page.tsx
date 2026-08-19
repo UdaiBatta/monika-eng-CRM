@@ -36,7 +36,7 @@ const permissionGroupLabels: Record<string, string> = {
   "crm.contact": "Customer contacts",
   "enquiry.enquiry": "Active enquiries",
   "crm.activity": "Follow-ups",
-  "engineering.feasibility": "Engineering reviews",
+  "engineering.feasibility": "Workshop Reviews",
   "estimation.estimate": "Commercial estimates",
   "crm.quotation": "Quotations",
   "documents.document": "Documents",

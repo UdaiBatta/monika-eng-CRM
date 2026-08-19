@@ -6,18 +6,15 @@ import {
   ClipboardCheck,
   ClipboardList,
   Contact,
+  FileStack,
   FolderKanban,
-  FileText,
   Files,
   Gauge,
-  Globe2,
+  ListTodo,
   LogOut,
   Menu,
   Settings2,
   ShieldCheck,
-  ShoppingCart,
-  Users,
-  Warehouse,
   Wrench,
   Wifi,
   WifiOff,
@@ -51,24 +48,25 @@ type NavItem = {
   to: string;
   icon: typeof Gauge;
   permission?: string;
+  anyPermission?: string[];
 };
 
 const navigation: Array<{ label: string; items: NavItem[] }> = [
   {
-    label: "Daily work",
+    label: "Your work",
     items: [
-      { label: "Home", to: "/app", icon: Gauge },
+      { label: "My Work", to: "/app", icon: ListTodo },
       {
-        label: "New enquiries",
-        to: "/app/crm/incoming-enquiries",
-        icon: Globe2,
-        permission: "crm.external_enquiry.view",
+        label: "Owner Centre",
+        to: "/app/owner",
+        icon: ShieldCheck,
+        permission: "system.owner_control.view",
       },
       {
-        label: "Active enquiries",
-        to: "/app/crm/enquiries",
+        label: "Enquiries",
+        to: "/app/enquiries",
         icon: ClipboardList,
-        permission: "enquiry.enquiry.view",
+        anyPermission: ["enquiry.enquiry.view", "crm.external_enquiry.view"],
       },
       {
         label: "Customers",
@@ -77,22 +75,20 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         permission: "crm.customer.view",
       },
       {
-        label: "Quotations",
-        to: "/app/crm/quotations",
-        icon: FileText,
-        permission: "crm.quotation.view",
+        label: "Quotations & Orders",
+        to: "/app/sales",
+        icon: FileStack,
+        anyPermission: [
+          "crm.quotation.view",
+          "sales.customer_po.view",
+          "sales.sales_order.view",
+        ],
       },
       {
-        label: "Customer POs",
-        to: "/app/sales/customer-pos",
-        icon: ShoppingCart,
-        permission: "sales.customer_po.view",
-      },
-      {
-        label: "Sales orders",
-        to: "/app/sales/orders",
-        icon: ClipboardCheck,
-        permission: "sales.sales_order.view",
+        label: "My Workshop Work",
+        to: "/app/workshop",
+        icon: Wrench,
+        permission: "engineering.feasibility.view",
       },
       {
         label: "Projects",
@@ -101,22 +97,10 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         permission: "projects.project.view",
       },
       {
-        label: "Engineering work",
-        to: "/app/engineering/work",
-        icon: Wrench,
-        permission: "projects.handoff.take_ownership",
-      },
-      {
         label: "Follow-ups",
         to: "/app/crm/activities",
         icon: Activity,
         permission: "crm.activity.view",
-      },
-      {
-        label: "Inventory & workshop",
-        to: "/app/organization/warehouses",
-        icon: Warehouse,
-        permission: "organization.warehouse.view",
       },
     ],
   },
@@ -135,19 +119,11 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         icon: ClipboardCheck,
         permission: "approvals.request.view",
       },
-      {
-        label: "Employees",
-        to: "/app/employees",
-        icon: Users,
-        permission: "organization.employee.view",
-      },
     ],
   },
 ];
 
 const toolPermissions = [
-  "engineering.feasibility.view",
-  "estimation.estimate.view",
   "organization.company.view",
   "organization.branch.view",
   "organization.department.view",
@@ -217,7 +193,12 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
     >
       {navigation.map((section) => {
         const visible = section.items.filter(
-          (item) => !item.permission || hasPermission(user, item.permission),
+          (item) =>
+            (!item.permission || hasPermission(user, item.permission)) &&
+            (!item.anyPermission ||
+              item.anyPermission.some((permission) =>
+                hasPermission(user, permission),
+              )),
         );
         if (!visible.length) return null;
         return (

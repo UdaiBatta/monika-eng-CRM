@@ -7,7 +7,7 @@ const detailTitles: Array<[RegExp, string]> = [
   [/^\/app\/crm\/enquiries\/[^/]+$/, "Enquiry 360"],
   [/^\/app\/crm\/website-enquiries\/[^/]+$/, "Website enquiry review"],
   [/^\/app\/crm\/incoming-enquiries\/[^/]+$/, "Incoming enquiry review"],
-  [/^\/app\/crm\/engineering\/[^/]+$/, "Engineering review"],
+  [/^\/app\/(?:crm\/engineering|workshop\/reviews)\/[^/]+$/, "Workshop Review"],
   [/^\/app\/crm\/estimates\/[^/]+$/, "Commercial estimate"],
   [/^\/app\/crm\/quotations\/[^/]+$/, "Quotation workspace"],
   [/^\/app\/sales\/orders\/[^/]+$/, "Sales Order 360"],
@@ -21,10 +21,12 @@ const detailTitles: Array<[RegExp, string]> = [
 ];
 
 const listTitles: Record<string, string> = {
-  app: "Home",
+  app: "My Work",
   activities: "Follow-ups",
-  engineering: "Engineering checks",
-  enquiries: "Active enquiries",
+  engineering: "Workshop Review",
+  workshop: "My Workshop Work",
+  sales: "Quotations & Orders",
+  enquiries: "Enquiries",
   "website-enquiries": "Website enquiry inbox",
   "incoming-enquiries": "New enquiries",
   estimates: "Cost estimates",
@@ -32,9 +34,9 @@ const listTitles: Record<string, string> = {
   "customer-pos": "Customer purchase orders",
   orders: "Sales orders",
   projects: "Projects",
-  work: "Engineering work",
+  work: "Workshop Work",
   settings: "Tools & settings",
-  warehouses: "Inventory & workshop",
+  warehouses: "Warehouses",
   owner: "Owner Control Centre",
 };
 

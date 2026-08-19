@@ -24,11 +24,11 @@ const workTypes = [
   ["", "All work"],
   ["incoming_enquiry", "Incoming enquiries"],
   ["enquiry", "Enquiries"],
-  ["engineering_review", "Engineering reviews"],
+  ["engineering_review", "Workshop Reviews"],
   ["quotation", "Quotations"],
   ["customer_po", "Customer POs"],
   ["sales_order", "Sales orders"],
-  ["project_engineering", "Project engineering"],
+  ["project_engineering", "Project Workshop work"],
 ]
 
 const workKey = (item: OwnerWorkItem) => `${item.work_type}:${item.id}`

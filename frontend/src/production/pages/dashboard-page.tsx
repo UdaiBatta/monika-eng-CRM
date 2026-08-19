@@ -21,8 +21,8 @@ const metrics = [
   { label: "My enquiries", endpoint: "/external-enquiries/?queue=mine&page_size=1", permission: "crm.external_enquiry.review", icon: Inbox, href: "/app/crm/incoming-enquiries?queue=mine" },
   { label: "My quotations", endpoint: "/quotations/?queue=mine&page_size=1", permission: "crm.quotation.view", icon: FileText, href: "/app/crm/quotations?queue=mine" },
   { label: "My Sales Orders", endpoint: "/sales/orders/?queue=mine&page_size=1", permission: "sales.sales_order.view", icon: ShoppingCart, href: "/app/sales/orders?queue=mine" },
-  { label: "Unassigned Engineering", endpoint: "/projects/?queue=unassigned&page_size=1", permission: "projects.handoff.take_ownership", icon: FolderKanban, href: "/app/engineering/work?queue=unassigned" },
-  { label: "My Engineering work", endpoint: "/projects/?queue=mine&page_size=1", permission: "projects.handoff.take_ownership", icon: PencilRuler, href: "/app/engineering/work?queue=mine" },
+  { label: "Unassigned Workshop work", endpoint: "/projects/?queue=unassigned&page_size=1", permission: "projects.handoff.take_ownership", icon: FolderKanban, href: "/app/engineering/work?queue=unassigned" },
+  { label: "My Workshop work", endpoint: "/projects/?queue=mine&page_size=1", permission: "projects.handoff.take_ownership", icon: PencilRuler, href: "/app/engineering/work?queue=mine" },
 ]
 
 const administrationPermissions = [
@@ -40,7 +40,7 @@ const salesJourney = [
   { title: "Prepare the quotation", description: "Build, send, negotiate, and record the customer's confirmation.", href: "/app/crm/quotations", permission: "crm.quotation.view" },
   { title: "Record the Customer PO", description: "Upload the PO when it arrives and review any difference from the quotation.", href: "/app/sales/customer-pos", permission: "sales.customer_po.view" },
   { title: "Prepare the Sales Order", description: "Create the order from the quotation, check the terms, and submit it for approval.", href: "/app/sales/orders", permission: "sales.sales_order.view" },
-  { title: "Send the project to Engineering", description: "Open Project 360, complete the handoff, and answer Engineering questions.", href: "/app/projects", permission: "projects.handoff.view" },
+  { title: "Send the project to Workshop", description: "Open Project 360, complete the handoff, and answer Workshop questions.", href: "/app/projects", permission: "projects.handoff.view" },
 ]
 
 export default function DashboardPage() {
@@ -56,7 +56,7 @@ export default function DashboardPage() {
     { label: "Quotations", detail: "Create, send, negotiate and confirm", canWork: hasPermission(user, "crm.quotation.change"), canView: hasPermission(user, "crm.quotation.view") },
     { label: "Customer POs", detail: "Record, revise, link and review differences", canWork: hasPermission(user, "sales.customer_po.create"), canView: hasPermission(user, "sales.customer_po.view") },
     { label: "Sales Orders", detail: "Prepare drafts and submit for approval", canWork: hasPermission(user, "sales.sales_order.submit"), canView: hasPermission(user, "sales.sales_order.view") },
-    { label: "Projects & handoff", detail: "Track the project and send information to Engineering", canWork: hasPermission(user, "projects.handoff.submit"), canView: hasPermission(user, "projects.project.view") },
+    { label: "Projects & handoff", detail: "Track the project and send information to Workshop", canWork: hasPermission(user, "projects.handoff.submit"), canView: hasPermission(user, "projects.project.view") },
   ]
   const health = useQuery({ queryKey: ["health"], queryFn: () => apiGet<{ status: string; database: string; cache: string }>("/health/"), enabled: canAdminister })
   const visibleMetrics = metrics.filter((metric) => hasPermission(user, metric.permission))
@@ -78,7 +78,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-2xl">Good to see you, {user?.employee?.display_name || user?.first_name || "administrator"}.</CardTitle>
                 <CardDescription className="mt-2 max-w-2xl text-white/60">
                   {canAdminister
-                    ? "Customer orders now continue through Sales Order release, Project 360, and an accountable Sales-to-Engineering handoff."
+                    ? "Customer orders now continue through Sales Order release, Project 360, and an accountable Sales-to-Workshop handoff."
                     : "Review new enquiries, keep customer follow-ups moving, prepare quotations, and release confirmed Sales Orders from one daily workspace."}
                 </CardDescription>
               </div>
@@ -113,7 +113,7 @@ export default function DashboardPage() {
             <div><div className="mb-2 flex justify-between text-sm"><span>Phase 2 commercial CRM</span><span>Through quotation handoff</span></div><Progress value={100} /></div>
             <div><div className="mb-2 flex justify-between text-sm"><span>Phase 3 order-to-project</span><span>Core operational flow</span></div><Progress value={100} /></div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="border p-3"><p className="font-semibold">Live scope</p><p className="text-muted-foreground">Enquiry to Engineering handoff</p></div>
+              <div className="border p-3"><p className="font-semibold">Live scope</p><p className="text-muted-foreground">Enquiry to Workshop handoff</p></div>
               <div className="border p-3"><p className="font-semibold">Next gate</p><p className="text-muted-foreground">Detailed Engineering</p></div>
             </div>
           </CardContent>
@@ -147,7 +147,7 @@ export default function DashboardPage() {
 
       {isSalesWorkspace ? <section className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
         <Card className="border-primary/25">
-          <CardHeader><CardTitle>Your daily sales flow</CardTitle><CardDescription>Follow these steps from a new enquiry to a clear Engineering handoff. Open the step that needs attention today.</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Your daily sales flow</CardTitle><CardDescription>Follow these steps from a new enquiry to a clear Workshop handoff. Open the step that needs attention today.</CardDescription></CardHeader>
           <CardContent><ol className="grid gap-3 sm:grid-cols-2">
             {visibleSalesJourney.map((step, index) => <li key={step.title} className="flex gap-3 rounded-lg border p-4">
               <Badge className="size-7 shrink-0 justify-center rounded-full">{index + 1}</Badge>
@@ -175,7 +175,7 @@ export default function DashboardPage() {
         {canWorkEngineering ? <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
-              <div><CardTitle>Engineering canvas</CardTitle><CardDescription>Drawing and BOM experience direction</CardDescription></div>
+              <div><CardTitle>Future Detailed Engineering</CardTitle><CardDescription>Drawing and BOM experience direction</CardDescription></div>
               <PencilRuler aria-hidden="true" className="text-primary" />
             </div>
           </CardHeader>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                 <PencilRuler aria-hidden="true" className="mx-auto mb-4 text-primary" />
                 <h3 className="font-semibold">Drawing intelligence stays central to the product vision.</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Controlled drawing files can now be uploaded, versioned, linked, approved, and audited. The rich CAD/BOM canvas from Project 360 remains a later Engineering phase and is not falsely simulated here.
+                  Controlled drawing files can now be uploaded, versioned, linked, approved, and audited. The rich CAD/BOM canvas from Project 360 remains a later Detailed Engineering phase and is not falsely simulated here.
                 </p>
               </div>
             </div>

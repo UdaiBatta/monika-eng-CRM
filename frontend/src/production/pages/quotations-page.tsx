@@ -35,6 +35,7 @@ function money(value: string, currency = "INR") {
 export default function QuotationsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedEstimate = searchParams.get("estimate") ?? "";
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
   const [page, setPage] = useState(1);
@@ -43,9 +44,9 @@ export default function QuotationsPage() {
   const [status, setStatus] = useState("");
   const [path, setPath] = useState("");
   const queue = searchParams.get("queue") === "mine" ? "mine" : "team";
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(Boolean(requestedEstimate));
   const [createPath, setCreatePath] = useState<"STANDARD" | "QUICK">("STANDARD");
-  const [estimateId, setEstimateId] = useState("");
+  const [estimateId, setEstimateId] = useState(requestedEstimate);
   const [quick, setQuick] = useState(blankQuick);
   const quickQuotationEnabled = hasFeature(user, "quick_quotation");
 

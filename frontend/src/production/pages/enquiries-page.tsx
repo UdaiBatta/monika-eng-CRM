@@ -126,7 +126,7 @@ export default function EnquiriesPage() {
       <ERPPageHeader
         eyebrow="Commercial CRM"
         title="Enquiries & RFQs"
-        description="Qualify incoming requirements, control response dates, and hand complete scopes into engineering feasibility."
+        description="Qualify customer requirements, control response dates, and send complete scopes to Workshop Review."
         actions={
           canCreate ? (
             <>
@@ -165,7 +165,7 @@ export default function EnquiriesPage() {
               Workflow focus
             </p>
             <p className="mt-2 text-lg font-semibold">
-              Qualification → Engineering
+              Commercial → Workshop
             </p>
           </CardContent>
         </Card>
@@ -244,8 +244,8 @@ export default function EnquiriesPage() {
                 <NativeSelectOption value="UNDER_REVIEW">
                   Under review
                 </NativeSelectOption>
-                <NativeSelectOption value="ENGINEERING_REVIEW">
-                  Engineering review
+              <NativeSelectOption value="ENGINEERING_REVIEW">
+                  Workshop Review
                 </NativeSelectOption>
                 <NativeSelectOption value="WON">Won</NativeSelectOption>
                 <NativeSelectOption value="LOST">Lost</NativeSelectOption>

@@ -85,7 +85,7 @@ const controlGroups: ControlGroup[] = [
       { label: "Work assignment", description: "Open, unassigned and inactive-owner work", to: "/app/owner/work", permission: "system.owner_control.view" },
       { label: "Pending approvals", description: "Requests waiting for a decision", to: "/app/approvals", permission: "approvals.request.view" },
       { label: "Incoming enquiries", description: "New requests waiting for Sales", to: "/app/crm/incoming-enquiries", permission: "crm.external_enquiry.view" },
-      { label: "Projects", description: "Sales and Engineering responsibility", to: "/app/projects", permission: "projects.project.view" },
+      { label: "Projects", description: "Sales and Workshop responsibility", to: "/app/projects", permission: "projects.project.view" },
     ],
   },
   {

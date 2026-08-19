@@ -107,7 +107,7 @@ export function EngineeringAssessmentForm({
       queryClient.invalidateQueries({
         queryKey: ["engineering-workspace", review.id],
       });
-      toast.success("Engineering assessment saved.");
+      toast.success("Workshop assessment saved.");
       onSaved();
     },
   });
@@ -126,10 +126,10 @@ export function EngineeringAssessmentForm({
       <FieldGroup>
         <FormError error={mutation.error} />
         <FieldSet>
-          <FieldLegend>Engineering conclusion</FieldLegend>
+          <FieldLegend>Workshop conclusion</FieldLegend>
           <FieldGroup>
             {text("technical_summary", "Technical summary", 5)}
-            {text("feasibility_notes", "Feasibility notes")}
+            {text("feasibility_notes", "Workshop decision notes")}
           </FieldGroup>
         </FieldSet>
         <FieldSet>
@@ -151,7 +151,7 @@ export function EngineeringAssessmentForm({
           </FieldGroup>
         </FieldSet>
         <FieldSet>
-          <FieldLegend>Preliminary engineering notes</FieldLegend>
+          <FieldLegend>Optional technical details</FieldLegend>
           <FieldGroup className="grid gap-4 md:grid-cols-2">
             {text("preliminary_drawing_notes", "Drawing notes")}
             {text("preliminary_bom_notes", "BOM notes")}
@@ -167,7 +167,7 @@ export function EngineeringAssessmentForm({
           <FieldGroup className="grid gap-4 sm:grid-cols-3">
             <Field>
               <FieldLabel htmlFor="engineering-hours">
-                Engineering hours
+                Workshop / technical hours
               </FieldLabel>
               <Input
                 id="engineering-hours"
@@ -238,7 +238,7 @@ export function AssignEngineerForm({
         queryKey: ["engineering-workspace", review.id],
       });
       queryClient.invalidateQueries({ queryKey: ["engineering-reviews"] });
-      toast.success("Engineering review assigned.");
+      toast.success("Workshop Review assigned.");
       onSaved();
     },
   });
@@ -338,7 +338,7 @@ export function ClarificationForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="clarification-context">
-            Engineering context
+            Workshop context
           </FieldLabel>
           <Textarea id="clarification-context" {...form.register("context")} />
         </Field>
@@ -464,7 +464,7 @@ export function ReviewDecisionForm({
       toast.success(
         notFeasible
           ? "Review marked not feasible."
-          : "Feasibility review completed.",
+          : "Workshop Review completed.",
       );
       onSaved();
     },
@@ -477,21 +477,21 @@ export function ReviewDecisionForm({
           <Alert variant="destructive">
             <AlertTitle>This does not mark the enquiry lost</AlertTitle>
             <AlertDescription>
-              Commercial still owns the enquiry outcome. Engineering records
-              only the technical feasibility decision.
+              Commercial still owns the enquiry outcome. Workshop records only
+              whether the requirement can be built as currently specified.
             </AlertDescription>
           </Alert>
         ) : (
           <Field>
-            <FieldLabel htmlFor="review-result">Engineering result</FieldLabel>
+            <FieldLabel htmlFor="review-result">Workshop result</FieldLabel>
             <NativeSelect
               id="review-result"
               className="w-full"
               {...form.register("result")}
             >
-              <NativeSelectOption value="FEASIBLE">Feasible</NativeSelectOption>
+              <NativeSelectOption value="FEASIBLE">Workshop Approved</NativeSelectOption>
               <NativeSelectOption value="FEASIBLE_WITH_CONDITIONS">
-                Feasible with conditions
+                Workshop Approved with conditions
               </NativeSelectOption>
             </NativeSelect>
           </Field>

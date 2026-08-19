@@ -70,6 +70,13 @@ const SalesOrdersPage = lazy(() => import("@/production/pages/sales-orders-page"
 const SalesOrderPage = lazy(() => import("@/production/pages/sales-order-page"));
 const ProjectsPage = lazy(() => import("@/production/pages/projects-page"));
 const ProjectPage = lazy(() => import("@/production/pages/project-page"));
+const OwnerControlLayout = lazy(() => import("@/production/components/owner-control-layout"));
+const OwnerControlPage = lazy(() => import("@/production/pages/owner-control-page"));
+const OwnerWorkPage = lazy(() => import("@/production/pages/owner-work-page"));
+const OwnerAccessPage = lazy(() => import("@/production/pages/owner-access-page"));
+const OwnerFeaturesPage = lazy(() => import("@/production/pages/owner-features-page"));
+const OwnerDataQualityPage = lazy(() => import("@/production/pages/owner-data-quality-page"));
+const OwnerSystemHealthPage = lazy(() => import("@/production/pages/owner-system-health-page"));
 
 function PageLoading() {
   return (
@@ -165,6 +172,16 @@ export default function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/:projectId" element={<ProjectPage />} />
               <Route path="engineering/work" element={<ProjectsPage />} />
+
+              <Route path="owner" element={<OwnerControlLayout />}>
+                <Route index element={<OwnerControlPage />} />
+                <Route path="work" element={<OwnerWorkPage />} />
+                <Route path="people" element={<ResourcePage resourceKey="users" />} />
+                <Route path="access" element={<OwnerAccessPage />} />
+                <Route path="features" element={<OwnerFeaturesPage />} />
+                <Route path="data-quality" element={<OwnerDataQualityPage />} />
+                <Route path="system-health" element={<OwnerSystemHealthPage />} />
+              </Route>
 
               <Route
                 path="organization"

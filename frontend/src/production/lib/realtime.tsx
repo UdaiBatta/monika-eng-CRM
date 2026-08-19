@@ -50,6 +50,11 @@ const queryRoots: Record<string, string[]> = {
   approval_request: ["approvals", "approval"],
   document: ["documents", "document"],
   notification: ["notifications"],
+  feature_flag: ["auth", "owner-features"],
+  employee: ["auth", "owner", "owner-employees", "employees"],
+  role: ["auth", "owner", "resource"],
+  role_assignment: ["auth", "owner", "resource"],
+  permission_override: ["auth", "owner", "resource"],
 };
 
 function entityKey(entityType: string, entityId: string) {

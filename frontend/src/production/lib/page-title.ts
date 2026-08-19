@@ -12,6 +12,12 @@ const detailTitles: Array<[RegExp, string]> = [
   [/^\/app\/crm\/quotations\/[^/]+$/, "Quotation workspace"],
   [/^\/app\/sales\/orders\/[^/]+$/, "Sales Order 360"],
   [/^\/app\/projects\/[^/]+$/, "Project 360"],
+  [/^\/app\/owner\/work$/, "Owner Control · Work assignment"],
+  [/^\/app\/owner\/people$/, "Owner Control · User accounts"],
+  [/^\/app\/owner\/access$/, "Owner Control · Access check"],
+  [/^\/app\/owner\/features$/, "Owner Control · Features"],
+  [/^\/app\/owner\/data-quality$/, "Owner Control · Data quality"],
+  [/^\/app\/owner\/system-health$/, "Owner Control · System health"],
 ];
 
 const listTitles: Record<string, string> = {
@@ -29,6 +35,7 @@ const listTitles: Record<string, string> = {
   work: "Engineering work",
   settings: "Tools & settings",
   warehouses: "Inventory & workshop",
+  owner: "Owner Control Centre",
 };
 
 export function getPageTitle(pathname: string) {

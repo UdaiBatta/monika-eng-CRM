@@ -33,6 +33,7 @@ export type CurrentUser = {
   employee: EmployeeSummary | null
   roles?: Array<{ name: string; scope: string }>
   permissions: string[]
+  features?: string[]
 }
 
 export type FoundationRecord = Record<string, unknown> & { id: Identifier }

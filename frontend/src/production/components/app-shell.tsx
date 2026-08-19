@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   Settings2,
+  ShieldCheck,
   ShoppingCart,
   Users,
   Warehouse,
@@ -160,6 +161,7 @@ const toolPermissions = [
   "approvals.workflow.view",
   "notifications.notification.manage_preferences",
   "audit.event.view",
+  "system.owner_control.view",
 ];
 
 function ProductMark() {
@@ -347,6 +349,12 @@ function Header() {
           </p>
           <p className="text-xs text-muted-foreground">{roleLabel}</p>
         </div>
+        {hasPermission(user, "system.owner_control.view") ? (
+          <Button variant="outline" size="sm" nativeButton={false} render={<NavLink to="/app/owner" />}>
+            <ShieldCheck data-icon="inline-start" />
+            <span className="hidden md:inline">Owner control</span>
+          </Button>
+        ) : null}
         <RealtimeIndicator />
         <ThemeToggle />
         <ERPNotificationBell />

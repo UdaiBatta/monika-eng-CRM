@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Pencil, Plus, Search, Upload } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Download, FileSpreadsheet, Pencil, Plus, Search, Upload, UserCheck, UserX } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -26,6 +26,7 @@ import { ApiError, apiGet, apiPatch, apiPost, apiUpload } from "@/production/lib
 import { hasPermission, useCurrentUser } from "@/production/lib/auth"
 import { resourceConfigs, type ResourceConfig, type ResourceField } from "@/production/lib/resource-config"
 import type { FoundationRecord, Paginated } from "@/production/lib/types"
+import type { OwnerEmployee, OwnerWorkItem } from "@/production/lib/owner-types"
 
 type FormValues = Record<string, unknown>
 
@@ -225,13 +226,16 @@ function relationLabel(record: FoundationRecord, fields: string[]) {
 }
 
 function cleanValues(config: ResourceConfig, values: FormValues) {
-  return Object.fromEntries(config.fields.map((field) => {
+  const cleaned: Record<string, unknown> = {}
+  for (const field of config.fields) {
     const value = values[field.name]
-    if (field.type === "number") return [field.name, value === "" ? null : Number(value)]
-    if (field.type === "relation") return [field.name, value || null]
-    if (field.type === "multi-relation") return [field.name, Array.isArray(value) ? value : []]
-    return [field.name, value]
-  }))
+    if (field.type === "password" && !value) continue
+    if (field.type === "number") cleaned[field.name] = value === "" ? null : Number(value)
+    else if (field.type === "relation") cleaned[field.name] = value || null
+    else if (field.type === "multi-relation") cleaned[field.name] = Array.isArray(value) ? value : []
+    else cleaned[field.name] = value
+  }
+  return cleaned
 }
 
 function errorMessages(error: unknown) {
@@ -408,7 +412,7 @@ export function ResourceRecordForm({
               <FieldLabel htmlFor={field.name}>{field.label}</FieldLabel>
               <Input
                 id={field.name}
-                type={field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "email" ? "email" : "text"}
+                type={field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "email" ? "email" : field.type === "password" ? "password" : "text"}
                 step={field.type === "number" ? "any" : undefined}
                 placeholder={field.placeholder}
                 aria-invalid={Boolean(error)}
@@ -449,6 +453,10 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
   const [formRecord, setFormRecord] = useState<FoundationRecord | null | undefined>(undefined)
   const [importOpen, setImportOpen] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
+  const [accountToDisable, setAccountToDisable] = useState<FoundationRecord | null>(null)
+  const [accountReason, setAccountReason] = useState("")
+  const [openWorkAction, setOpenWorkAction] = useState("")
+  const [replacementEmployeeId, setReplacementEmployeeId] = useState("")
   const canManage = hasPermission(user, config.managePermission)
   const query = useQuery({
     queryKey: ["resource", config.key, page, search, ordering],
@@ -472,6 +480,39 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
       toast.success(`${imported} ${imported === 1 ? config.singular : config.title.toLowerCase()} imported.`)
     },
   })
+  const accountImpact = useQuery({
+    queryKey: ["account-deactivation-impact", accountToDisable?.id],
+    queryFn: () => apiGet<{ open_work_count: number; work: OwnerWorkItem[] }>(`/users/${accountToDisable?.id}/deactivation-impact/`),
+    enabled: config.key === "users" && Boolean(accountToDisable),
+  })
+  const replacementEmployees = useQuery({
+    queryKey: ["owner-employees"],
+    queryFn: () => apiGet<OwnerEmployee[]>("/owner/employees/"),
+    enabled: config.key === "users" && Boolean(accountToDisable) && Boolean(accountImpact.data?.open_work_count),
+  })
+  const activateAccount = useMutation({
+    mutationFn: (record: FoundationRecord) => apiPost(`${config.endpoint}${record.id}/activate/`),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["resource", config.key] })
+      toast.success("Login enabled.")
+    },
+  })
+  const deactivateAccount = useMutation({
+    mutationFn: () => apiPost(`${config.endpoint}${accountToDisable?.id}/deactivate/`, {
+      reason: accountReason,
+      ...(accountImpact.data?.open_work_count ? { open_work_action: openWorkAction } : {}),
+      ...(openWorkAction === "REASSIGN" ? { replacement_employee_id: replacementEmployeeId } : {}),
+    }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["resource", config.key] }),
+        queryClient.invalidateQueries({ queryKey: ["owner"] }),
+        queryClient.invalidateQueries({ queryKey: ["owner-work"] }),
+      ])
+      toast.success("Login disabled. Historical activity remains available.")
+      closeAccountDialog()
+    },
+  })
 
   function openCreate() {
     if (config.dedicatedEmployeeRoutes) navigate("/app/employees/new")
@@ -492,6 +533,14 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
     setImportOpen(false)
     setImportFile(null)
     bulkImport.reset()
+  }
+
+  function closeAccountDialog() {
+    setAccountToDisable(null)
+    setAccountReason("")
+    setOpenWorkAction("")
+    setReplacementEmployeeId("")
+    deactivateAccount.reset()
   }
 
   return (
@@ -547,12 +596,17 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
                 <TableBody>{query.data.results.map((record) => (
                   <TableRow key={String(record.id)}>
                     {config.columns.map((column) => <TableCell key={column.key}>{displayValue(record[column.key])}</TableCell>)}
-                    <TableCell className="text-right">
+                    <TableCell className="text-right"><div className="flex justify-end gap-1">
                       <Button variant="ghost" size="sm" onClick={() => openRecord(record)}>
                         {canManage && !config.dedicatedEmployeeRoutes ? <Pencil data-icon="inline-start" /> : null}
                         {config.dedicatedEmployeeRoutes ? "Open" : canManage ? "Edit" : "View"}
                       </Button>
-                    </TableCell>
+                      {config.key === "users" && canManage ? (record.is_active ? (
+                        <Button variant="ghost" size="sm" onClick={() => setAccountToDisable(record)}><UserX data-icon="inline-start" />Disable login</Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" disabled={activateAccount.isPending} onClick={() => activateAccount.mutate(record)}><UserCheck data-icon="inline-start" />Enable login</Button>
+                      )) : null}
+                    </div></TableCell>
                   </TableRow>
                 ))}</TableBody>
               </Table>
@@ -594,6 +648,31 @@ export default function ResourcePage({ resourceKey }: { resourceKey: string }) {
           </div>
         </SheetContent>
       </Sheet>
+
+      {config.key === "users" ? (
+        <Dialog open={Boolean(accountToDisable)} onOpenChange={(open) => { if (!open) closeAccountDialog() }}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Disable login for {String(accountToDisable?.email ?? "this account")}?</DialogTitle>
+              <DialogDescription>The user will lose sign-in access on subsequent authenticated requests. Their employee record, ownership history, approvals and Audit remain intact.</DialogDescription>
+            </DialogHeader>
+            {accountImpact.isPending ? <Skeleton className="h-28 w-full" /> : accountImpact.isError ? <Alert variant="destructive"><AlertTitle>Impact could not be checked</AlertTitle><AlertDescription>{accountImpact.error.message}</AlertDescription></Alert> : accountImpact.data?.open_work_count ? (
+              <Alert>
+                <UserX />
+                <AlertTitle>{accountImpact.data.open_work_count} open work item{accountImpact.data.open_work_count === 1 ? "" : "s"} currently assigned</AlertTitle>
+                <AlertDescription>{Array.from(new Set(accountImpact.data.work.map((item) => item.work_type_label))).join(", ")}. Choose what should happen before disabling the login.</AlertDescription>
+              </Alert>
+            ) : <Alert><UserCheck /><AlertTitle>No assigned open work found</AlertTitle><AlertDescription>Disabling this login will not orphan any work currently covered by the shared assignment service.</AlertDescription></Alert>}
+            <FieldGroup>
+              {accountImpact.data?.open_work_count ? <Field><FieldLabel htmlFor="account-work-action">Open work</FieldLabel><NativeSelect id="account-work-action" value={openWorkAction} onChange={(event) => { setOpenWorkAction(event.target.value); setReplacementEmployeeId("") }}><NativeSelectOption value="">Choose what should happen</NativeSelectOption><NativeSelectOption value="REASSIGN">Reassign all open work now</NativeSelectOption><NativeSelectOption value="LEAVE_TEMPORARILY">Leave assigned temporarily</NativeSelectOption></NativeSelect><FieldDescription>Completed work and assignment history are never changed.</FieldDescription></Field> : null}
+              {openWorkAction === "REASSIGN" ? <Field><FieldLabel htmlFor="account-replacement">Reassign to</FieldLabel><NativeSelect id="account-replacement" value={replacementEmployeeId} disabled={replacementEmployees.isPending || replacementEmployees.isError} onChange={(event) => setReplacementEmployeeId(event.target.value)}><NativeSelectOption value="">Choose an active employee</NativeSelectOption>{replacementEmployees.data?.map((employee) => <NativeSelectOption key={employee.id} value={employee.id}>{employee.employee_code} · {employee.display_name}</NativeSelectOption>)}</NativeSelect>{replacementEmployees.isError ? <FieldDescription>Active employee options could not load: {replacementEmployees.error.message}</FieldDescription> : null}</Field> : null}
+              <Field><FieldLabel htmlFor="account-disable-reason">Why is login being disabled?</FieldLabel><Textarea id="account-disable-reason" value={accountReason} onChange={(event) => setAccountReason(event.target.value)} placeholder="For example: employment ended on 19 August 2026" /><FieldDescription>This reason is stored in Activity history.</FieldDescription></Field>
+              {deactivateAccount.isError ? <Alert variant="destructive"><AlertTitle>Login could not be disabled</AlertTitle><AlertDescription>{deactivateAccount.error.message}</AlertDescription></Alert> : null}
+            </FieldGroup>
+            <DialogFooter><Button variant="outline" onClick={closeAccountDialog}>Cancel</Button><Button variant="destructive" disabled={accountImpact.isPending || accountImpact.isError || accountReason.trim().length < 3 || (Boolean(accountImpact.data?.open_work_count) && !openWorkAction) || (openWorkAction === "REASSIGN" && !replacementEmployeeId) || deactivateAccount.isPending} onClick={() => deactivateAccount.mutate()}>{deactivateAccount.isPending ? <Spinner data-icon="inline-start" /> : <UserX data-icon="inline-start" />}Disable login</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
       {config.importTemplate ? (
         <Dialog open={importOpen} onOpenChange={(open) => { if (open) setImportOpen(true); else closeImport() }}>

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -145,5 +145,37 @@ describe("spreadsheet imports for organization registers", () => {
       "/companies/import-history/",
       expect.any(FormData),
     ))
+  })
+})
+
+describe("owner account lifecycle", () => {
+  afterEach(() => {
+    cleanup()
+    mocks.user.permissions = ["organization.company.manage"]
+  })
+
+  it("checks assigned work and requires a reason before disabling a login", async () => {
+    mocks.user.permissions = ["accounts.user.view", "accounts.user.manage", "system.owner_control.view"]
+    mocks.apiGet.mockImplementation((path: string) => {
+      if (path === "/users/?page=1") return Promise.resolve({
+        results: [{ id: "user-2", email: "sales@monika.local", username: "sales", first_name: "Sales", last_name: "Person", is_active: true, last_login: null }],
+        pagination: pagination(),
+      })
+      if (path === "/users/user-2/deactivation-impact/") return Promise.resolve({ open_work_count: 0, work: [] })
+      return Promise.resolve({ results: [], pagination: pagination() })
+    })
+    mocks.apiPost.mockResolvedValue({ id: "user-2", email: "sales@monika.local", is_active: false })
+    const actor = userEvent.setup()
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    render(<QueryClientProvider client={client}><MemoryRouter><ResourcePage resourceKey="users" /></MemoryRouter></QueryClientProvider>)
+
+    await actor.click(await screen.findByRole("button", { name: "Disable login" }))
+    expect(await screen.findByText("No assigned open work found")).toBeInTheDocument()
+    const dialog = within(screen.getByRole("dialog"))
+    expect(dialog.getByRole("button", { name: "Disable login" })).toBeDisabled()
+    await actor.type(dialog.getByLabelText("Why is login being disabled?"), "Employment ended")
+    await actor.click(dialog.getByRole("button", { name: "Disable login" }))
+
+    await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith("/users/user-2/deactivate/", { reason: "Employment ended" }))
   })
 })

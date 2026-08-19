@@ -38,6 +38,19 @@ type Tool = {
 
 const groups: Array<{ title: string; description: string; tools: Tool[] }> = [
   {
+    title: "Owner administration",
+    description: "System-wide business controls kept separate from normal employee work.",
+    tools: [
+      {
+        label: "Owner Control Centre",
+        description: "People, access, work responsibility, features, data quality and system readiness.",
+        to: "/app/owner",
+        icon: ShieldCheck,
+        permission: "system.owner_control.view",
+      },
+    ],
+  },
+  {
     title: "Sales support",
     description: "Specialist work used while preparing an enquiry or quotation.",
     tools: [

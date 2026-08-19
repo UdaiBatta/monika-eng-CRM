@@ -3,7 +3,7 @@ export type StaticOption = { value: string; label: string }
 export type ResourceField = {
   name: string
   label: string
-  type?: "text" | "email" | "number" | "date" | "textarea" | "boolean" | "select" | "relation" | "multi-relation"
+  type?: "text" | "email" | "password" | "number" | "date" | "textarea" | "boolean" | "select" | "relation" | "multi-relation"
   required?: boolean
   placeholder?: string
   help?: string
@@ -49,6 +49,24 @@ const departmentRelation = { endpoint: "/departments/", labelFields: ["code", "n
 const designationRelation = { endpoint: "/designations/", labelFields: ["code", "name"] }
 
 export const resourceConfigs: Record<string, ResourceConfig> = {
+  users: {
+    key: "users", endpoint: "/users/", title: "User accounts", singular: "user account",
+    description: "Login accounts are separate from employee records. Create an account here, then link it from the employee profile.",
+    viewPermission: "accounts.user.view", managePermission: "accounts.user.manage",
+    searchPlaceholder: "Search email, username or name",
+    columns: [
+      { key: "email", label: "Email" }, { key: "username", label: "Username" },
+      { key: "first_name", label: "First name" }, { key: "last_name", label: "Last name" },
+      { key: "is_active", label: "Sign-in active" }, { key: "last_login", label: "Last sign-in" },
+    ],
+    fields: [
+      { name: "email", label: "Email", type: "email", required: true },
+      { name: "username", label: "Username" },
+      { name: "first_name", label: "First name" },
+      { name: "last_name", label: "Last name" },
+      { name: "password", label: "Password", type: "password", help: "Required for a usable new login. Leave blank when editing to keep the current password." },
+    ],
+  },
   employees: {
     key: "employees", endpoint: "/employees/", title: "Employee register", singular: "employee",
     description: "People, reporting lines, employment state, and optional user-account linkage.",

@@ -18,6 +18,7 @@ from rest_framework.views import APIView
 from apps.audit.mixins import AuditModelViewSetMixin
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
+from apps.configuration.features import enabled_feature_keys
 from apps.core.concurrency import VersionedUpdateMixin
 from apps.core.owner_services import bulk_reassign, work_items
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
@@ -131,6 +132,7 @@ class MeView(APIView):
             )
         ]
         data["permissions"] = effective_permission_codes(request.user)
+        data["features"] = enabled_feature_keys(employee.company) if employee else []
         return Response(data)
 
 

@@ -203,3 +203,176 @@ def test_owner_reassigns_open_work_once(api_client, company, employee):
     submission.refresh_from_db()
     assert submission.assigned_to == replacement
     assert AuditEvent.objects.filter(entity_id=str(submission.pk), action="ASSIGN").count() == 1
+
+
+@pytest.mark.django_db
+def test_owner_created_user_password_is_hashed_and_blank_edit_keeps_it(api_client, company):
+    admin = User.objects.create_superuser(email="account-owner@example.test", password="SafePassword-2741")
+    api_client.force_authenticate(admin)
+
+    created = api_client.post(
+        "/api/v1/users/",
+        {"email": "new-sales@example.test", "password": "DifferentSafePassword-2741"},
+        format="json",
+    )
+
+    assert created.status_code == 201
+    account = User.objects.get(email="new-sales@example.test")
+    assert account.check_password("DifferentSafePassword-2741")
+    updated = api_client.patch(
+        f"/api/v1/users/{account.pk}/",
+        {"first_name": "New", "record_version": account.record_version},
+        format="json",
+    )
+    assert updated.status_code == 200
+    account.refresh_from_db()
+    assert account.check_password("DifferentSafePassword-2741")
+
+
+@pytest.mark.django_db
+def test_unavailable_feature_cannot_be_enabled(api_client, company):
+    admin = User.objects.create_superuser(email="feature-guard@example.test", password="SafePassword-2741")
+    api_client.force_authenticate(admin)
+
+    response = api_client.post(
+        "/api/v1/owner/change-feature/",
+        {
+            "company": str(company.pk),
+            "key": "inventory_transactions",
+            "is_enabled": True,
+            "reason": "Attempt to enable planned stock ledger",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert not FeatureFlag.objects.filter(company=company, key="inventory_transactions").exists()
+
+
+@pytest.mark.django_db
+def test_bulk_reassignment_is_atomic(api_client, company, employee):
+    replacement_user = User.objects.create_user(
+        email="atomic-replacement@example.test", password="SafePassword-2741"
+    )
+    replacement = Employee.objects.create(
+        user=replacement_user,
+        company=company,
+        employee_code="ME-TEST-003",
+        first_name="Atomic",
+        joining_date=date(2026, 1, 3),
+        employment_type=Employee.EmploymentType.PERMANENT,
+    )
+    submission = ExternalEnquirySubmission.objects.create(
+        company=company,
+        channel=ExternalEnquirySubmission.Channel.MANUAL,
+        source_type=ExternalEnquirySubmission.SourceType.MANUAL_ENTRY,
+        external_submission_id="MANUAL-OWNER-ATOMIC",
+        person_name="Customer",
+        subject="Atomic reassignment enquiry",
+        message="Please quote",
+        assigned_to=employee,
+    )
+    admin = User.objects.create_superuser(email="atomic-owner@example.test", password="SafePassword-2741")
+    api_client.force_authenticate(admin)
+
+    response = api_client.post(
+        "/api/v1/owner/reassign-work/",
+        {
+            "company": str(company.pk),
+            "items": [
+                {"work_type": "incoming_enquiry", "id": str(submission.pk)},
+                {"work_type": "incoming_enquiry", "id": "00000000-0000-0000-0000-000000000001"},
+            ],
+            "employee_id": str(replacement.pk),
+            "reason": "Atomic batch safety test",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    submission.refresh_from_db()
+    assert submission.assigned_to == employee
+    assert not AuditEvent.objects.filter(entity_id=str(submission.pk), action="ASSIGN").exists()
+
+
+@pytest.mark.django_db
+def test_data_quality_endpoint_reports_inactive_owner_work(api_client, company, employee):
+    employee.user.is_active = False
+    employee.user.save(update_fields=["is_active"])
+    ExternalEnquirySubmission.objects.create(
+        company=company,
+        channel=ExternalEnquirySubmission.Channel.MANUAL,
+        source_type=ExternalEnquirySubmission.SourceType.MANUAL_ENTRY,
+        external_submission_id="MANUAL-INACTIVE-OWNER",
+        person_name="Customer",
+        subject="Uncovered enquiry",
+        message="Please quote",
+        assigned_to=employee,
+    )
+    admin = User.objects.create_superuser(email="quality-owner@example.test", password="SafePassword-2741")
+    api_client.force_authenticate(admin)
+
+    response = api_client.get(f"/api/v1/owner/data-quality/?company={company.pk}")
+
+    assert response.status_code == 200
+    issue = next(item for item in response.data["issues"] if item["type"] == "open_work_inactive_employee")
+    assert issue["count"] == 1
+
+
+@pytest.mark.django_db
+def test_employee_disable_reassigns_work_and_reactivation_is_audited(api_client, company, employee):
+    replacement_user = User.objects.create_user(
+        email="continuity-replacement@example.test", password="SafePassword-2741"
+    )
+    replacement = Employee.objects.create(
+        user=replacement_user,
+        company=company,
+        employee_code="ME-TEST-004",
+        first_name="Continuity",
+        joining_date=date(2026, 1, 4),
+        employment_type=Employee.EmploymentType.PERMANENT,
+    )
+    submission = ExternalEnquirySubmission.objects.create(
+        company=company,
+        channel=ExternalEnquirySubmission.Channel.MANUAL,
+        source_type=ExternalEnquirySubmission.SourceType.MANUAL_ENTRY,
+        external_submission_id="MANUAL-DEACTIVATE-OWNER",
+        person_name="Customer",
+        subject="Continuity enquiry",
+        message="Please quote",
+        assigned_to=employee,
+    )
+    admin = User.objects.create_superuser(email="continuity-owner@example.test", password="SafePassword-2741")
+    api_client.force_authenticate(admin)
+
+    disabled = api_client.post(
+        f"/api/v1/employees/{employee.pk}/deactivate/",
+        {
+            "reason": "Employee transferred out of Sales",
+            "open_work_action": "REASSIGN",
+            "replacement_employee_id": str(replacement.pk),
+        },
+        format="json",
+    )
+
+    assert disabled.status_code == 200
+    employee.refresh_from_db()
+    employee.user.refresh_from_db()
+    submission.refresh_from_db()
+    assert employee.employment_status == Employee.EmploymentStatus.INACTIVE
+    assert employee.user.is_active is False
+    assert submission.assigned_to == replacement
+
+    activated = api_client.post(
+        f"/api/v1/employees/{employee.pk}/activate/",
+        {"reason": "Employee returned to active employment", "enable_login": True},
+        format="json",
+    )
+
+    assert activated.status_code == 200
+    employee.refresh_from_db()
+    employee.user.refresh_from_db()
+    assert employee.employment_status == Employee.EmploymentStatus.ACTIVE
+    assert employee.user.is_active is True
+    assert AuditEvent.objects.filter(entity_id=str(employee.pk), action="DEACTIVATE").exists()
+    assert AuditEvent.objects.filter(entity_id=str(employee.pk), action="ACTIVATE").exists()

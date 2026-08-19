@@ -19,6 +19,7 @@ from .serializers import (
     CompanySerializer,
     DepartmentSerializer,
     DesignationSerializer,
+    EmployeeActivateSerializer,
     EmployeeDeactivateSerializer,
     EmployeeSerializer,
     OrganizationImportUploadSerializer,
@@ -122,6 +123,43 @@ class EmployeeViewSet(FoundationModelViewSet):
         "default": "organization.employee.manage",
     }
 
+    @action(detail=True, methods=["post"])
+    @transaction.atomic
+    def activate(self, request, pk=None):
+        serializer = EmployeeActivateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        employee = Employee.objects.select_for_update(of=("self",)).select_related("user", "company").get(
+            pk=self.get_object().pk
+        )
+        previous_status = employee.employment_status
+        employee.employment_status = Employee.EmploymentStatus.ACTIVE
+        employee.record_version += 1
+        employee.save(update_fields=["employment_status", "record_version", "updated_at"])
+        login_enabled = False
+        if employee.user and serializer.validated_data["enable_login"]:
+            employee.user.is_active = True
+            employee.user.record_version += 1
+            employee.user.save(update_fields=["is_active", "record_version"])
+            login_enabled = True
+        record_event(
+            actor=request.user,
+            company=employee.company,
+            action=AuditEvent.Action.ACTIVATE,
+            entity=employee,
+            summary=f"Employee reactivated: {employee.display_name}",
+            changes={
+                "employment_status": {
+                    "old": previous_status,
+                    "new": Employee.EmploymentStatus.ACTIVE,
+                }
+            },
+            metadata={
+                "reason": serializer.validated_data["reason"],
+                "login_enabled": login_enabled,
+            },
+        )
+        return Response(self.get_serializer(employee).data)
+
     @action(detail=True, methods=["get"], url_path="deactivation-impact")
     def deactivation_impact(self, request, pk=None):
         employee = self.get_object()
@@ -140,7 +178,7 @@ class EmployeeViewSet(FoundationModelViewSet):
     def deactivate(self, request, pk=None):
         serializer = EmployeeDeactivateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        employee = Employee.objects.select_for_update().select_related("user", "company").get(
+        employee = Employee.objects.select_for_update(of=("self",)).select_related("user", "company").get(
             pk=self.get_object().pk
         )
         if employee.user_id == request.user.pk:

@@ -24,6 +24,11 @@ class EmployeeDeactivateSerializer(serializers.Serializer):
         return attrs
 
 
+class EmployeeActivateSerializer(serializers.Serializer):
+    reason = serializers.CharField(min_length=3, max_length=500)
+    enable_login = serializers.BooleanField(default=False)
+
+
 class CleanModelSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         instance = self.instance or self.Meta.model()

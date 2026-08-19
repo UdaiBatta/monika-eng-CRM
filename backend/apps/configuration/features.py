@@ -90,6 +90,14 @@ def feature_controls(company):
     ]
 
 
+def enabled_feature_keys(company):
+    return [
+        definition.key
+        for definition in FEATURES
+        if definition.implemented and is_feature_enabled(company, definition.key)
+    ]
+
+
 @transaction.atomic
 def set_feature(*, company, key, enabled, reason, actor, submitted_version=None):
     definition = FEATURE_BY_KEY.get(key)

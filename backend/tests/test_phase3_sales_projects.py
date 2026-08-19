@@ -292,6 +292,34 @@ def test_project_360_api_serializes_the_real_commercial_baseline(
     assert response.data["engineering_handoff"]["status"] == "DRAFT"
 
 
+@pytest.mark.django_db
+def test_workflow_statuses_reject_direct_patch(api_client, user, phase3_context):
+    order = create_sales_order_from_quotation(
+        quotation_id=phase3_context["quotation"].pk,
+        actor=user,
+        data={"project_required": True},
+    )
+    submit_sales_order(order_id=order.pk, actor=user)
+    release_sales_order(order_id=order.pk, actor=user)
+    project = Project.objects.get(sales_order=order)
+    api_client.force_authenticate(user)
+
+    attempts = [
+        (f"/api/v1/quotations/{phase3_context['quotation'].pk}/", {"status": "DRAFT"}),
+        (f"/api/v1/sales/orders/{order.pk}/", {"status": "CANCELLED"}),
+        (f"/api/v1/projects/{project.pk}/", {"status": "ENGINEERING_ACCEPTED"}),
+    ]
+    for path, payload in attempts:
+        assert api_client.patch(path, payload, format="json").status_code == 405
+
+    phase3_context["quotation"].refresh_from_db()
+    order.refresh_from_db()
+    project.refresh_from_db()
+    assert phase3_context["quotation"].status == Quotation.Status.READY_FOR_SALES_ORDER
+    assert order.status == SalesOrder.Status.RELEASED
+    assert project.status == Project.Status.HANDOFF_PENDING
+
+
 @pytest.mark.django_db(transaction=True)
 def test_two_engineers_cannot_take_the_same_handoff(
     user, employee, company, branch, department, phase3_context

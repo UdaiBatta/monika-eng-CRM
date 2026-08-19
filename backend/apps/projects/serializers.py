@@ -112,16 +112,16 @@ class ProjectSerializer(serializers.ModelSerializer):
         if instance.status == Project.Status.CANCELLED:
             return "Project is cancelled; its history remains available."
         if instance.commercial_change_pending:
-            return "Engineering must review the changed Sales Order revision."
+            return "Workshop must review the changed Sales Order revision."
         handoff = getattr(instance, "engineering_handoff", None)
         if not handoff:
-            return "Prepare the Engineering handoff."
+            return "Prepare the Workshop handoff."
         return {
-            ProjectEngineeringHandoff.Status.DRAFT: "Sales must complete and send the Engineering handoff.",
+            ProjectEngineeringHandoff.Status.DRAFT: "Sales must complete and send the Workshop handoff.",
             ProjectEngineeringHandoff.Status.READY_FOR_ENGINEERING: (
-                "Engineering must take ownership and review."
+                "Workshop must take ownership and review."
             ),
-            ProjectEngineeringHandoff.Status.ENGINEERING_REVIEWING: "Engineering is reviewing the handoff.",
+            ProjectEngineeringHandoff.Status.ENGINEERING_REVIEWING: "Workshop is reviewing the handoff.",
             ProjectEngineeringHandoff.Status.CLARIFICATION_REQUIRED: (
                 "Sales must answer the open clarification."
             ),

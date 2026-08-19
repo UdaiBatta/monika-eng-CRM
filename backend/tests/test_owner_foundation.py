@@ -71,6 +71,25 @@ def test_role_manager_cannot_grant_permission_they_do_not_hold(api_client, compa
 
 
 @pytest.mark.django_db
+def test_sales_user_cannot_call_owner_control_api(api_client, company, user, employee):
+    sales_role = Role.objects.create(company=company, code="SALES-ONLY", name="Sales only")
+    RolePermission.objects.create(
+        role=sales_role,
+        permission=Permission.objects.get(code="crm.customer.view"),
+    )
+    RoleAssignment.objects.create(
+        user=user,
+        role=sales_role,
+        scope_type=ScopeType.COMPANY,
+        company=company,
+    )
+    api_client.force_authenticate(user)
+
+    assert api_client.get("/api/v1/owner/").status_code == 403
+    assert api_client.get("/api/v1/owner/features/").status_code == 403
+
+
+@pytest.mark.django_db
 def test_access_explanation_shows_deny_override_precedence(company, user, employee):
     permission = Permission.objects.get(code="organization.employee.view")
     role = Role.objects.create(company=company, code="PEOPLE", name="People viewer")

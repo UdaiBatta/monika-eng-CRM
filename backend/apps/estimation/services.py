@@ -131,7 +131,7 @@ def create_estimate(*, enquiry_id, actor, currency_id=None):
         )
         if not is_ready_for_estimation(review):
             raise ValidationError(
-                "Complete a feasible, current engineering review and close its "
+                "Complete a current Workshop approval and close its "
                 "clarifications before estimation."
             )
         selected_currency_id = currency_id or enquiry.currency_id or enquiry.customer.default_currency_id

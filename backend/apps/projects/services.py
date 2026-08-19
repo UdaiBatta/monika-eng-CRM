@@ -225,7 +225,7 @@ def prepare_engineering_handoff(*, project_id, actor, submitted_version, data):
             .select_related("engineering_handoff")
             .get(pk=project_id)
         )
-        _require(actor, "projects.handoff.prepare", project, "Engineering handoff preparation")
+        _require(actor, "projects.handoff.prepare", project, "Workshop handoff preparation")
         handoff = ProjectEngineeringHandoff.objects.select_for_update().get(project=project)
         if handoff.status not in {
             ProjectEngineeringHandoff.Status.DRAFT,
@@ -258,7 +258,7 @@ def prepare_engineering_handoff(*, project_id, actor, submitted_version, data):
                 project,
                 actor,
                 "UPDATE",
-                f"Engineering handoff prepared for {project.project_number}",
+                f"Workshop handoff prepared for {project.project_number}",
                 metadata={"status": handoff.status},
             )
         )
@@ -272,16 +272,16 @@ def submit_engineering_handoff(*, project_id, actor):
             .select_related("engineering_handoff")
             .get(pk=project_id)
         )
-        _require(actor, "projects.handoff.submit", project, "Engineering handoff submission")
+        _require(actor, "projects.handoff.submit", project, "Workshop handoff submission")
         handoff = ProjectEngineeringHandoff.objects.select_for_update().get(project=project)
         if handoff.status not in {
             ProjectEngineeringHandoff.Status.DRAFT,
             ProjectEngineeringHandoff.Status.CLARIFICATION_REQUIRED,
         }:
-            raise ValidationError("This handoff has already been sent to Engineering.")
+            raise ValidationError("This handoff has already been sent to Workshop.")
         if not handoff.project_scope_summary.strip() or not handoff.technical_requirement_summary.strip():
             raise ValidationError(
-                "Add the project scope and technical requirement before sending to Engineering."
+                "Add the project scope and technical requirement before sending to Workshop."
             )
         handoff.status = ProjectEngineeringHandoff.Status.READY_FOR_ENGINEERING
         handoff.submitted_by = actor
@@ -296,7 +296,7 @@ def submit_engineering_handoff(*, project_id, actor):
                 project,
                 actor,
                 "HANDOFF",
-                f"{project.project_number} is ready for Engineering",
+                f"{project.project_number} is ready for Workshop",
                 metadata={
                     "status": handoff.status,
                     "recipient_user_id": str(handoff.assigned_engineer.user_id)
@@ -309,7 +309,7 @@ def submit_engineering_handoff(*, project_id, actor):
             handoff.assigned_engineer,
             project=project,
             notification_type="PROJECT_HANDOFF_ASSIGNED",
-            title="Project ready for Engineering",
+            title="Project ready for Workshop",
             message=f"{project.project_number} · {project.project_name}",
             severity=Notification.Severity.ACTION_REQUIRED,
         )
@@ -332,7 +332,7 @@ def take_engineering_handoff(*, project_id, actor):
             ProjectEngineeringHandoff.Status.READY_FOR_ENGINEERING,
             ProjectEngineeringHandoff.Status.ENGINEERING_REVIEWING,
         }:
-            raise ValidationError("This handoff is not available for Engineering ownership.")
+            raise ValidationError("This handoff is not available for Workshop ownership.")
         if handoff.assigned_engineer_id and handoff.assigned_engineer_id != employee.pk:
             raise ValidationError(
                 f"This project has just been assigned to {handoff.assigned_engineer.display_name}.",
@@ -364,7 +364,7 @@ def take_engineering_handoff(*, project_id, actor):
 def assign_engineering_handoff(*, project_id, engineer_id, actor):
     with transaction.atomic():
         project = Project.objects.select_for_update().get(pk=project_id)
-        _require(actor, "projects.handoff.assign", project, "Engineering handoff assignment")
+        _require(actor, "projects.handoff.assign", project, "Workshop handoff assignment")
         engineer = Employee.objects.filter(
             pk=engineer_id,
             company_id=project.company_id,
@@ -416,7 +416,7 @@ def request_project_clarification(*, project_id, actor, question, due_date=None,
             ProjectEngineeringHandoff.Status.ENGINEERING_REVIEWING,
             ProjectEngineeringHandoff.Status.CLARIFICATION_REQUIRED,
         }:
-            raise ValidationError("Engineering cannot request clarification in this handoff state.")
+            raise ValidationError("Workshop cannot request clarification in this handoff state.")
         respond_to = Employee.objects.filter(
             pk=respond_to_id or project.sales_owner_id, company_id=project.company_id
         ).first()
@@ -450,7 +450,7 @@ def request_project_clarification(*, project_id, actor, question, due_date=None,
             respond_to,
             project=project,
             notification_type="PROJECT_CLARIFICATION_REQUIRED",
-            title="Engineering needs information",
+            title="Workshop needs information",
             message=question.strip(),
             severity=Notification.Severity.ACTION_REQUIRED,
         )
@@ -459,7 +459,7 @@ def request_project_clarification(*, project_id, actor, question, due_date=None,
 
 def respond_project_clarification(*, clarification_id, actor, response, document_id=None):
     if not response.strip():
-        raise ValidationError({"response": ["Add the information requested by Engineering."]})
+        raise ValidationError({"response": ["Add the information requested by Workshop."]})
     with transaction.atomic():
         clarification = (
             ProjectHandoffClarification.objects.select_for_update(of=("self",))
@@ -526,7 +526,7 @@ def accept_engineering_handoff(*, project_id, actor):
             )
             .get(pk=project_id)
         )
-        _require(actor, "projects.handoff.accept", project, "Engineering handoff acceptance")
+        _require(actor, "projects.handoff.accept", project, "Workshop handoff acceptance")
         handoff = ProjectEngineeringHandoff.objects.select_for_update().get(project=project)
         if handoff.status not in {
             ProjectEngineeringHandoff.Status.ENGINEERING_REVIEWING,
@@ -580,7 +580,7 @@ def accept_engineering_handoff(*, project_id, actor):
                 project,
                 actor,
                 "ACCEPT",
-                f"Engineering accepted {project.project_number}",
+                f"Workshop accepted {project.project_number}",
                 metadata={
                     "status": project.status,
                     "recipient_user_id": str(project.sales_owner.user_id or ""),
@@ -622,7 +622,7 @@ def acknowledge_commercial_change(*, project_id, actor):
                 project,
                 actor,
                 "ACKNOWLEDGE",
-                f"Engineering acknowledged {project.current_sales_order_revision}",
+                f"Workshop acknowledged {project.current_sales_order_revision}",
                 metadata={"status": project.status},
             )
         )

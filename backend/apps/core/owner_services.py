@@ -68,7 +68,7 @@ WORK_SPECS = (
     ),
     WorkSpec(
         "engineering_review",
-        "Engineering review",
+        "Workshop Review",
         EngineeringFeasibilityReview,
         "assigned_engineer",
         "id",
@@ -112,7 +112,7 @@ WORK_SPECS = (
     ),
     WorkSpec(
         "project_engineering",
-        "Project engineering",
+        "Project Workshop work",
         Project,
         "engineering_owner",
         "project_number",
@@ -381,7 +381,7 @@ def data_quality_issues(company):
         Project.objects.filter(company=company, engineering_owner__isnull=True)
         .exclude(status__in=[Project.Status.ENGINEERING_ACCEPTED, Project.Status.CANCELLED])
         .count(),
-        "Open projects have no Engineering owner.",
+        "Open projects have no Workshop owner.",
         "/app/owner/work?queue=unassigned&work_type=project_engineering",
     )
     inactive_work = sum(

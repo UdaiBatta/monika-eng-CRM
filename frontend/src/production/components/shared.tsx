@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, Inbox, LockKeyhole } from "lucide-react";
+import { AlertTriangle, ArrowRight, Inbox, LockKeyhole } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,14 @@ import {
 } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { statusLabel } from "@/production/lib/terminology";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export function ERPPageHeader({
   eyebrow,
@@ -75,9 +83,19 @@ const statusVariants: Record<string, string> = {
   LIKELY_VALID: successStatus,
   CLEAN: successStatus,
   ACCEPTED: successStatus,
+  ACCEPTED_WITH_DIFFERENCES: successStatus,
+  MATCHES: successStatus,
+  RELEASED: successStatus,
+  READY_FOR_DETAILED_ENGINEERING: successStatus,
+  ENGINEERING_ACCEPTED: successStatus,
   CONVERTED: successStatus,
   ENGINEERING_REVIEW: warningStatus,
   CLARIFICATION_REQUIRED: warningStatus,
+  DIFFERENCE_REVIEW: warningStatus,
+  DIFFERENCES: warningStatus,
+  ACCEPTED_DIFFERENCES: successStatus,
+  READY_FOR_ENGINEERING: warningStatus,
+  ON_HOLD: warningStatus,
   OPEN: warningStatus,
   PENDING: warningStatus,
   PENDING_APPROVAL: warningStatus,
@@ -98,6 +116,9 @@ const statusVariants: Record<string, string> = {
   OPTIONAL: neutralStatus,
   CANCELLED: neutralStatus,
   INACTIVE: neutralStatus,
+  QUOTATION_BASED: infoStatus,
+  DIRECT: "border-primary/40 bg-primary/10 text-primary",
+  ENGINEERING_REVIEWING: infoStatus,
   PROSPECT: "border-primary/40 bg-primary/10 text-primary",
   RETURNED_FOR_CHANGES: "border-primary/40 bg-primary/10 text-primary",
 };
@@ -114,12 +135,57 @@ export function ERPStatusBadge({
       variant="outline"
       className={cn("font-medium", statusVariants[value])}
     >
-      {label ??
-        value
-          .replaceAll("_", " ")
-          .toLowerCase()
-          .replace(/^./, (letter) => letter.toUpperCase())}
+      {statusLabel(value, label)}
     </Badge>
+  );
+}
+
+export function NextActionPanel({
+  status,
+  statusText,
+  title,
+  description,
+  primaryAction,
+  secondaryActions,
+}: {
+  status: string;
+  statusText?: string;
+  title: string;
+  description: string;
+  primaryAction?: ReactNode;
+  secondaryActions?: ReactNode;
+}) {
+  return (
+    <Card className="border-primary/30">
+      <CardHeader className="gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Current status
+          </p>
+          <ERPStatusBadge value={status} label={statusText} />
+          <CardTitle className="mt-4 text-xl">{title}</CardTitle>
+          <CardDescription className="mt-2 max-w-3xl leading-6">
+            {description}
+          </CardDescription>
+        </div>
+        {primaryAction ? (
+          <div className="flex shrink-0 items-center gap-2">
+            <ArrowRight aria-hidden="true" className="text-primary" />
+            {primaryAction}
+          </div>
+        ) : null}
+      </CardHeader>
+      {secondaryActions ? (
+        <CardContent className="border-t pt-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-medium text-muted-foreground">
+              Other actions
+            </span>
+            {secondaryActions}
+          </div>
+        </CardContent>
+      ) : null}
+    </Card>
   );
 }
 

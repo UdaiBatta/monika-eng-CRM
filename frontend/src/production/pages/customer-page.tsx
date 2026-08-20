@@ -45,6 +45,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { apiGet, apiPost } from "@/production/lib/api";
 import { hasPermission, useCurrentUser } from "@/production/lib/auth";
+import { employeeLabel } from "@/production/lib/terminology";
 import {
   ActivityForm,
   ContactForm,
@@ -67,6 +68,7 @@ import type {
   Quotation,
 } from "@/production/lib/crm-types";
 import type { Paginated } from "@/production/lib/types";
+import type { Project, SalesOrder } from "@/production/lib/sales-types";
 import { CustomerForm } from "@/production/pages/customers-page";
 
 type Panel =
@@ -176,6 +178,16 @@ export default function CustomerPage() {
     queryKey: ["customer-quotations", customerId],
     queryFn: () => apiGet<Paginated<Quotation>>(`/quotations/?customer=${customerId}&page_size=100`),
     enabled: Boolean(customerId) && hasPermission(user, "crm.quotation.view"),
+  });
+  const salesOrders = useQuery({
+    queryKey: ["customer-sales-orders", customerId],
+    queryFn: () => apiGet<Paginated<SalesOrder>>(`/sales/orders/?customer=${customerId}&page_size=100&ordering=-updated_at`),
+    enabled: Boolean(customerId) && hasPermission(user, "sales.sales_order.view"),
+  });
+  const projects = useQuery({
+    queryKey: ["customer-projects", customerId],
+    queryFn: () => apiGet<Paginated<Project>>(`/projects/?customer=${customerId}&page_size=100&ordering=-updated_at`),
+    enabled: Boolean(customerId) && hasPermission(user, "projects.project.view"),
   });
   const statusMutation = useMutation({
     mutationFn: () =>
@@ -302,6 +314,8 @@ export default function CustomerPage() {
               <Badge variant="outline">{data.recent_enquiries.length}</Badge>
             </TabsTrigger>
             {hasPermission(user, "crm.quotation.view") ? <TabsTrigger value="quotations">Quotations <Badge variant="outline">{quotations.data?.pagination.count ?? 0}</Badge></TabsTrigger> : null}
+            {hasPermission(user, "sales.sales_order.view") ? <TabsTrigger value="sales-orders">Sales orders <Badge variant="outline">{salesOrders.data?.pagination.count ?? 0}</Badge></TabsTrigger> : null}
+            {hasPermission(user, "projects.project.view") ? <TabsTrigger value="projects">Projects <Badge variant="outline">{projects.data?.pagination.count ?? 0}</Badge></TabsTrigger> : null}
             <TabsTrigger value="activities">Activities</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
@@ -632,6 +646,8 @@ export default function CustomerPage() {
           </Card>
         </TabsContent>
         {hasPermission(user, "crm.quotation.view") ? <TabsContent value="quotations" className="mt-4"><Card><CardHeader className="flex-row items-start justify-between"><div><CardTitle>Customer quotations</CardTitle><CardDescription>Current commercial offers and their latest customer-facing value.</CardDescription></div><Link to="/app/crm/quotations"><Button size="sm" variant="outline">Open register</Button></Link></CardHeader><CardContent>{quotations.isPending ? <ERPLoadingState rows={4} /> : !quotations.data?.results.length ? <ERPEmptyState title="No quotations yet" description="Approved estimates and permitted quick offers will appear here." /> : <div className="divide-y">{quotations.data.results.map((quotation) => <Link key={quotation.id} to={`/app/crm/quotations/${quotation.id}`} className="flex items-center gap-3 py-3 first:pt-0 hover:text-primary"><FileText /><div className="min-w-0 flex-1"><p className="font-medium">{quotation.quotation_number}</p><p className="text-xs text-muted-foreground">Rev {quotation.current_revision.revision_number} · {quotation.current_revision.currency_code} {Number(quotation.current_revision.grand_total).toLocaleString("en-IN")}</p></div><ERPStatusBadge value={quotation.status} /></Link>)}</div>}</CardContent></Card></TabsContent> : null}
+        {hasPermission(user, "sales.sales_order.view") ? <TabsContent value="sales-orders" className="mt-4"><Card><CardHeader className="flex-row items-start justify-between"><div><CardTitle>Customer sales orders</CardTitle><CardDescription>Confirmed commercial orders, PO state, and the released execution baseline.</CardDescription></div><Link to="/app/sales/orders"><Button size="sm" variant="outline">Open register</Button></Link></CardHeader><CardContent>{salesOrders.isPending ? <ERPLoadingState rows={4} /> : !salesOrders.data?.results.length ? <ERPEmptyState title="No Sales Orders yet" description="A ready quotation or permitted direct order will appear here." /> : <div className="divide-y">{salesOrders.data.results.map((order) => <Link key={order.id} to={`/app/sales/orders/${order.id}`} className="flex items-center gap-3 py-3 first:pt-0 hover:text-primary"><FileText /><div className="min-w-0 flex-1"><p className="font-medium">{order.sales_order_number}</p><p className="text-xs text-muted-foreground">{order.current_revision.currency_code} {Number(order.current_revision.grand_total).toLocaleString("en-IN")} · {order.po_pending ? "PO pending" : order.customer_po_number || "No PO linked"}</p></div><ERPStatusBadge value={order.status} /></Link>)}</div>}</CardContent></Card></TabsContent> : null}
+        {hasPermission(user, "projects.project.view") ? <TabsContent value="projects" className="mt-4"><Card><CardHeader className="flex-row items-start justify-between"><div><CardTitle>Customer projects</CardTitle><CardDescription>Released orders that require an operational Project and Workshop handoff.</CardDescription></div><Link to="/app/projects"><Button size="sm" variant="outline">Open register</Button></Link></CardHeader><CardContent>{projects.isPending ? <ERPLoadingState rows={4} /> : !projects.data?.results.length ? <ERPEmptyState title="No Projects yet" description="Project work appears after a project-required Sales Order is released." /> : <div className="divide-y">{projects.data.results.map((project) => <Link key={project.id} to={`/app/projects/${project.id}`} className="flex items-center gap-3 py-3 first:pt-0 hover:text-primary"><Building2 /><div className="min-w-0 flex-1"><p className="font-medium">{project.project_number} · {project.project_name}</p><p className="text-xs text-muted-foreground">Workshop: {project.engineering_owner_name || "Unassigned"} · {employeeLabel(project.next_action)}</p></div><ERPStatusBadge value={project.status} /></Link>)}</div>}</CardContent></Card></TabsContent> : null}
         <TabsContent value="activities" className="mt-4">
           <Card>
             <CardHeader className="flex-row items-start justify-between">

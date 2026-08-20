@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import VersionedModel
 from apps.organization.models import Branch, Company
 
 ALLOWED_TEMPLATE_FIELDS = {"company", "branch", "code", "fy", "year", "number"}
@@ -19,7 +19,7 @@ def validate_number_template(value):
         raise ValidationError("Template must include {number}.")
 
 
-class DocumentSequence(TimeStampedModel):
+class DocumentSequence(VersionedModel):
     class ResetBehavior(models.TextChoices):
         NEVER = "NEVER", "Never"
         FINANCIAL_YEAR = "FINANCIAL_YEAR", "Financial year"

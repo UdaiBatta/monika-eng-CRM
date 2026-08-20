@@ -248,7 +248,7 @@ def test_inactive_or_cross_company_engineer_cannot_be_assigned(enquiry, admin):
     )
     review = enquiry.engineering_reviews.get()
 
-    with pytest.raises(ValidationError, match="active engineer"):
+    with pytest.raises(ValidationError, match="active Workshop employee"):
         assign_review(review_id=review.pk, engineer_id=other_engineer.pk, actor=admin)
 
 

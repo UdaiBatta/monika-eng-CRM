@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -65,14 +65,16 @@ function money(value?: string, currency = "INR") {
 
 export default function EstimatesPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedEnquiry = searchParams.get("enquiry") ?? "";
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-  const [enquiryId, setEnquiryId] = useState("");
+  const [showCreate, setShowCreate] = useState(Boolean(requestedEnquiry));
+  const [enquiryId, setEnquiryId] = useState(requestedEnquiry);
   const params = useMemo(() => {
     const next = new URLSearchParams({ page: String(page), page_size: "25", ordering: "-created_at" });
     if (search) next.set("search", search);
@@ -107,7 +109,7 @@ export default function EstimatesPage() {
       <ERPPageHeader
         eyebrow="Commercial CRM · Costing gate"
         title="Commercial estimates"
-        description="Build auditable cost estimates from feasible engineering reviews, apply controlled pricing, and route the commercial snapshot through approval."
+        description="Build auditable cost estimates from Workshop-approved requirements, apply controlled pricing, and route the commercial snapshot through approval."
         actions={hasPermission(user, "estimation.estimate.create") ? <Button onClick={() => setShowCreate(true)}><Plus data-icon="inline-start" />New estimate</Button> : undefined}
       />
 
@@ -130,7 +132,7 @@ export default function EstimatesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {query.isPending ? <ERPLoadingState rows={8} /> : query.isError ? <ERPErrorState message={query.error.message} /> : !results.length ? <ERPEmptyState title="No estimates found" description="Start from a feasible engineering review to create the first controlled estimate." action={hasPermission(user, "estimation.estimate.create") ? <Button onClick={() => setShowCreate(true)}>New estimate</Button> : undefined} /> : (
+          {query.isPending ? <ERPLoadingState rows={8} /> : query.isError ? <ERPErrorState message={query.error.message} /> : !results.length ? <ERPEmptyState title="No estimates found" description="Start from a Workshop-approved requirement to create the first controlled estimate." action={hasPermission(user, "estimation.estimate.create") ? <Button onClick={() => setShowCreate(true)}>New estimate</Button> : undefined} /> : (
             <>
               <div className="hidden overflow-x-auto md:block">
                 <Table><TableHeader><TableRow><TableHead>Estimate</TableHead><TableHead>Customer / enquiry</TableHead><TableHead>Status</TableHead><TableHead>Total cost</TableHead><TableHead>Proposed price</TableHead><TableHead>Margin</TableHead><TableHead>Prepared by</TableHead><TableHead><span className="sr-only">Open</span></TableHead></TableRow></TableHeader><TableBody>{results.map((estimate) => <TableRow key={estimate.id} className="cursor-pointer" onClick={() => navigate(`/app/crm/estimates/${estimate.id}`)}><TableCell><p className="font-semibold">{estimate.estimate_number}</p><p className="text-xs text-muted-foreground">Revision {estimate.revision_number} · {formatDateTime(estimate.updated_at)}</p></TableCell><TableCell><p className="font-medium">{estimate.customer_name}</p><p className="text-xs text-muted-foreground">{estimate.enquiry_number} · {estimate.enquiry_subject}</p></TableCell><TableCell><ERPStatusBadge value={estimate.status} /></TableCell><TableCell>{money(estimate.total_cost, estimate.currency_code)}</TableCell><TableCell className="font-semibold">{money(estimate.proposed_selling_price, estimate.currency_code)}</TableCell><TableCell>{estimate.gross_margin_percent === undefined ? "Restricted" : `${Number(estimate.gross_margin_percent).toFixed(2)}%`}</TableCell><TableCell>{estimate.prepared_by_name}</TableCell><TableCell><Button aria-label={`Open ${estimate.estimate_number}`} variant="ghost" size="icon"><ArrowUpRight /></Button></TableCell></TableRow>)}</TableBody></Table>
@@ -144,10 +146,10 @@ export default function EstimatesPage() {
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Start commercial estimation</DialogTitle><DialogDescription>Only enquiries with a current feasible engineering review and no open clarifications are eligible.</DialogDescription></DialogHeader>
-          {readyReviews.isPending ? <ERPLoadingState rows={3} /> : readyReviews.isError ? <ERPErrorState message={readyReviews.error.message} /> : !eligible.length ? <ERPEmptyState title="No enquiry is ready" description="Complete the engineering feasibility gate first." /> : <Field><FieldLabel htmlFor="estimate-enquiry">Ready enquiry</FieldLabel><NativeSelect id="estimate-enquiry" value={enquiryId} onChange={(event) => setEnquiryId(event.target.value)}><NativeSelectOption value="">Choose enquiry</NativeSelectOption>{eligible.map((review) => <NativeSelectOption key={review.enquiry} value={review.enquiry}>{review.enquiry_number} · {review.customer_name} · {review.enquiry_subject}</NativeSelectOption>)}</NativeSelect><FieldDescription>The engineering snapshot remains linked to the estimate revision.</FieldDescription></Field>}
+          <DialogHeader><DialogTitle>Start commercial estimation</DialogTitle><DialogDescription>Only enquiries with a current Workshop approval and no open clarifications are eligible.</DialogDescription></DialogHeader>
+          {readyReviews.isPending ? <ERPLoadingState rows={3} /> : readyReviews.isError ? <ERPErrorState message={readyReviews.error.message} /> : !eligible.length ? <ERPEmptyState title="No enquiry is ready" description="Complete the Workshop Review first." /> : <Field><FieldLabel htmlFor="estimate-enquiry">Ready enquiry</FieldLabel><NativeSelect id="estimate-enquiry" value={enquiryId} onChange={(event) => setEnquiryId(event.target.value)}><NativeSelectOption value="">Choose enquiry</NativeSelectOption>{eligible.map((review) => <NativeSelectOption key={review.enquiry} value={review.enquiry}>{review.enquiry_number} · {review.customer_name} · {review.enquiry_subject}</NativeSelectOption>)}</NativeSelect><FieldDescription>The Workshop snapshot remains linked to the estimate revision.</FieldDescription></Field>}
           {create.isError ? <ERPErrorState title="Estimate could not be started" message={create.error.message} /> : null}
-          <div className="grid grid-cols-3 gap-2 rounded-lg border bg-muted/30 p-3 text-center text-xs"><div><ShieldCheck className="mx-auto mb-1 text-status-success" />Engineering gated</div><div><TrendingUp className="mx-auto mb-1 text-primary" />Server priced</div><div><CheckCircle2 className="mx-auto mb-1 text-status-warning" />Approval controlled</div></div>
+          <div className="grid grid-cols-3 gap-2 rounded-lg border bg-muted/30 p-3 text-center text-xs"><div><ShieldCheck className="mx-auto mb-1 text-status-success" />Workshop approved</div><div><TrendingUp className="mx-auto mb-1 text-primary" />Server priced</div><div><CheckCircle2 className="mx-auto mb-1 text-status-warning" />Approval controlled</div></div>
           <DialogFooter><Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button><Button onClick={() => create.mutate()} disabled={!enquiryId || create.isPending}><CircleDollarSign data-icon="inline-start" />{create.isPending ? "Starting…" : "Start estimate"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>

@@ -17,6 +17,7 @@ const user = {
   employee: { id: "employee-1", employee_code: "ME-001", display_name: "Development Administrator", company_id: "company-1" },
   permissions: [
     "crm.quotation.view",
+    "projects.handoff.view",
     "organization.warehouse.view",
     "configuration.settings.view",
   ],
@@ -45,7 +46,7 @@ describe("mobile application navigation", () => {
           <Routes>
             <Route path="/app" element={<AppShell />}>
               <Route index element={<p>Workspace opened</p>} />
-              <Route path="crm/quotations" element={<p>Quotation register opened</p>} />
+              <Route path="sales" element={<p>Sales workspace opened</p>} />
             </Route>
           </Routes>
         </MemoryRouter>
@@ -53,9 +54,9 @@ describe("mobile application navigation", () => {
     );
 
     await actor.click(screen.getByRole("button", { name: "Open navigation" }));
-    await actor.click(screen.getByRole("link", { name: "Quotations" }));
+    await actor.click(screen.getByRole("link", { name: "Quotations & Orders" }));
 
-    expect(await screen.findByText("Quotation register opened")).toBeInTheDocument();
+    expect(await screen.findByText("Sales workspace opened")).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Application navigation" })).not.toBeInTheDocument());
   });
 
@@ -73,11 +74,12 @@ describe("mobile application navigation", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Quotations" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "My Work" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Quotations & Orders" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "My Workshop Work" })).not.toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Inventory & workshop" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("link", { name: "Inventory & workshop" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tools & settings" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Numbering" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Roles" })).not.toBeInTheDocument();

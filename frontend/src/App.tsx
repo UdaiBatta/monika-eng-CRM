@@ -10,7 +10,7 @@ const AppShell = lazy(() => import("@/production/components/app-shell"));
 const AuthBoundary = lazy(
   () => import("@/production/components/auth-boundary"),
 );
-const DashboardPage = lazy(() => import("@/production/pages/dashboard-page"));
+const MyWorkPage = lazy(() => import("@/production/pages/my-work-page"));
 const ResourcePage = lazy(() => import("@/production/pages/resource-page"));
 const EmployeeDetailPage = lazy(
   () => import("@/production/pages/employee-detail-page"),
@@ -45,6 +45,7 @@ const CustomersPage = lazy(() => import("@/production/pages/customers-page"));
 const CustomerPage = lazy(() => import("@/production/pages/customer-page"));
 const ActivitiesPage = lazy(() => import("@/production/pages/activities-page"));
 const EnquiriesPage = lazy(() => import("@/production/pages/enquiries-page"));
+const EnquiryWorkspacePage = lazy(() => import("@/production/pages/enquiry-workspace-page"));
 const EnquiryCreatePage = lazy(
   () => import("@/production/pages/enquiry-create-page"),
 );
@@ -65,6 +66,19 @@ const EstimatesPage = lazy(() => import("@/production/pages/estimates-page"));
 const EstimatePage = lazy(() => import("@/production/pages/estimate-page"));
 const QuotationsPage = lazy(() => import("@/production/pages/quotations-page"));
 const QuotationPage = lazy(() => import("@/production/pages/quotation-page"));
+const CustomerPOsPage = lazy(() => import("@/production/pages/customer-pos-page"));
+const SalesOrdersPage = lazy(() => import("@/production/pages/sales-orders-page"));
+const SalesOrderPage = lazy(() => import("@/production/pages/sales-order-page"));
+const SalesWorkspacePage = lazy(() => import("@/production/pages/sales-workspace-page"));
+const ProjectsPage = lazy(() => import("@/production/pages/projects-page"));
+const ProjectPage = lazy(() => import("@/production/pages/project-page"));
+const OwnerControlLayout = lazy(() => import("@/production/components/owner-control-layout"));
+const OwnerControlPage = lazy(() => import("@/production/pages/owner-control-page"));
+const OwnerWorkPage = lazy(() => import("@/production/pages/owner-work-page"));
+const OwnerAccessPage = lazy(() => import("@/production/pages/owner-access-page"));
+const OwnerFeaturesPage = lazy(() => import("@/production/pages/owner-features-page"));
+const OwnerDataQualityPage = lazy(() => import("@/production/pages/owner-data-quality-page"));
+const OwnerSystemHealthPage = lazy(() => import("@/production/pages/owner-system-health-page"));
 
 function PageLoading() {
   return (
@@ -86,7 +100,7 @@ export default function App() {
 
           <Route element={<AuthBoundary />}>
             <Route path="/app" element={<AppShell />}>
-              <Route index element={<DashboardPage />} />
+              <Route index element={<MyWorkPage />} />
               <Route
                 path="employees"
                 element={<ResourcePage resourceKey="employees" />}
@@ -122,6 +136,7 @@ export default function App() {
                 element={<CustomerPage />}
               />
               <Route path="crm/activities" element={<ActivitiesPage />} />
+              <Route path="enquiries" element={<EnquiryWorkspacePage />} />
               <Route path="crm/enquiries" element={<EnquiriesPage />} />
               <Route
                 path="crm/incoming-enquiries"
@@ -153,6 +168,29 @@ export default function App() {
               <Route path="crm/estimates/:estimateId" element={<EstimatePage />} />
               <Route path="crm/quotations" element={<QuotationsPage />} />
               <Route path="crm/quotations/:quotationId" element={<QuotationPage />} />
+
+              <Route path="workshop" element={<EngineeringPage />} />
+              <Route
+                path="workshop/reviews/:reviewId"
+                element={<EngineeringReviewPage />}
+              />
+              <Route path="sales" element={<SalesWorkspacePage />} />
+              <Route path="sales/customer-pos" element={<CustomerPOsPage />} />
+              <Route path="sales/orders" element={<SalesOrdersPage />} />
+              <Route path="sales/orders/:salesOrderId" element={<SalesOrderPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="projects/:projectId" element={<ProjectPage />} />
+              <Route path="engineering/work" element={<ProjectsPage />} />
+
+              <Route path="owner" element={<OwnerControlLayout />}>
+                <Route index element={<OwnerControlPage />} />
+                <Route path="work" element={<OwnerWorkPage />} />
+                <Route path="people" element={<ResourcePage resourceKey="users" />} />
+                <Route path="access" element={<OwnerAccessPage />} />
+                <Route path="features" element={<OwnerFeaturesPage />} />
+                <Route path="data-quality" element={<OwnerDataQualityPage />} />
+                <Route path="system-health" element={<OwnerSystemHealthPage />} />
+              </Route>
 
               <Route
                 path="organization"

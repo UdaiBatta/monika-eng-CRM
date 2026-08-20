@@ -40,9 +40,21 @@ const queryRoots: Record<string, string[]> = {
   external_enquiry_submission: ["incoming-enquiries", "incoming-enquiry"],
   quotation: ["quotations", "quotation"],
   quotation_revision: ["quotations", "quotation"],
+  customer_purchase_order: ["customer-pos", "customer-po", "sales-orders", "project"],
+  customer_purchase_order_revision: ["customer-pos", "customer-po", "sales-orders", "project"],
+  sales_order: ["sales-orders", "sales-order", "projects", "project"],
+  sales_order_revision: ["sales-orders", "sales-order", "projects", "project"],
+  project: ["projects", "project", "engineering-work"],
+  project_engineering_handoff: ["projects", "project", "engineering-work"],
+  project_handoff_clarification: ["projects", "project", "engineering-work"],
   approval_request: ["approvals", "approval"],
   document: ["documents", "document"],
   notification: ["notifications"],
+  feature_flag: ["auth", "owner-features"],
+  employee: ["auth", "owner", "owner-employees", "employees"],
+  role: ["auth", "owner", "resource"],
+  role_assignment: ["auth", "owner", "resource"],
+  permission_override: ["auth", "owner", "resource"],
 };
 
 function entityKey(entityType: string, entityId: string) {

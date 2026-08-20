@@ -25,8 +25,7 @@ describe("tools and settings page", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("button", { name: /Engineering checks/ })).toBeInTheDocument();
-    expect(screen.getByText("Record whether an enquiry can be built.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Engineering checks/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Numbering/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Roles/ })).not.toBeInTheDocument();
   });

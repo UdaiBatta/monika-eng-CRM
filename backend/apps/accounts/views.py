@@ -18,11 +18,20 @@ from rest_framework.views import APIView
 from apps.audit.mixins import AuditModelViewSetMixin
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
+from apps.configuration.features import enabled_feature_keys
+from apps.core.concurrency import VersionedUpdateMixin
+from apps.core.owner_services import bulk_reassign, work_items
 from apps.core.permissions import HasFoundationPermission, ScopedQuerysetMixin
+from apps.rbac.safety import active_business_owners
 from apps.rbac.services import effective_permission_codes
 
 from .models import User
-from .serializers import ChangePasswordSerializer, LoginSerializer, UserSerializer
+from .serializers import (
+    ChangePasswordSerializer,
+    LoginSerializer,
+    UserDeactivateSerializer,
+    UserSerializer,
+)
 
 
 def _login_cache_key(request, identifier):
@@ -112,7 +121,18 @@ class MeView(APIView):
                 "designation_id": employee.designation_id,
             }
         )
+        data["roles"] = [
+            {
+                "name": assignment.role.name,
+                "scope": assignment.get_scope_type_display(),
+            }
+            for assignment in request.user.role_assignments.select_related("role").filter(
+                is_active=True,
+                role__is_active=True,
+            )
+        ]
         data["permissions"] = effective_permission_codes(request.user)
+        data["features"] = enabled_feature_keys(employee.company) if employee else []
         return Response(data)
 
 
@@ -139,7 +159,9 @@ class ChangePasswordView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class UserViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet):
+class UserViewSet(
+    VersionedUpdateMixin, AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelViewSet
+):
     queryset = User.objects.all().order_by("email")
     serializer_class = UserSerializer
     permission_classes = [HasFoundationPermission]
@@ -152,16 +174,19 @@ class UserViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelVie
         "destroy": "accounts.user.manage",
         "activate": "accounts.user.manage",
         "deactivate": "accounts.user.manage",
+        "deactivation_impact": "accounts.user.manage",
     }
     search_fields = ["email", "username", "first_name", "last_name"]
     ordering_fields = ["email", "date_joined", "last_login"]
+    http_method_names = ["get", "post", "put", "patch", "head", "options"]
 
     @action(detail=True, methods=["post"])
     @transaction.atomic
     def activate(self, request, pk=None):
-        user = self.get_object()
+        user = User.objects.select_for_update().get(pk=self.get_object().pk)
         user.is_active = True
-        user.save(update_fields=["is_active"])
+        user.record_version += 1
+        user.save(update_fields=["is_active", "record_version"])
         employee = getattr(user, "employee", None)
         record_event(
             actor=request.user,
@@ -176,12 +201,40 @@ class UserViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelVie
     @action(detail=True, methods=["post"])
     @transaction.atomic
     def deactivate(self, request, pk=None):
-        user = self.get_object()
+        serializer = UserDeactivateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = User.objects.select_for_update().get(pk=self.get_object().pk)
         if user == request.user:
             raise ValidationError("You cannot deactivate your own account.")
-        user.is_active = False
-        user.save(update_fields=["is_active"])
         employee = getattr(user, "employee", None)
+        owners = active_business_owners(employee.company) if employee else []
+        if user in owners and len(owners) == 1:
+            raise ValidationError(
+                "This is the final active business Owner account. Give Owner access to another "
+                "active account before disabling it."
+            )
+        assigned_work = work_items(employee.company, employee_id=employee.pk) if employee else []
+        action_name = serializer.validated_data.get("open_work_action")
+        if assigned_work and not action_name:
+            raise ValidationError(
+                {
+                    "open_work_action": [
+                        f"This account has {len(assigned_work)} open work items. Reassign them or "
+                        "choose Leave Temporarily."
+                    ]
+                }
+            )
+        if assigned_work and action_name == "REASSIGN":
+            bulk_reassign(
+                company=employee.company,
+                items=[{"work_type": item["work_type"], "id": item["id"]} for item in assigned_work],
+                employee_id=serializer.validated_data["replacement_employee_id"],
+                reason=serializer.validated_data["reason"],
+                actor=request.user,
+            )
+        user.is_active = False
+        user.record_version += 1
+        user.save(update_fields=["is_active", "record_version"])
         record_event(
             actor=request.user,
             company=getattr(employee, "company", None),
@@ -189,5 +242,21 @@ class UserViewSet(AuditModelViewSetMixin, ScopedQuerysetMixin, viewsets.ModelVie
             entity=user,
             summary=f"User deactivated: {user.email}",
             changes={"is_active": {"old": True, "new": False}},
+            metadata={"reason": serializer.validated_data["reason"]},
         )
         return Response(self.get_serializer(user).data)
+
+    @action(detail=True, methods=["get"], url_path="deactivation-impact")
+    def deactivation_impact(self, request, pk=None):
+        user = self.get_object()
+        employee = getattr(user, "employee", None)
+        assigned_work = work_items(employee.company, employee_id=employee.pk) if employee else []
+        return Response(
+            {
+                "user_id": str(user.pk),
+                "employee_id": str(employee.pk) if employee else None,
+                "open_work_count": len(assigned_work),
+                "work": assigned_work,
+                "options": ["REASSIGN", "LEAVE_TEMPORARILY"] if assigned_work else [],
+            }
+        )

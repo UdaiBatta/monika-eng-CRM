@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from "@tanstack/react-query"
-import { Activity, ArrowRight, ClipboardCheck, FileKey2, Files, FileText, Inbox, PencilRuler, ServerCog, Users } from "lucide-react"
+import { Activity, ArrowRight, ClipboardCheck, FileKey2, Files, FileText, FolderKanban, Inbox, PencilRuler, ServerCog, ShoppingCart, Users } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -20,6 +20,9 @@ const metrics = [
   { label: "Unassigned enquiries", endpoint: "/external-enquiries/?queue=unassigned&page_size=1", permission: "crm.external_enquiry.review", icon: Inbox, href: "/app/crm/incoming-enquiries?queue=unassigned" },
   { label: "My enquiries", endpoint: "/external-enquiries/?queue=mine&page_size=1", permission: "crm.external_enquiry.review", icon: Inbox, href: "/app/crm/incoming-enquiries?queue=mine" },
   { label: "My quotations", endpoint: "/quotations/?queue=mine&page_size=1", permission: "crm.quotation.view", icon: FileText, href: "/app/crm/quotations?queue=mine" },
+  { label: "My Sales Orders", endpoint: "/sales/orders/?queue=mine&page_size=1", permission: "sales.sales_order.view", icon: ShoppingCart, href: "/app/sales/orders?queue=mine" },
+  { label: "Unassigned Workshop work", endpoint: "/projects/?queue=unassigned&page_size=1", permission: "projects.handoff.take_ownership", icon: FolderKanban, href: "/app/engineering/work?queue=unassigned" },
+  { label: "My Workshop work", endpoint: "/projects/?queue=mine&page_size=1", permission: "projects.handoff.take_ownership", icon: PencilRuler, href: "/app/engineering/work?queue=mine" },
 ]
 
 const administrationPermissions = [
@@ -31,10 +34,30 @@ const administrationPermissions = [
   "approvals.workflow.manage",
 ]
 
+const salesJourney = [
+  { title: "Review new enquiries", description: "Check website and manually captured enquiries, then assign the genuine opportunities.", href: "/app/crm/incoming-enquiries", permission: "crm.external_enquiry.review" },
+  { title: "Understand the requirement", description: "Open the enquiry, confirm the customer need, and keep the next follow-up visible.", href: "/app/crm/enquiries", permission: "enquiry.enquiry.view" },
+  { title: "Prepare the quotation", description: "Build, send, negotiate, and record the customer's confirmation.", href: "/app/crm/quotations", permission: "crm.quotation.view" },
+  { title: "Record the Customer PO", description: "Upload the PO when it arrives and review any difference from the quotation.", href: "/app/sales/customer-pos", permission: "sales.customer_po.view" },
+  { title: "Prepare the Sales Order", description: "Create the order from the quotation, check the terms, and submit it for approval.", href: "/app/sales/orders", permission: "sales.sales_order.view" },
+  { title: "Send the project to Workshop", description: "Open Project 360, complete the handoff, and answer Workshop questions.", href: "/app/projects", permission: "projects.handoff.view" },
+]
+
 export default function DashboardPage() {
   const { data: user } = useCurrentUser()
   const canAdminister = administrationPermissions.some((permission) => hasPermission(user, permission))
   const canWorkEngineering = hasPermission(user, "engineering.feasibility.review")
+  const isSalesWorkspace = hasPermission(user, "crm.external_enquiry.review") || hasPermission(user, "crm.quotation.view") || hasPermission(user, "sales.sales_order.view")
+  const roleName = user?.roles?.[0]?.name || (isSalesWorkspace ? "Sales" : "Daily")
+  const visibleSalesJourney = salesJourney.filter((step) => hasPermission(user, step.permission))
+  const salesAccess = [
+    { label: "Enquiries", detail: "Review, assign, update, win or close", canWork: hasPermission(user, "enquiry.enquiry.edit"), canView: hasPermission(user, "enquiry.enquiry.view") },
+    { label: "Customers & follow-ups", detail: "Maintain customer details and daily follow-ups", canWork: hasPermission(user, "crm.customer.edit") && hasPermission(user, "crm.activity.edit"), canView: hasPermission(user, "crm.customer.view") },
+    { label: "Quotations", detail: "Create, send, negotiate and confirm", canWork: hasPermission(user, "crm.quotation.change"), canView: hasPermission(user, "crm.quotation.view") },
+    { label: "Customer POs", detail: "Record, revise, link and review differences", canWork: hasPermission(user, "sales.customer_po.create"), canView: hasPermission(user, "sales.customer_po.view") },
+    { label: "Sales Orders", detail: "Prepare drafts and submit for approval", canWork: hasPermission(user, "sales.sales_order.submit"), canView: hasPermission(user, "sales.sales_order.view") },
+    { label: "Projects & handoff", detail: "Track the project and send information to Workshop", canWork: hasPermission(user, "projects.handoff.submit"), canView: hasPermission(user, "projects.project.view") },
+  ]
   const health = useQuery({ queryKey: ["health"], queryFn: () => apiGet<{ status: string; database: string; cache: string }>("/health/"), enabled: canAdminister })
   const visibleMetrics = metrics.filter((metric) => hasPermission(user, metric.permission))
   const metricQueries = useQueries({
@@ -51,12 +74,12 @@ export default function DashboardPage() {
           <CardHeader className="bg-erp-sidebar text-white">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <Badge variant="secondary" className="mb-3">{canAdminister ? "Phase 2 commercial CRM" : "Sales workspace"}</Badge>
+                <Badge variant="secondary" className="mb-3">{canAdminister ? "Phase 3 order-to-project" : `${roleName} workspace`}</Badge>
                 <CardTitle className="text-2xl">Good to see you, {user?.employee?.display_name || user?.first_name || "administrator"}.</CardTitle>
                 <CardDescription className="mt-2 max-w-2xl text-white/60">
                   {canAdminister
-                    ? "Incoming enquiries, customer and enquiry workspaces, engineering, estimates, quotations, and shared enterprise controls are connected to live services."
-                    : "Review new enquiries, keep customer follow-ups moving, and prepare quotations from one daily workspace."}
+                    ? "Customer orders now continue through Sales Order release, Project 360, and an accountable Sales-to-Workshop handoff."
+                    : "Review new enquiries, keep customer follow-ups moving, prepare quotations, and release confirmed Sales Orders from one daily workspace."}
                 </CardDescription>
               </div>
               <ServerCog aria-hidden="true" className="opacity-40" />
@@ -72,7 +95,7 @@ export default function DashboardPage() {
               : [
                   ["New business", "Review and claim enquiries"],
                   ["Customer response", "Keep follow-ups on time"],
-                  ["Commercial work", "Prepare and track quotations"],
+                  ["Commercial work", "Quotation through Sales Order"],
                 ]
             ).map(([label, value]) => (
               <div key={label} className="border-l-2 border-primary pl-4">
@@ -88,9 +111,10 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col gap-4">
             <div><div className="mb-2 flex justify-between text-sm"><span>Phase 1A–H</span><span>Implemented</span></div><Progress value={100} /></div>
             <div><div className="mb-2 flex justify-between text-sm"><span>Phase 2 commercial CRM</span><span>Through quotation handoff</span></div><Progress value={100} /></div>
+            <div><div className="mb-2 flex justify-between text-sm"><span>Phase 3 order-to-project</span><span>Core operational flow</span></div><Progress value={100} /></div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="border p-3"><p className="font-semibold">Live scope</p><p className="text-muted-foreground">Enquiry to quotation handoff</p></div>
-              <div className="border p-3"><p className="font-semibold">Next gate</p><p className="text-muted-foreground">Sales Order and operations</p></div>
+              <div className="border p-3"><p className="font-semibold">Live scope</p><p className="text-muted-foreground">Enquiry to Workshop handoff</p></div>
+              <div className="border p-3"><p className="font-semibold">Next gate</p><p className="text-muted-foreground">Detailed Engineering</p></div>
             </div>
           </CardContent>
         </Card> : null}
@@ -121,21 +145,37 @@ export default function DashboardPage() {
         })}
       </section>
 
-      {hasPermission(user, "crm.external_enquiry.review") || hasPermission(user, "crm.quotation.create") ? (
+      {isSalesWorkspace ? <section className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
         <Card className="border-primary/25">
-          <CardHeader><CardTitle>Commercial quick actions</CardTitle><CardDescription>Start from the real business event; each path enters the controlled CRM workflow.</CardDescription></CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            {hasPermission(user, "crm.external_enquiry.review") ? <Button render={<Link to="/app/crm/incoming-enquiries" />} nativeButton={false}><Inbox data-icon="inline-start" />Review or capture enquiry</Button> : null}
-            {hasPermission(user, "crm.quotation.create") ? <Button variant="outline" render={<Link to="/app/crm/quotations" />} nativeButton={false}><FileText data-icon="inline-start" />Create quotation</Button> : null}
+          <CardHeader><CardTitle>Your daily sales flow</CardTitle><CardDescription>Follow these steps from a new enquiry to a clear Workshop handoff. Open the step that needs attention today.</CardDescription></CardHeader>
+          <CardContent><ol className="grid gap-3 sm:grid-cols-2">
+            {visibleSalesJourney.map((step, index) => <li key={step.title} className="flex gap-3 rounded-lg border p-4">
+              <Badge className="size-7 shrink-0 justify-center rounded-full">{index + 1}</Badge>
+              <div className="min-w-0 flex-1"><p className="font-semibold">{step.title}</p><p className="mt-1 text-sm leading-5 text-muted-foreground">{step.description}</p><Button className="mt-3 px-0" variant="link" render={<Link to={step.href} />} nativeButton={false}>Open this step<ArrowRight data-icon="inline-end" /></Button></div>
+            </li>)}
+          </ol></CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Your access</CardTitle><CardDescription>This is what the current {roleName} role can do—not a technical permission list.</CardDescription></CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {salesAccess.map((item) => {
+              const level = item.canWork ? "Work" : item.canView ? "View" : "Restricted"
+              return <div key={item.label} className="flex items-start justify-between gap-3 border-b pb-3 last:border-b-0 last:pb-0"><div><p className="text-sm font-medium">{item.label}</p><p className="text-xs leading-5 text-muted-foreground">{item.detail}</p></div><Badge variant={level === "Work" ? "default" : level === "View" ? "secondary" : "outline"}>{level}</Badge></div>
+            })}
+            <Alert>
+              <AlertTitle>Manager-controlled actions</AlertTitle>
+              <AlertDescription>{hasPermission(user, "sales.sales_order.release") ? "You can release an approved Sales Order. Approval still follows the configured workflow." : "You prepare and submit the Sales Order. Approval, release, cancellation, and critical PO-difference acceptance stay with an authorized manager."}</AlertDescription>
+            </Alert>
           </CardContent>
         </Card>
-      ) : null}
+      </section> : null}
 
       {canWorkEngineering || canAdminister ? <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         {canWorkEngineering ? <Card>
           <CardHeader>
             <div className="flex items-start justify-between gap-4">
-              <div><CardTitle>Engineering canvas</CardTitle><CardDescription>Drawing and BOM experience direction</CardDescription></div>
+              <div><CardTitle>Future Detailed Engineering</CardTitle><CardDescription>Drawing and BOM experience direction</CardDescription></div>
               <PencilRuler aria-hidden="true" className="text-primary" />
             </div>
           </CardHeader>
@@ -145,7 +185,7 @@ export default function DashboardPage() {
                 <PencilRuler aria-hidden="true" className="mx-auto mb-4 text-primary" />
                 <h3 className="font-semibold">Drawing intelligence stays central to the product vision.</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Controlled drawing files can now be uploaded, versioned, linked, approved, and audited. The rich CAD/BOM canvas from Project 360 remains a later Engineering phase and is not falsely simulated here.
+                  Controlled drawing files can now be uploaded, versioned, linked, approved, and audited. The rich CAD/BOM canvas from Project 360 remains a later Detailed Engineering phase and is not falsely simulated here.
                 </p>
               </div>
             </div>

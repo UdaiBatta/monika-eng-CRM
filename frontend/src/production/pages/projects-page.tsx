@@ -1,0 +1,41 @@
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowUpRight, CircleAlert, FolderKanban, Search, UserRoundCheck } from "lucide-react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ERPEmptyState, ERPErrorState, ERPLoadingState, ERPPageHeader, ERPStatusBadge } from "@/production/components/shared";
+import { apiGet } from "@/production/lib/api";
+import { employeeLabel, statusLabel } from "@/production/lib/terminology";
+import type { Project } from "@/production/lib/sales-types";
+import type { Paginated } from "@/production/lib/types";
+
+export default function ProjectsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const engineeringView = location.pathname.includes("/engineering/");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const queue = searchParams.get("queue") || (engineeringView ? "engineering" : "team");
+  const params = useMemo(() => { const next = new URLSearchParams({ page_size: "50", ordering: "-updated_at" }); if (search) next.set("search", search); if (status) next.set("status", status); if (queue !== "team") next.set("queue", queue); return next; }, [queue, search, status]);
+  const query = useQuery({ queryKey: ["projects", params.toString()], queryFn: () => apiGet<Paginated<Project>>(`/projects/?${params}`) });
+  const results = query.data?.results ?? [];
+  const unassigned = results.filter((item) => !item.engineering_owner_name && item.engineering_handoff.status === "READY_FOR_ENGINEERING").length;
+  const clarifications = results.reduce((count, item) => count + item.open_clarification_count, 0);
+  const changeAlerts = results.filter((item) => item.commercial_change_pending).length;
+  const changeQueue = (value: string) => setSearchParams(value === "team" ? {} : { queue: value }, { replace: true });
+
+  return <div className="mx-auto flex max-w-[1580px] flex-col gap-5">
+    <ERPPageHeader eyebrow={engineeringView ? "Workshop · Daily work" : "Operations · Project register"} title={engineeringView ? "Workshop Work" : "Projects"} description={engineeringView ? "Take new commercial handoffs, resolve Sales questions, and accept only when the requirement is clear." : "The operational record created from a released Sales Order, with one commercial baseline and a clear Workshop handoff."} />
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Card className="border-primary/30"><CardContent className="p-4"><FolderKanban className="mb-2 text-primary" /><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Visible projects</p><p className="mt-1 text-2xl font-semibold">{query.data?.pagination.count ?? 0}</p></CardContent></Card><Card><CardContent className="p-4"><UserRoundCheck className="mb-2 text-status-warning" /><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Waiting for owner</p><p className="mt-1 text-2xl font-semibold text-status-warning">{unassigned}</p></CardContent></Card><Card><CardContent className="p-4"><CircleAlert className="mb-2 text-status-warning" /><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Open questions</p><p className="mt-1 text-2xl font-semibold">{clarifications}</p></CardContent></Card><Card><CardContent className="p-4"><CircleAlert className="mb-2 text-status-critical" /><p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">Commercial changes</p><p className="mt-1 text-2xl font-semibold text-status-critical">{changeAlerts}</p></CardContent></Card></div>
+    <Card><CardHeader className="gap-4 xl:flex-row xl:items-end xl:justify-between"><div><CardTitle>{engineeringView ? "Workshop handoff queue" : "Project register"}</CardTitle><CardDescription>{engineeringView ? "Unassigned and assigned-to-me are explicit so two Workshop employees do not unknowingly take the same project." : "Open Project 360 for the commercial baseline, ownership, handoff, documents, and activity."}</CardDescription></div><div className="grid w-full gap-2 sm:grid-cols-[1fr_190px_170px] xl:max-w-3xl"><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); setSearch(searchInput); }}><Input aria-label="Search projects" placeholder="Project, customer, order or PO…" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} /><Button type="submit" variant="outline"><Search /></Button></form><NativeSelect aria-label="Project status" value={status} onChange={(event) => setStatus(event.target.value)}><NativeSelectOption value="">All statuses</NativeSelectOption>{["NEW", "HANDOFF_PENDING", "ENGINEERING_REVIEW", "ENGINEERING_ACCEPTED", "ON_HOLD", "CANCELLED"].map((item) => <NativeSelectOption key={item} value={item}>{statusLabel(item)}</NativeSelectOption>)}</NativeSelect><NativeSelect aria-label="Project work queue" value={queue} onChange={(event) => changeQueue(event.target.value)}><NativeSelectOption value="team">All projects</NativeSelectOption><NativeSelectOption value="engineering">Workshop queue</NativeSelectOption><NativeSelectOption value="unassigned">Unassigned</NativeSelectOption><NativeSelectOption value="mine">Assigned to me</NativeSelectOption></NativeSelect></div></CardHeader><CardContent>
+      {query.isPending ? <ERPLoadingState rows={8} /> : query.isError ? <ERPErrorState message={query.error.message} /> : !results.length ? <ERPEmptyState title="No projects in this queue" description={queue === "unassigned" ? "New Sales handoffs appear here as soon as they are submitted." : "A Project is created only after a Sales Order is released and marked as project work."} /> : <><div className="hidden overflow-x-auto md:block"><Table><TableHeader><TableRow><TableHead>Project / customer</TableHead><TableHead>Status</TableHead><TableHead>Commercial baseline</TableHead><TableHead>Sales owner</TableHead><TableHead>Workshop owner</TableHead><TableHead>Target</TableHead><TableHead>Next action</TableHead><TableHead /></TableRow></TableHeader><TableBody>{results.map((project) => <TableRow key={project.id} className="cursor-pointer" onClick={() => navigate(`/app/projects/${project.id}`)}><TableCell><p className="font-semibold">{project.project_number}</p><p className="text-xs text-muted-foreground">{project.customer_name} · {project.project_name}</p></TableCell><TableCell><div className="flex flex-col items-start gap-1"><ERPStatusBadge value={project.status} label={project.status_label} />{project.commercial_change_pending ? <ERPStatusBadge value="ACTION_REQUIRED" label="Commercial change" /> : null}</div></TableCell><TableCell>{project.current_commercial_baseline}</TableCell><TableCell>{project.sales_owner_name}</TableCell><TableCell>{project.engineering_owner_name || "Unassigned"}</TableCell><TableCell>{project.target_completion || "Not set"}</TableCell><TableCell className="max-w-64 text-sm">{employeeLabel(project.next_action)}</TableCell><TableCell><Button variant="ghost" size="icon" aria-label={`Open ${project.project_number}`}><ArrowUpRight /></Button></TableCell></TableRow>)}</TableBody></Table></div><div className="grid gap-3 md:hidden">{results.map((project) => <button key={project.id} onClick={() => navigate(`/app/projects/${project.id}`)} className="rounded-lg border p-4 text-left"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{project.project_number}</p><p className="text-xs text-muted-foreground">{project.customer_name}</p></div><ERPStatusBadge value={project.status} /></div><p className="mt-3 text-sm">{employeeLabel(project.next_action)}</p><p className="mt-2 text-xs text-muted-foreground">Workshop: {project.engineering_owner_name || "Unassigned"}</p></button>)}</div></>}
+    </CardContent></Card>
+  </div>;
+}

@@ -10,7 +10,7 @@ class CompanySettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CompanySettings
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "record_version", "created_at", "updated_at"]
 
 
 class FeatureFlagSerializer(serializers.ModelSerializer):
@@ -19,4 +19,4 @@ class FeatureFlagSerializer(serializers.ModelSerializer):
     class Meta:
         model = FeatureFlag
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "record_version", "created_at", "updated_at"]

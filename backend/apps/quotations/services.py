@@ -7,6 +7,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.approvals.models import ApprovalRequest
 from apps.approvals.services import create_approval_request
+from apps.configuration.features import is_feature_enabled
 from apps.core.conflicts import VersionConflict
 from apps.core.domain_events import DomainEvent, publish
 from apps.crm.models import Customer
@@ -159,6 +160,8 @@ def create_quotation(*, actor, data):
     path = data["path"]
     if path == Quotation.Path.QUICK:
         _require(actor, "crm.quotation.quick_create", {"company": owner.company_id})
+        if not is_feature_enabled(owner.company, "quick_quotation"):
+            raise ValidationError("Quick quotation is disabled by the Owner.")
         if not data.get("quick_reason", "").strip():
             raise ValidationError({"quick_reason": ["Explain why this quick quotation is needed."]})
     customer = Customer.objects.filter(pk=data["customer_id"], company_id=owner.company_id).first()

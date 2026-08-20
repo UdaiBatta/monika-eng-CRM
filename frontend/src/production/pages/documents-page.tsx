@@ -49,7 +49,7 @@ function validateFile(file: File | null, category?: Category) {
   return ""
 }
 
-function ERPDocumentUpload({ onUploaded }: { onUploaded: (document: ERPDocument) => void }) {
+export function ERPDocumentUpload({ onUploaded }: { onUploaded: (document: ERPDocument) => void }) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [categoryId, setCategoryId] = useState("")
@@ -200,7 +200,7 @@ export default function DocumentsPage() {
   if (!canView) return <ERPPermissionState />
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col gap-5">
-      <ERPPageHeader eyebrow="Shared services" title="Documents" description="Private engineering and business files with controlled access, complete version history, and meaningful activity records." actions={canUpload ? <ERPDocumentUpload onUploaded={(document) => { queryClient.invalidateQueries({ queryKey: ["documents"] }); navigate(`/app/documents/${document.id}`) }} /> : undefined} />
+      <ERPPageHeader eyebrow="Shared services" title="Documents" description="Private technical and business files with controlled access, complete version history, and meaningful activity records." actions={canUpload ? <ERPDocumentUpload onUploaded={(document) => { queryClient.invalidateQueries({ queryKey: ["documents"] }); navigate(`/app/documents/${document.id}`) }} /> : undefined} />
       <section className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border bg-card p-4"><p className="text-xs uppercase tracking-wider text-muted-foreground">Available documents</p><p className="mt-1 text-2xl font-semibold">{query.data?.pagination.count ?? "—"}</p></div>
         <div className="rounded-lg border bg-card p-4"><p className="text-xs uppercase tracking-wider text-muted-foreground">Private by design</p><p className="mt-1 flex items-center gap-2 font-semibold"><ShieldCheck className="text-primary" />Backend authorized</p></div>

@@ -455,7 +455,7 @@ describe("Phase 2 commercial CRM frontend", () => {
       "/app/crm/enquiries/enquiry-1",
     );
     await user.click(
-      await screen.findByRole("button", { name: "Send to engineering" }),
+      await screen.findByRole("button", { name: "Send to Workshop" }),
     );
     await waitFor(() =>
       expect(mocks.apiPost).toHaveBeenCalledWith(
@@ -541,7 +541,7 @@ describe("Phase 2 commercial CRM frontend", () => {
     expect(await screen.findByText("MCC control panel")).toBeInTheDocument();
     expect(screen.getByText(/ABC Industries Pvt\. Ltd\./)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /My reviews/ }),
+      screen.getByRole("button", { name: /My Work/ }),
     ).toBeInTheDocument();
     expect(mocks.apiGet).toHaveBeenCalledWith(
       expect.stringContaining("/engineering-reviews/?queue=mine"),

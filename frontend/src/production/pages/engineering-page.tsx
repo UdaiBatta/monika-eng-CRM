@@ -44,24 +44,24 @@ const queues = [
   {
     key: "unassigned",
     label: "Unassigned",
-    description: "Needs engineering owner",
+    description: "Needs a Workshop owner",
     icon: Inbox,
   },
   {
     key: "mine",
-    label: "My reviews",
+    label: "My Work",
     description: "Assigned to me",
     icon: UserCheck,
   },
   {
     key: "in_review",
-    label: "In review",
-    description: "Assessment active",
+    label: "Team Work",
+    description: "Workshop is reviewing",
     icon: ClipboardCheck,
   },
   {
     key: "clarification",
-    label: "Clarification",
+    label: "Needs Attention",
     description: "Waiting for answers",
     icon: AlertTriangle,
   },
@@ -108,15 +108,15 @@ export default function EngineeringPage() {
     return (
       <ERPEmptyState
         title="Access restricted"
-        description="You do not have permission to view engineering feasibility reviews."
+        description="You do not have permission to view Workshop Reviews."
       />
     );
   return (
     <div className="mx-auto flex max-w-[1580px] flex-col gap-5">
       <ERPPageHeader
-        eyebrow="Engineering / Commercial handoff"
-        title="Feasibility work queue"
-        description="Assign, assess, clarify, decide, and release a controlled technical conclusion back to Commercial."
+        eyebrow="Workshop · Daily work"
+        title="My Workshop Work"
+        description="Review practical requirements, resolve Sales questions, and confirm whether work can proceed."
       />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {queues.map((item, index) => {
@@ -157,7 +157,7 @@ export default function EngineeringPage() {
               {queues.find((item) => item.key === queue)?.label}
             </CardTitle>
             <CardDescription>
-              {query.data?.pagination.count ?? 0} engineering reviews in this
+              {query.data?.pagination.count ?? 0} Workshop Reviews in this
               queue
             </CardDescription>
           </div>
@@ -171,7 +171,7 @@ export default function EngineeringPage() {
           >
             <Field>
               <FieldLabel htmlFor="engineering-search" className="sr-only">
-                Search engineering reviews
+                Search Workshop Reviews
               </FieldLabel>
               <Input
                 id="engineering-search"
@@ -194,7 +194,7 @@ export default function EngineeringPage() {
           ) : !query.data.results.length ? (
             <ERPEmptyState
               title="This queue is clear"
-              description="There are no engineering reviews matching the current queue and search."
+              description="There are no Workshop Reviews matching this queue and search."
             />
           ) : (
             <div className="overflow-x-auto">
@@ -203,7 +203,7 @@ export default function EngineeringPage() {
                   <TableRow>
                     <TableHead>Enquiry / customer</TableHead>
                     <TableHead>Review</TableHead>
-                    <TableHead>Engineer</TableHead>
+                    <TableHead>Workshop owner</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Priority</TableHead>
                     <TableHead>Response due</TableHead>

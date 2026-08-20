@@ -164,7 +164,7 @@ def test_estimate_requires_ready_engineering_and_uses_controlled_numbering(
     review.completed_by = None
     review.save()
 
-    with pytest.raises(ValidationError, match="feasible"):
+    with pytest.raises(ValidationError, match="Workshop approval"):
         create_estimate(enquiry_id=enquiry.pk, actor=admin)
 
     review.status = EngineeringFeasibilityReview.Status.FEASIBLE

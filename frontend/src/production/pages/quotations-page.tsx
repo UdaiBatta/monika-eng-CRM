@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ERPEmptyState, ERPErrorState, ERPLoadingState, ERPPageHeader, ERPStatusBadge, formatDateTime } from "@/production/components/shared";
 import { apiGet, apiPost } from "@/production/lib/api";
-import { hasPermission, useCurrentUser } from "@/production/lib/auth";
+import { hasFeature, hasPermission, useCurrentUser } from "@/production/lib/auth";
 import type { CommercialEstimate, Customer, Quotation } from "@/production/lib/crm-types";
 import type { Paginated } from "@/production/lib/types";
 
@@ -35,6 +35,7 @@ function money(value: string, currency = "INR") {
 export default function QuotationsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const requestedEstimate = searchParams.get("estimate") ?? "";
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
   const [page, setPage] = useState(1);
@@ -43,10 +44,11 @@ export default function QuotationsPage() {
   const [status, setStatus] = useState("");
   const [path, setPath] = useState("");
   const queue = searchParams.get("queue") === "mine" ? "mine" : "team";
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(Boolean(requestedEstimate));
   const [createPath, setCreatePath] = useState<"STANDARD" | "QUICK">("STANDARD");
-  const [estimateId, setEstimateId] = useState("");
+  const [estimateId, setEstimateId] = useState(requestedEstimate);
   const [quick, setQuick] = useState(blankQuick);
+  const quickQuotationEnabled = hasFeature(user, "quick_quotation");
 
   const params = useMemo(() => {
     const next = new URLSearchParams({ page: String(page), page_size: "25", ordering: "-updated_at" });
@@ -155,7 +157,7 @@ export default function QuotationsPage() {
           <DialogHeader><DialogTitle>Start a quotation</DialogTitle><DialogDescription>Use the approved-estimate path by default. Quick quotations are intentionally explicit and permission controlled.</DialogDescription></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <button type="button" onClick={() => setCreatePath("STANDARD")} className={`rounded-lg border p-4 text-left ${createPath === "STANDARD" ? "border-primary bg-primary/[0.04]" : ""}`}><ShieldCheck className="mb-3 text-status-success" /><p className="font-semibold">Standard</p><p className="mt-1 text-xs text-muted-foreground">Approved estimate, customer-safe price only.</p></button>
-            <button type="button" disabled={!hasPermission(user, "crm.quotation.quick_create")} onClick={() => setCreatePath("QUICK")} className={`rounded-lg border p-4 text-left disabled:cursor-not-allowed disabled:opacity-50 ${createPath === "QUICK" ? "border-primary bg-primary/[0.04]" : ""}`}><Zap className="mb-3 text-primary" /><p className="font-semibold">Quick</p><p className="mt-1 text-xs text-muted-foreground">Direct commercial offer with a mandatory reason.</p></button>
+            <button type="button" disabled={!hasPermission(user, "crm.quotation.quick_create") || !quickQuotationEnabled} onClick={() => setCreatePath("QUICK")} className={`rounded-lg border p-4 text-left disabled:cursor-not-allowed disabled:opacity-50 ${createPath === "QUICK" ? "border-primary bg-primary/[0.04]" : ""}`}><Zap className="mb-3 text-primary" /><p className="font-semibold">Quick</p><p className="mt-1 text-xs text-muted-foreground">{quickQuotationEnabled ? "Direct commercial offer with a mandatory reason." : "Disabled by the Owner; use an approved estimate."}</p></button>
           </div>
           {createPath === "STANDARD" ? (estimates.isPending ? <ERPLoadingState rows={3} /> : estimates.isError ? <ERPErrorState message={estimates.error.message} /> : <Field><FieldLabel htmlFor="quotation-estimate">Approved current estimate</FieldLabel><NativeSelect id="quotation-estimate" value={estimateId} onChange={(event) => setEstimateId(event.target.value)}><NativeSelectOption value="">Choose estimate</NativeSelectOption>{estimates.data?.results.map((estimate) => <NativeSelectOption key={estimate.id} value={estimate.id}>{estimate.estimate_number} · {estimate.customer_name} · {money(estimate.proposed_selling_price ?? "0", estimate.currency_code)}</NativeSelectOption>)}</NativeSelect><FieldDescription>Internal cost and margin are not copied to the quotation.</FieldDescription></Field>) : <div className="grid gap-4 sm:grid-cols-2">
             <Field className="sm:col-span-2"><FieldLabel htmlFor="quick-customer">Customer</FieldLabel><NativeSelect id="quick-customer" value={quick.customer_id} onChange={(event) => updateQuick("customer_id", event.target.value)}><NativeSelectOption value="">Choose customer</NativeSelectOption>{customers.data?.results.filter((customer) => ["ACTIVE", "PROSPECT"].includes(customer.status)).map((customer) => <NativeSelectOption key={customer.id} value={customer.id}>{customer.legal_name} · {customer.customer_code}</NativeSelectOption>)}</NativeSelect></Field>

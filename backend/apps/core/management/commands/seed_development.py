@@ -70,6 +70,8 @@ class Command(BaseCommand):
             ("ENQUIRY", "ENQ-{year}-{number}", 4),
             ("ESTIMATE", "EST-{year}-{number}", 4),
             ("QUOTATION", "QUO-{year}-{number}", 4),
+            ("SO", "SO-{year}-{number}", 4),
+            ("PRJ", "PRJ-{year}-{number}", 4),
         ):
             DocumentSequence.objects.get_or_create(
                 company=company,

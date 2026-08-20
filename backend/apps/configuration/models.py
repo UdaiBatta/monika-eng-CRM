@@ -1,12 +1,12 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from apps.core.models import TimeStampedModel
+from apps.core.models import VersionedModel
 from apps.masters.models import Currency
 from apps.organization.models import Company
 
 
-class CompanySettings(TimeStampedModel):
+class CompanySettings(VersionedModel):
     company = models.OneToOneField(Company, on_delete=models.CASCADE, related_name="settings")
     timezone = models.CharField(max_length=64, default="Asia/Kolkata")
     country_code = models.CharField(max_length=2, default="IN")
@@ -25,7 +25,7 @@ class CompanySettings(TimeStampedModel):
         return f"Settings · {self.company.name}"
 
 
-class FeatureFlag(TimeStampedModel):
+class FeatureFlag(VersionedModel):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="feature_flags")
     key = models.CharField(max_length=100)
     description = models.CharField(max_length=250, blank=True)

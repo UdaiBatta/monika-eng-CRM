@@ -100,7 +100,7 @@ def handle_domain_event(event):
                 company=event.company_id,
                 notification_type="ENGINEERING_REVIEW_ASSIGNED",
                 severity=Notification.Severity.ACTION_REQUIRED,
-                title="Engineering review assigned",
+                title="Workshop Review assigned",
                 message=event.summary,
                 entity_type=event.entity_type,
                 entity_id=event.entity_id,
@@ -115,7 +115,7 @@ def handle_domain_event(event):
                 company=event.company_id,
                 notification_type=event.event_name.upper().replace(".", "_"),
                 severity=Notification.Severity.ACTION_REQUIRED,
-                title="Engineering clarification needs attention",
+                title="Workshop clarification needs attention",
                 message=event.summary,
                 entity_type=event.entity_type,
                 entity_id=event.entity_id,
@@ -132,7 +132,7 @@ def handle_domain_event(event):
                 severity=Notification.Severity.SUCCESS
                 if event.event_name.endswith("completed")
                 else Notification.Severity.WARNING,
-                title="Engineering feasibility completed",
+                title="Workshop Review completed",
                 message=event.summary,
                 entity_type=event.entity_type,
                 entity_id=event.entity_id,

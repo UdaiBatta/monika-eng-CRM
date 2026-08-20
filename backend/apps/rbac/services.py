@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .models import PermissionOverride, RoleAssignment, ScopeType
+from .models import Permission, PermissionOverride, RoleAssignment, ScopeType
 
 
 @dataclass(frozen=True)
@@ -103,13 +103,70 @@ def has_permission(user, permission_code, context=None):
 
 
 def effective_permission_codes(user, context=None):
-    from .models import Permission
-
     return [
         code
         for code in Permission.objects.filter(is_active=True).values_list("code", flat=True)
         if has_permission(user, code, context)
     ]
+
+
+def explain_permission(user, permission_code, context=None):
+    permission = Permission.objects.filter(code=permission_code, is_active=True).first()
+    resolved = context_from(context, user)
+    base = {
+        "allowed": False,
+        "permission": permission_code,
+        "permission_name": permission.name if permission else "Unknown permission",
+        "scope": {
+            "company_id": str(resolved.company_id or ""),
+            "branch_id": str(resolved.branch_id or ""),
+            "department_id": str(resolved.department_id or ""),
+            "warehouse_id": str(resolved.warehouse_id or ""),
+        },
+        "roles": [],
+        "overrides": [],
+    }
+    if not user.is_active:
+        return {**base, "reason": "This account is disabled."}
+    if not permission:
+        return {**base, "reason": "This permission is not available."}
+    if user.is_superuser:
+        return {**base, "allowed": True, "reason": "Allowed by technical System Superuser access."}
+
+    overrides = PermissionOverride.objects.select_related("permission").filter(
+        user=user, permission=permission, is_active=True
+    )
+    matching_overrides = [item for item in overrides if _scope_matches(item, resolved, user)]
+    base["overrides"] = [
+        {
+            "effect": item.effect,
+            "scope": item.get_scope_type_display(),
+            "reason": item.reason or "No reason recorded",
+        }
+        for item in matching_overrides
+    ]
+    if any(item.effect == PermissionOverride.Effect.DENY for item in matching_overrides):
+        return {**base, "reason": "Denied by a direct Deny override. Deny takes priority."}
+    if any(item.effect == PermissionOverride.Effect.ALLOW for item in matching_overrides):
+        return {**base, "allowed": True, "reason": "Allowed by a direct Allow override."}
+
+    assignments = (
+        RoleAssignment.objects.select_related("role")
+        .filter(
+            user=user,
+            is_active=True,
+            role__is_active=True,
+            role__permissions=permission,
+        )
+        .distinct()
+    )
+    matching_roles = [item for item in assignments if _scope_matches(item, resolved, user)]
+    base["roles"] = [
+        {"name": item.role.name, "scope": item.get_scope_type_display()} for item in matching_roles
+    ]
+    if matching_roles:
+        return {**base, "allowed": True, "reason": "Allowed by an assigned role."}
+    return {**base, "reason": "No matching role or direct Allow override grants this action."}
 
 
 def authorized_queryset(user, permission_code, queryset):

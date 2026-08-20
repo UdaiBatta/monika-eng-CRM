@@ -89,7 +89,7 @@ def transition_enquiry(*, enquiry_id, actor, target_status, permission, reason="
 
             review = enquiry.engineering_reviews.filter(is_current=True).first()
             if not is_ready_for_estimation(review):
-                raise ValidationError("The current engineering review is not ready for estimation.")
+                raise ValidationError("The current Workshop Review is not ready for estimation.")
         old_status = enquiry.status
         enquiry.status = target_status
         enquiry.updated_by = actor

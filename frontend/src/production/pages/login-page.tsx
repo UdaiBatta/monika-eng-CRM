@@ -65,7 +65,7 @@ export default function LoginPage() {
         <div className="relative max-w-2xl">
           <Badge variant="secondary" className="mb-6">Production foundation · Phase 1</Badge>
           <h1 className="max-w-xl text-5xl font-semibold leading-[1.04] tracking-[-0.04em]">
-            One controlled workspace for engineering operations.
+            One controlled workspace for sales and Workshop operations.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-white/65">
             The Axis project-first experience, now connected to a secure Django foundation built for Monika Engineers.

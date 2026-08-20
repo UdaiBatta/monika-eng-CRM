@@ -34,6 +34,7 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     email = models.EmailField(unique=True)
+    record_version = models.PositiveIntegerField(default=1)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

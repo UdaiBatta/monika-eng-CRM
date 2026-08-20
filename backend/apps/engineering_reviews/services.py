@@ -31,7 +31,7 @@ def _employee_id(user):
 
 def _require(user, permission, entity):
     if not has_permission(user, permission, entity):
-        raise PermissionDenied("You do not have permission to change this engineering review.")
+        raise PermissionDenied("You do not have permission to change this Workshop Review.")
 
 
 def review_event(review, actor, event_name, action, summary, *, metadata=None, changes=None):
@@ -139,7 +139,7 @@ def create_review_for_enquiry(*, enquiry, actor):
             actor,
             "engineering.review.created",
             "CREATE",
-            f"Engineering feasibility review created for {enquiry.enquiry_number}",
+            f"Workshop Review created for {enquiry.enquiry_number}",
         )
     )
     return review
@@ -154,7 +154,7 @@ def assign_review(*, review_id, engineer_id, actor):
         )
         _require(actor, "engineering.feasibility.assign", review)
         if review.status in COMPLETED_REVIEW_STATUSES:
-            raise ValidationError("A completed engineering review cannot be reassigned.")
+            raise ValidationError("A completed Workshop Review cannot be reassigned.")
         try:
             engineer = Employee.objects.select_related("user").get(
                 pk=engineer_id,
@@ -163,7 +163,7 @@ def assign_review(*, review_id, engineer_id, actor):
                 user__is_active=True,
             )
         except Employee.DoesNotExist as exc:
-            raise ValidationError("Choose an active engineer from this company.") from exc
+            raise ValidationError("Choose an active Workshop employee from this company.") from exc
         previous = review.assigned_engineer_id
         review.assigned_engineer = engineer
         review.save(update_fields=["assigned_engineer", "updated_at"])
@@ -173,7 +173,7 @@ def assign_review(*, review_id, engineer_id, actor):
                 actor,
                 "engineering.review.assigned",
                 "ASSIGN",
-                f"{review} assigned to {engineer.display_name}",
+                f"Workshop Review {review.revision_number} assigned to {engineer.display_name}",
                 metadata={"recipient_user_id": str(engineer.user_id)},
                 changes={"assigned_engineer": {"old": str(previous or ""), "new": str(engineer.pk)}},
             )
@@ -190,9 +190,9 @@ def start_review(*, review_id, actor):
         )
         _require(actor, "engineering.feasibility.start", review)
         if review.status != EngineeringFeasibilityReview.Status.PENDING:
-            raise ValidationError("Only a pending engineering review can be started.")
+            raise ValidationError("Only a pending Workshop Review can be started.")
         if not review.assigned_engineer_id:
-            raise ValidationError("Assign an engineer before starting the review.")
+            raise ValidationError("Assign a Workshop employee before starting the review.")
         old_status = review.status
         review.status = EngineeringFeasibilityReview.Status.IN_REVIEW
         review.started_at = timezone.now()
@@ -204,7 +204,7 @@ def start_review(*, review_id, actor):
                 actor,
                 "engineering.review.started",
                 "STATUS_CHANGE",
-                f"Engineering review started for {review.enquiry.enquiry_number}",
+                f"Workshop Review started for {review.enquiry.enquiry_number}",
                 changes={"status": {"old": old_status, "new": review.status}},
             )
         )
@@ -244,7 +244,7 @@ def update_assessment(*, review_id, actor, data):
             EngineeringFeasibilityReview.Status.IN_REVIEW,
             EngineeringFeasibilityReview.Status.CLARIFICATION_REQUIRED,
         }:
-            raise ValidationError("Only an active engineering review can be edited.")
+            raise ValidationError("Only an active Workshop Review can be edited.")
         changes = {}
         for field in ASSESSMENT_FIELDS:
             if field in data:
@@ -261,7 +261,7 @@ def update_assessment(*, review_id, actor, data):
                     actor,
                     "engineering.review.assessment_updated",
                     "UPDATE",
-                    f"Engineering assessment updated for {review.enquiry.enquiry_number}",
+                    f"Workshop assessment updated for {review.enquiry.enquiry_number}",
                     changes=changes,
                 )
             )
@@ -442,10 +442,10 @@ def complete_review(*, review_id, actor, result, completion_comment):
         if review.status != EngineeringFeasibilityReview.Status.IN_REVIEW:
             raise ValidationError("Only an active review with no outstanding clarification can be completed.")
         if review.clarifications.filter(status__in=UNRESOLVED_CLARIFICATIONS).exists():
-            raise ValidationError("Close all engineering clarifications before completing the review.")
+            raise ValidationError("Close all Workshop clarifications before completing the review.")
         if not review.technical_summary.strip():
             raise ValidationError(
-                {"technical_summary": ["Add the engineering conclusion before completing the review."]}
+                {"technical_summary": ["Add the Workshop conclusion before completing the review."]}
             )
         old_status = review.status
         review.status = EngineeringFeasibilityReview.Status.FEASIBLE
@@ -471,7 +471,7 @@ def complete_review(*, review_id, actor, result, completion_comment):
                 "engineering.review.completed",
                 "COMPLETE",
                 (
-                    f"{review.enquiry.enquiry_number} engineering review completed: "
+                    f"{review.enquiry.enquiry_number} Workshop Review completed: "
                     f"{review.get_result_display()}"
                 ),
                 metadata={
@@ -489,7 +489,9 @@ def complete_review(*, review_id, actor, result, completion_comment):
 
 def mark_not_feasible(*, review_id, actor, completion_comment):
     if not completion_comment.strip():
-        raise ValidationError({"completion_comment": ["Explain why the requirement is not feasible."]})
+        raise ValidationError(
+            {"completion_comment": ["Explain why the Workshop cannot approve the requirement."]}
+        )
     with transaction.atomic():
         review = (
             EngineeringFeasibilityReview.objects.select_for_update()
@@ -498,12 +500,12 @@ def mark_not_feasible(*, review_id, actor, completion_comment):
         )
         _require(actor, "engineering.feasibility.mark_not_feasible", review)
         if review.status != EngineeringFeasibilityReview.Status.IN_REVIEW:
-            raise ValidationError("Only an active review can be marked not feasible.")
+            raise ValidationError("Only an active Workshop Review can be marked as cannot approve.")
         if review.clarifications.filter(status__in=UNRESOLVED_CLARIFICATIONS).exists():
-            raise ValidationError("Close all engineering clarifications before completing the review.")
+            raise ValidationError("Close all Workshop clarifications before completing the review.")
         if not review.technical_summary.strip():
             raise ValidationError(
-                {"technical_summary": ["Add the engineering conclusion before completing the review."]}
+                {"technical_summary": ["Add the Workshop conclusion before completing the review."]}
             )
         old_status = review.status
         review.status = EngineeringFeasibilityReview.Status.NOT_FEASIBLE
@@ -527,7 +529,7 @@ def mark_not_feasible(*, review_id, actor, completion_comment):
                 actor,
                 "engineering.review.not_feasible",
                 "COMPLETE",
-                f"{review.enquiry.enquiry_number} is not feasible",
+                f"Workshop cannot approve {review.enquiry.enquiry_number}",
                 metadata={"recipient_user_id": str(review.enquiry.responsible_salesperson.user_id)},
                 changes={
                     "status": {"old": old_status, "new": review.status},
@@ -572,7 +574,7 @@ def reassess_review(*, review_id, actor, reason):
                 actor,
                 "engineering.review.superseded",
                 "STATUS_CHANGE",
-                f"Engineering review revision {current.revision_number} superseded",
+                f"Workshop Review revision {current.revision_number} superseded",
                 metadata={"reason": reason.strip(), "new_review_id": str(review.pk)},
                 changes={
                     "status": {"old": old_status, "new": current.status},
@@ -586,7 +588,7 @@ def reassess_review(*, review_id, actor, reason):
                 actor,
                 "engineering.review.reassessment_created",
                 "CREATE",
-                f"Engineering reassessment revision {review.revision_number} created",
+                f"Workshop reassessment revision {review.revision_number} created",
                 metadata={"reason": reason.strip(), "supersedes_id": str(current.pk)},
             )
         )

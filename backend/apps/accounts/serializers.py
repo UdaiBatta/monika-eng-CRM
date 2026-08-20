@@ -17,11 +17,12 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "is_active",
             "is_staff",
+            "record_version",
             "password",
             "last_login",
             "date_joined",
         ]
-        read_only_fields = ["id", "last_login", "date_joined"]
+        read_only_fields = ["id", "is_active", "is_staff", "record_version", "last_login", "date_joined"]
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)
@@ -41,6 +42,20 @@ class UserSerializer(serializers.ModelSerializer):
             instance.save(update_fields=["password"])
         return instance
 
+
+class UserDeactivateSerializer(serializers.Serializer):
+    reason = serializers.CharField(min_length=3, max_length=500)
+    open_work_action = serializers.ChoiceField(
+        choices=["LEAVE_TEMPORARILY", "REASSIGN"], required=False
+    )
+    replacement_employee_id = serializers.UUIDField(required=False)
+
+    def validate(self, attrs):
+        if attrs.get("open_work_action") == "REASSIGN" and not attrs.get("replacement_employee_id"):
+            raise serializers.ValidationError(
+                {"replacement_employee_id": "Choose who will receive the open work."}
+            )
+        return attrs
 
 class LoginSerializer(serializers.Serializer):
     identifier = serializers.CharField(max_length=254)

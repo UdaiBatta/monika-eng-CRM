@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -54,6 +54,7 @@ import {
   ERPEmptyState,
   ERPErrorState,
   ERPLoadingState,
+  NextActionPanel,
   ERPPageHeader,
   ERPStatusBadge,
   formatBytes,
@@ -95,7 +96,7 @@ function InfoBlock({
 function ReadyGate({ review }: { review: EngineeringReview }) {
   const checks = [
     {
-      label: "Engineering result",
+      label: "Workshop result",
       pass: review.status === "FEASIBLE",
       detail: review.result || "Not completed",
     },
@@ -202,17 +203,17 @@ export default function EngineeringReviewPage() {
       refresh();
       toast.success(
         variables.path.endsWith("/start/")
-          ? "Engineering review started."
+          ? "Workshop Review started."
           : "Review updated.",
       );
       if (review.id && review.id !== reviewId)
-        navigate(`/app/crm/engineering/${review.id}`, { replace: true });
+        navigate(`/app/workshop/reviews/${review.id}`, { replace: true });
     },
   });
   const closeClarification = useMutation({
     mutationFn: (id: string) =>
       apiPost(`/engineering-clarifications/${id}/close/`, {
-        closure_comment: "Response accepted by engineering.",
+        closure_comment: "Response accepted by Workshop.",
       }),
     onSuccess: () => {
       refresh();
@@ -223,14 +224,14 @@ export default function EngineeringReviewPage() {
     return (
       <ERPEmptyState
         title="Access restricted"
-        description="You do not have permission to view this engineering review."
+        description="You do not have permission to view this Workshop Review."
       />
     );
   if (query.isPending) return <ERPLoadingState rows={11} />;
   if (query.isError)
     return (
       <ERPErrorState
-        title="Engineering review could not be opened"
+        title="Workshop Review could not be opened"
         message={query.error.message}
       />
     );
@@ -249,26 +250,48 @@ export default function EngineeringReviewPage() {
   const canEdit = hasPermission(user, "engineering.feasibility.edit") && active;
   const panelTitle =
     panel?.kind === "assign"
-      ? "Assign engineering review"
+      ? "Assign Workshop Review"
       : panel?.kind === "clarify"
         ? "Request clarification"
         : panel?.kind === "respond"
           ? "Respond to clarification"
           : panel?.kind === "not-feasible"
             ? "Record not feasible decision"
-            : "Complete engineering feasibility";
+            : "Complete Workshop Review";
+  let nextTitle = "Review the customer requirement";
+  let nextDescription = "Check the customer scope, documents, Sales notes, and practical build requirements.";
+  let primaryAction: ReactNode = null;
+  if (review.status === "PENDING") {
+    nextTitle = review.assigned_engineer ? "Start the Workshop Review" : "Assign a Workshop owner";
+    nextDescription = review.assigned_engineer ? "Start when you are ready to assess the practical requirement." : "An active Workshop employee must own this review before work begins.";
+    primaryAction = hasPermission(user, "engineering.feasibility.start") ? <Button disabled={!review.assigned_engineer || command.isPending} onClick={() => command.mutate({ path: `/engineering-reviews/${review.id}/start/` })}><Play data-icon="inline-start" />Start Review</Button> : null;
+  } else if (review.status === "IN_REVIEW") {
+    nextTitle = "Record the Workshop decision";
+    nextDescription = "Approve when the requirement can be built and programmed as currently specified. Ask Sales when information is missing.";
+    primaryAction = hasPermission(user, "engineering.feasibility.complete") ? <Button onClick={() => setPanel({ kind: "complete" })}><CheckCircle2 data-icon="inline-start" />Mark Workshop Approved</Button> : null;
+  } else if (review.status === "CLARIFICATION_REQUIRED") {
+    nextTitle = "Waiting for Sales clarification";
+    nextDescription = "The Workshop Review can continue after Sales answers the open question.";
+  } else if (review.status === "FEASIBLE") {
+    nextTitle = "Workshop Approved";
+    nextDescription = "The requirement can proceed to the commercial estimate using this controlled Workshop decision.";
+    primaryAction = hasPermission(user, "estimation.estimate.create") ? <Button nativeButton={false} render={<Link to={`/app/crm/estimates?enquiry=${review.enquiry}`} />}>Prepare Estimate</Button> : null;
+  } else if (review.status === "NOT_FEASIBLE") {
+    nextTitle = "Workshop could not approve this requirement";
+    nextDescription = "Sales owns the customer outcome. Create a reassessment only when the requirement materially changes.";
+  }
   return (
     <div className="mx-auto flex max-w-[1580px] flex-col gap-5">
       <Button
         variant="ghost"
         className="w-fit"
-        onClick={() => navigate("/app/crm/engineering")}
+        onClick={() => navigate("/app/workshop")}
       >
         <ArrowLeft data-icon="inline-start" />
-        Engineering queue
+        Workshop queue
       </Button>
       <ERPPageHeader
-        eyebrow={`Engineering feasibility · Revision ${review.revision_number}`}
+        eyebrow={`Workshop Review · Revision ${review.revision_number}`}
         title={review.enquiry_subject}
         description={`${review.enquiry_number} · ${review.customer_name} · Current controlled technical review`}
         actions={
@@ -285,20 +308,6 @@ export default function EngineeringReviewPage() {
               >
                 <UserRoundCog data-icon="inline-start" />
                 Assign
-              </Button>
-            ) : null}
-            {review.status === "PENDING" &&
-            hasPermission(user, "engineering.feasibility.start") ? (
-              <Button
-                disabled={!review.assigned_engineer || command.isPending}
-                onClick={() =>
-                  command.mutate({
-                    path: `/engineering-reviews/${review.id}/start/`,
-                  })
-                }
-              >
-                <Play data-icon="inline-start" />
-                Start review
               </Button>
             ) : null}
           </>
@@ -338,7 +347,7 @@ export default function EngineeringReviewPage() {
             }
           />
           <InfoBlock
-            label="Engineer"
+            label="Workshop owner"
             value={review.assigned_engineer_name || "Unassigned"}
           />
           <InfoBlock label="Sales owner" value={review.sales_owner_name} />
@@ -364,7 +373,7 @@ export default function EngineeringReviewPage() {
         </CardContent>
       </Card>
       <ReadyGate review={review} />
-      <div className="flex flex-wrap gap-2">
+      <NextActionPanel status={review.status} statusText={review.result || undefined} title={nextTitle} description={nextDescription} primaryAction={primaryAction} secondaryActions={<>
         {active &&
         hasPermission(user, "engineering.feasibility.request_clarification") ? (
           <Button
@@ -372,14 +381,7 @@ export default function EngineeringReviewPage() {
             onClick={() => setPanel({ kind: "clarify" })}
           >
             <MessageSquareText data-icon="inline-start" />
-            Request clarification
-          </Button>
-        ) : null}
-        {review.status === "IN_REVIEW" &&
-        hasPermission(user, "engineering.feasibility.complete") ? (
-          <Button onClick={() => setPanel({ kind: "complete" })}>
-            <CheckCircle2 data-icon="inline-start" />
-            Complete feasible
+            Ask Sales for Clarification
           </Button>
         ) : null}
         {review.status === "IN_REVIEW" &&
@@ -389,7 +391,7 @@ export default function EngineeringReviewPage() {
             onClick={() => setPanel({ kind: "not-feasible" })}
           >
             <XCircle data-icon="inline-start" />
-            Not feasible
+            Workshop Cannot Approve
           </Button>
         ) : null}
         {["FEASIBLE", "NOT_FEASIBLE"].includes(review.status) &&
@@ -411,7 +413,7 @@ export default function EngineeringReviewPage() {
             Open approval
           </Button>
         ) : null}
-      </div>
+      </>} />
       <Tabs defaultValue="assessment">
         <div className="overflow-x-auto pb-1">
           <TabsList className="h-auto min-w-max justify-start">
@@ -430,7 +432,7 @@ export default function EngineeringReviewPage() {
         <TabsContent value="assessment" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Engineering assessment</CardTitle>
+              <CardTitle>Workshop assessment</CardTitle>
               <CardDescription>
                 {canEdit
                   ? "Record the technical basis, make/buy/test considerations, and preliminary effort."
@@ -447,7 +449,7 @@ export default function EngineeringReviewPage() {
                     value={review.technical_summary}
                   />
                   <InfoBlock
-                    label="Feasibility notes"
+                    label="Workshop decision notes"
                     value={review.feasibility_notes}
                   />
                   <InfoBlock label="Assumptions" value={review.assumptions} />
@@ -483,7 +485,7 @@ export default function EngineeringReviewPage() {
                   />
                   <InfoBlock
                     label="Indicative effort"
-                    value={`${review.engineering_hours ?? "—"} engineering h · ${review.manufacturing_hours ?? "—"} manufacturing h · ${review.lead_time_days ?? "—"} days`}
+                    value={`${review.engineering_hours ?? "—"} technical h · ${review.manufacturing_hours ?? "—"} manufacturing h · ${review.lead_time_days ?? "—"} days`}
                   />
                   <InfoBlock
                     label="Completion comment"
@@ -612,7 +614,7 @@ export default function EngineeringReviewPage() {
               <CardHeader>
                 <CardTitle>Requirements</CardTitle>
                 <CardDescription>
-                  Commercial scope passed into engineering.
+                  Commercial scope passed to Workshop.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -694,7 +696,7 @@ export default function EngineeringReviewPage() {
         <TabsContent value="documents" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Engineering documents</CardTitle>
+              <CardTitle>Workshop documents</CardTitle>
               <CardDescription>
                 Enquiry and review documents from the shared version-controlled
                 service.
@@ -777,7 +779,7 @@ export default function EngineeringReviewPage() {
               ) : (
                 <ERPEmptyState
                   title="No approval required"
-                  description="No active approval workflow matches this engineering review."
+                  description="No active approval workflow matches this Workshop Review."
                 />
               )}
             </CardContent>
@@ -786,7 +788,7 @@ export default function EngineeringReviewPage() {
         <TabsContent value="history" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Engineering audit history</CardTitle>
+              <CardTitle>Workshop audit history</CardTitle>
               <CardDescription>
                 Immutable business events for this review and its
                 clarifications.
@@ -807,7 +809,7 @@ export default function EngineeringReviewPage() {
                 </ol>
               ) : (
                 <ERPEmptyState
-                  title="No engineering history"
+                  title="No Workshop history"
                   description="Review commands will create immutable audit events here."
                 />
               )}
@@ -833,7 +835,7 @@ export default function EngineeringReviewPage() {
                       key={item.id}
                       type="button"
                       onClick={() =>
-                        navigate(`/app/crm/engineering/${item.id}`)
+                        navigate(`/app/workshop/reviews/${item.id}`)
                       }
                       className={`flex items-center justify-between gap-3 rounded-md border p-4 text-left ${item.id === review.id ? "border-primary bg-primary/10" : "hover:border-primary/40"}`}
                     >
@@ -858,7 +860,7 @@ export default function EngineeringReviewPage() {
               ) : (
                 <ERPEmptyState
                   title="No revision history"
-                  description="This is the first engineering review revision."
+                  description="This is the first Workshop Review revision."
                 />
               )}
             </CardContent>
@@ -913,7 +915,7 @@ export default function EngineeringReviewPage() {
       <Dialog open={showReassess} onOpenChange={setShowReassess}>
         <DialogContent className="axis-erp">
           <DialogHeader>
-            <DialogTitle>Create a new engineering revision?</DialogTitle>
+            <DialogTitle>Create a new Workshop Review revision?</DialogTitle>
             <DialogDescription>
               The current completed review will be preserved and marked
               superseded. A new pending revision becomes current.

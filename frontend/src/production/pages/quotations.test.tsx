@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
     is_staff: true,
     employee: { id: "employee-1", employee_code: "ME-001", display_name: "Development Administrator", company_id: "company-1" },
     permissions: ["crm.quotation.view", "crm.quotation.create", "crm.quotation.quick_create", "crm.quotation.change", "crm.quotation.finalize", "crm.quotation.send", "crm.quotation.negotiate", "crm.quotation.confirm", "crm.quotation.ready_for_sales_order", "crm.quotation.generate_document"],
+    features: ["quick_quotation"],
   } as CurrentUser,
 }));
 
@@ -32,6 +33,7 @@ vi.mock("@/production/lib/api", async (importOriginal) => ({
 vi.mock("@/production/lib/auth", () => ({
   useCurrentUser: () => ({ data: mocks.user }),
   hasPermission: (user: CurrentUser | undefined, permission: string) => Boolean(user?.permissions.includes(permission)),
+  hasFeature: (user: CurrentUser | undefined, feature: string) => Boolean(user?.features?.includes(feature)),
 }));
 vi.mock("@/production/lib/realtime", () => ({ useRealtimeEntity: () => [] }));
 
@@ -111,7 +113,7 @@ function renderAt(node: React.ReactNode, path: string) {
 
 describe("quotation frontend", () => {
   afterEach(() => cleanup());
-  beforeEach(() => { mocks.apiGet.mockReset(); mocks.apiPost.mockReset(); });
+  beforeEach(() => { mocks.apiGet.mockReset(); mocks.apiPost.mockReset(); mocks.user.features = ["quick_quotation"]; });
 
   it("renders the Axis register and creates a standard quotation from an approved estimate", async () => {
     mocks.apiGet.mockImplementation((path: string) => {
@@ -150,6 +152,18 @@ describe("quotation frontend", () => {
     await user.click(screen.getByRole("button", { name: "Create draft" }));
 
     await waitFor(() => expect(mocks.apiPost).toHaveBeenCalledWith("/quotations/", expect.objectContaining({ path: "QUICK", customer_id: "customer-1", quick_reason: "Standard replacement item with agreed pricing." })));
+  });
+
+  it("honours the Owner feature control even when the user has quick-quotation permission", async () => {
+    mocks.user.features = [];
+    mocks.apiGet.mockResolvedValue({ results: [], pagination: { ...pagination, count: 0 } });
+    const user = userEvent.setup();
+    renderAt(<QuotationsPage />, "/app/crm/quotations");
+
+    await user.click(await screen.findByRole("button", { name: "New quotation" }));
+
+    expect(screen.getByRole("button", { name: /Quick Disabled by the Owner/ })).toBeDisabled();
+    expect(screen.getByText("Disabled by the Owner; use an approved estimate.")).toBeInTheDocument();
   });
 
   it("saves a versioned quotation draft through the focused builder", async () => {

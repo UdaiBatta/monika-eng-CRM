@@ -31,7 +31,9 @@ export type CurrentUser = {
   is_active: boolean
   is_staff: boolean
   employee: EmployeeSummary | null
+  roles?: Array<{ name: string; scope: string }>
   permissions: string[]
+  features?: string[]
 }
 
 export type FoundationRecord = Record<string, unknown> & { id: Identifier }

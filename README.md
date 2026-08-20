@@ -1,8 +1,8 @@
 # Monika Engineers Integrated ERP
 
-Production Monika Engineers ERP/CRM foundation. Phase 1A-H and the Phase 2 incoming-enquiry-to-Ready-for-Sales-Order commercial CRM vertical slice are implemented as an Axis CRM-based React application backed by a Django modular monolith and PostgreSQL, with Channels/Redis/Celery available for production realtime and asynchronous workloads.
+Production Monika Engineers ERP/CRM foundation. Phase 1A-H, Phase 2 commercial CRM, and the Phase 3 Customer-Order-to-Workshop-Handoff core are implemented as an Axis CRM-based React application backed by a Django modular monolith and PostgreSQL, with Channels/Redis/Celery available for production realtime and asynchronous workloads.
 
-The current production path is unified Incoming Enquiry -> Human Review -> Customer/Contact -> Enquiry/RFQ -> Engineering Feasibility -> Commercial Estimation -> optional Shared Approval -> Quotation -> Communication/Negotiation -> Customer Confirmation -> Ready for Sales Order. Sales Order, Project execution, Drawing Management, BOM, purchasing, production, quality, dispatch, and service remain later phases.
+The employee-facing path is unified Incoming Enquiry -> Human Review -> Customer/Contact -> Enquiry/RFQ -> Workshop Review -> Commercial Estimation -> optional Shared Approval -> Quotation -> Customer Decision -> Customer PO received or pending -> Sales Order -> Release -> Project 360 -> Sales-to-Workshop Handoff -> Workshop Accepted. Compatibility-safe internal identifiers still use historical `engineering` names. Detailed Drawing Management, BOM, purchasing, inventory transactions, production, quality, dispatch, and service remain later phases.
 
 ## Architecture
 
@@ -14,6 +14,8 @@ The current production path is unified Incoming Enquiry -> Human Review -> Custo
 - `docs/phase-0/` - approved architecture and requirements baseline.
 - `docs/phase-1/` - implementation decisions, API and operating notes.
 - `docs/phase-2/` - commercial CRM design, operator guide, acceptance evidence, and traceability.
+- `docs/phase-3/` - Customer PO, Sales Order, Project 360, Engineering handoff, operator guide, acceptance, and traceability.
+- `docs/global-foundation/` - Owner Control Centre, multi-user working guides, and honest cross-cutting acceptance status.
 - `deploy/` - deployment notes; production provisioning remains a go-live activity.
 
 The browser uses same-origin session authentication and CSRF protection. Django owns authorization, validation, transactions, and persistence. `User` and `Employee` are separate records with an optional one-to-one link.
@@ -22,13 +24,20 @@ The browser uses same-origin session authentication and CSRF protection. Django 
 
 | Surface | URL |
 |---|---|
-| Production foundation | `http://127.0.0.1:5173/app` |
+| My Work | `http://127.0.0.1:5173/app` |
+| Enquiry workspace | `http://127.0.0.1:5173/app/enquiries` |
 | Customers | `http://127.0.0.1:5173/app/crm/customers` |
 | Enquiries and RFQs | `http://127.0.0.1:5173/app/crm/enquiries` |
-| Engineering reviews | `http://127.0.0.1:5173/app/crm/engineering` |
+| My Workshop Work | `http://127.0.0.1:5173/app/workshop` |
 | Incoming enquiries | `http://127.0.0.1:5173/app/crm/incoming-enquiries` |
 | Commercial estimates | `http://127.0.0.1:5173/app/crm/estimates` |
 | Quotations | `http://127.0.0.1:5173/app/crm/quotations` |
+| Quotations & Orders workspace | `http://127.0.0.1:5173/app/sales` |
+| Customer purchase orders | `http://127.0.0.1:5173/app/sales/customer-pos` |
+| Sales orders | `http://127.0.0.1:5173/app/sales/orders` |
+| Projects | `http://127.0.0.1:5173/app/projects` |
+| Legacy Workshop alias | `http://127.0.0.1:5173/app/engineering/work` |
+| Owner Control Centre | `http://127.0.0.1:5173/app/owner` |
 | Sign in | `http://127.0.0.1:5173/login` |
 | Preserved Axis mockup | `http://127.0.0.1:5173/mockups/axis?view=home` |
 | Project 360 reference | `http://127.0.0.1:5173/mockups/axis?view=project` |
@@ -112,6 +121,6 @@ bun run build
 
 ## Requirements and phase boundary
 
-The approved requirement register is [`docs/phase-0/07-requirements-traceability.md`](docs/phase-0/07-requirements-traceability.md). Phase 1 evidence is in [`docs/phase-1`](docs/phase-1), and the Phase 2 handoff is in [`docs/phase-2`](docs/phase-2). The Axis mockups remain visual regression/reference material and were not replaced by production routes.
+The approved requirement register is [`docs/phase-0/07-requirements-traceability.md`](docs/phase-0/07-requirements-traceability.md). Phase evidence is stored under [`docs/phase-1`](docs/phase-1), [`docs/phase-2`](docs/phase-2), and [`docs/phase-3`](docs/phase-3). The pre-Phase-4 workflow audit and implementation report are in [`docs/ux-workflow-consistency-audit.md`](docs/ux-workflow-consistency-audit.md) and [`docs/ux-workflow-consolidation.md`](docs/ux-workflow-consolidation.md). The Axis mockups remain visual regression/reference material and were not replaced by production routes.
 
-The commercial CRM implementation reaches the explicit Ready for Sales Order handoff. Production acceptance still requires the approved quotation DOCX template, LibreOffice/Redis deployment validation, and distinct-employee realtime UAT recorded in [`docs/phase-2/15-realtime-quotation-acceptance.md`](docs/phase-2/15-realtime-quotation-acceptance.md). Do not treat this as a completed ERP lifecycle: no Sales Order, Project, Drawing Management, or BOM production module exists yet.
+The implemented scope reaches Project Ready for Detailed Engineering. Production acceptance still requires approved business roles and approval policy, production Redis/HTTPS/secrets, distinct-employee browser UAT, and deployment operations recorded in [`docs/phase-3/03-phase-3-acceptance.md`](docs/phase-3/03-phase-3-acceptance.md). Do not treat this as a completed ERP lifecycle: Drawing Management, BOM, purchasing, inventory transactions, production, quality, dispatch, and service have not started.

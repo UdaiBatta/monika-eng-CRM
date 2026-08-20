@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -58,6 +58,7 @@ import {
   ERPEmptyState,
   ERPErrorState,
   ERPLoadingState,
+  NextActionPanel,
   ERPPageHeader,
   ERPStatusBadge,
   formatBytes,
@@ -111,7 +112,7 @@ function StageTracker({ workspace }: { workspace: EnquiryWorkspace }) {
     ["DRAFT", "Draft"],
     ["RECEIVED", "Received"],
     ["UNDER_REVIEW", "Commercial review"],
-    ["ENGINEERING_REVIEW", "Engineering feasibility"],
+    ["ENGINEERING_REVIEW", "Workshop Review"],
     ["READY_FOR_ESTIMATION", "Ready for estimation"],
     ["ESTIMATION", "Commercial estimation"],
     ["ESTIMATION_COMPLETE", "Ready for quotation"],
@@ -237,7 +238,7 @@ export default function EnquiryPage() {
       refresh();
       toast.success(
         variables.action === "send-to-engineering"
-          ? "Engineering feasibility requested."
+          ? "Workshop Review requested."
           : "Enquiry stage updated.",
       );
     },
@@ -299,6 +300,30 @@ export default function EnquiryPage() {
         },
       },
     );
+  let nextTitle = "Review the enquiry";
+  let nextDescription = "Confirm the customer requirement and keep the next follow-up visible.";
+  let primaryAction: ReactNode = null;
+  if (enquiry.status === "DRAFT" && canEdit) {
+    nextTitle = "Mark the enquiry as received";
+    nextDescription = "Confirm that the captured customer request is ready for commercial review.";
+    primaryAction = <Button onClick={() => command.mutate({ action: "receive" })}><Check data-icon="inline-start" />Mark received</Button>;
+  } else if (enquiry.status === "RECEIVED" && canEdit) {
+    nextTitle = "Start commercial review";
+    nextDescription = "Check the customer, scope, due date, and ownership before involving the Workshop.";
+    primaryAction = <Button onClick={() => command.mutate({ action: "start-review" })}><ClipboardCheck data-icon="inline-start" />Start commercial review</Button>;
+  } else if (["RECEIVED", "UNDER_REVIEW"].includes(enquiry.status) && canSubmitEngineering) {
+    nextTitle = "Send the requirement to Workshop";
+    nextDescription = "The Workshop will confirm whether the panel can be built and programmed as currently specified.";
+    primaryAction = <Button onClick={() => command.mutate({ action: "send-to-engineering" })}><Send data-icon="inline-start" />Send to Workshop</Button>;
+  } else if (workspace.engineering_review?.ready_for_estimation) {
+    nextTitle = "Prepare the commercial estimate";
+    nextDescription = "Workshop has approved the requirement. Continue with the controlled cost and pricing basis.";
+    primaryAction = hasPermission(user, "estimation.estimate.create") ? <Button nativeButton={false} render={<Link to={`/app/crm/estimates?enquiry=${enquiry.id}`} />}><ArrowRight data-icon="inline-start" />Prepare Estimate</Button> : null;
+  } else if (workspace.engineering_review) {
+    nextTitle = workspace.engineering_review.open_clarifications ? "Resolve the Workshop clarification" : "Workshop Review is in progress";
+    nextDescription = workspace.engineering_review.open_clarifications ? "The Workshop needs more information before it can approve the requirement." : "Open the review to see ownership, practical notes, and the current decision.";
+    primaryAction = <Button nativeButton={false} render={<Link to={`/app/workshop/reviews/${workspace.engineering_review.id}`} />}>Open Workshop Review<ArrowRight data-icon="inline-end" /></Button>;
+  }
   return (
     <div className="mx-auto flex max-w-[1580px] flex-col gap-5">
       <ERPPageHeader
@@ -387,39 +412,7 @@ export default function EnquiryPage() {
           </div>
         </CardContent>
       </Card>
-      <div className="flex flex-wrap gap-2">
-        {enquiry.status === "DRAFT" && canEdit ? (
-          <Button onClick={() => command.mutate({ action: "receive" })}>
-            <Check data-icon="inline-start" />
-            Mark received
-          </Button>
-        ) : null}
-        {enquiry.status === "RECEIVED" && canEdit ? (
-          <Button onClick={() => command.mutate({ action: "start-review" })}>
-            <ClipboardCheck data-icon="inline-start" />
-            Start commercial review
-          </Button>
-        ) : null}
-        {["RECEIVED", "UNDER_REVIEW"].includes(enquiry.status) &&
-        canSubmitEngineering ? (
-          <Button
-            onClick={() => command.mutate({ action: "send-to-engineering" })}
-          >
-            <Send data-icon="inline-start" />
-            Send to engineering
-          </Button>
-        ) : null}
-        {!closed && hasPermission(user, "enquiry.enquiry.mark_lost") ? (
-          <Button variant="outline" onClick={() => setCloseAction("mark-lost")}>
-            Mark lost
-          </Button>
-        ) : null}
-        {!closed && hasPermission(user, "enquiry.enquiry.cancel") ? (
-          <Button variant="ghost" onClick={() => setCloseAction("cancel")}>
-            Cancel enquiry
-          </Button>
-        ) : null}
-      </div>
+      <NextActionPanel status={enquiry.status} title={nextTitle} description={nextDescription} primaryAction={primaryAction} secondaryActions={!closed ? <>{hasPermission(user, "enquiry.enquiry.mark_lost") ? <Button variant="outline" onClick={() => setCloseAction("mark-lost")}>Mark lost</Button> : null}{hasPermission(user, "enquiry.enquiry.cancel") ? <Button variant="ghost" onClick={() => setCloseAction("cancel")}>Cancel enquiry</Button> : null}</> : undefined} />
       <Tabs defaultValue="overview">
         <div className="overflow-x-auto pb-1">
           <TabsList className="h-auto min-w-max justify-start">
@@ -431,7 +424,7 @@ export default function EnquiryPage() {
             <TabsTrigger value="items">
               Items <Badge variant="outline">{enquiry.items.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="engineering">Engineering</TabsTrigger>
+            <TabsTrigger value="engineering">Workshop</TabsTrigger>
             {hasPermission(user, "crm.quotation.view") ? <TabsTrigger value="quotations">Quotations <Badge variant="outline">{quotations.data?.pagination.count ?? 0}</Badge></TabsTrigger> : null}
             <TabsTrigger value="activities">Activities</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
@@ -593,7 +586,7 @@ export default function EnquiryPage() {
               ) : (
                 <ERPEmptyState
                   title="No requirements captured"
-                  description="Add the customer scope before requesting engineering feasibility."
+                  description="Add the customer scope before requesting a Workshop Review."
                 />
               )}
             </CardContent>
@@ -683,7 +676,7 @@ export default function EnquiryPage() {
         <TabsContent value="engineering" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Engineering feasibility</CardTitle>
+              <CardTitle>Workshop Review</CardTitle>
               <CardDescription>
                 The current controlled review and its decision gate.
               </CardDescription>
@@ -698,7 +691,7 @@ export default function EnquiryPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Engineer</p>
+                    <p className="text-xs text-muted-foreground">Workshop owner</p>
                     <p className="font-medium">
                       {workspace.engineering_review.assigned_engineer_name ||
                         "Unassigned"}
@@ -729,19 +722,19 @@ export default function EnquiryPage() {
                         )
                       }
                     >
-                      Open engineering review
+                      Open Workshop Review
                     </Button>
                   </div>
                 </div>
               ) : enquiry.status === "ENGINEERING_REVIEW" ? (
                 <ERPEmptyState
-                  title="Engineering review is being created"
-                  description="Refresh the workspace. The controlled feasibility review will appear here once initialized."
+                  title="Workshop Review is being created"
+                  description="Refresh the workspace. The controlled Workshop Review will appear here once initialized."
                 />
               ) : (
                 <ERPEmptyState
-                  title="Not sent to engineering"
-                  description="Complete the customer scope, requirements, and item lines, then use Send to engineering."
+                  title="Not sent to Workshop"
+                  description="Complete the customer scope, requirements, and item lines, then use Send to Workshop."
                 />
               )}
             </CardContent>

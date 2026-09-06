@@ -12,6 +12,7 @@ const detailTitles: Array<[RegExp, string]> = [
   [/^\/app\/crm\/quotations\/[^/]+$/, "Quotation workspace"],
   [/^\/app\/sales\/orders\/[^/]+$/, "Sales Order 360"],
   [/^\/app\/projects\/[^/]+$/, "Project 360"],
+  [/^\/app\/workshop\/panel-jobs\/[^/]+$/, "Panel Job"],
   [/^\/app\/owner\/work$/, "Owner Control · Work assignment"],
   [/^\/app\/owner\/people$/, "Owner Control · User accounts"],
   [/^\/app\/owner\/access$/, "Owner Control · Access check"],

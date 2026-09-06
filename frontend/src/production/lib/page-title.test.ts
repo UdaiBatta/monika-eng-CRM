@@ -9,6 +9,7 @@ describe("getPageTitle", () => {
     ["/app/crm/engineering/9b87c68f-1a6e-49c7-92a1-99f4a5d14790", "Workshop Review"],
     ["/app/workshop/reviews/9b87c68f-1a6e-49c7-92a1-99f4a5d14790", "Workshop Review"],
     ["/app/documents/a88292da-33e4-43dd-b8e7-68c163953f79", "Document details"],
+    ["/app/workshop/panel-jobs/9b87c68f-1a6e-49c7-92a1-99f4a5d14790", "Panel Job"],
     ["/app", "My Work"],
     ["/app/settings", "Tools & settings"],
   ])("uses a business title for %s", (path, expected) => {

@@ -419,6 +419,9 @@ class SalesOrderLine(ValidatedModel):
     revision = models.ForeignKey(SalesOrderRevision, on_delete=models.PROTECT, related_name="lines")
     line_number = models.PositiveIntegerField()
     quotation_line_id = models.UUIDField(null=True, blank=True)
+    product = models.ForeignKey(
+        "inventory.Product", on_delete=models.PROTECT, related_name="sales_order_lines", null=True, blank=True
+    )
     customer_po_line_reference = models.CharField(max_length=120, blank=True)
     description = models.CharField(max_length=1000)
     long_description = models.TextField(blank=True)
@@ -465,6 +468,10 @@ class SalesOrderLine(ValidatedModel):
     @property
     def company_id(self):
         return self.revision.company_id
+
+    def clean(self):
+        if self.product_id and self.product.company_id != self.company_id:
+            raise ValidationError({"product": "Product must belong to this company."})
 
     def save(self, *args, **kwargs):
         quantum = Decimal("0.01")

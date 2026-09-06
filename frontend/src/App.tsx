@@ -72,6 +72,15 @@ const SalesOrderPage = lazy(() => import("@/production/pages/sales-order-page"))
 const SalesWorkspacePage = lazy(() => import("@/production/pages/sales-workspace-page"));
 const ProjectsPage = lazy(() => import("@/production/pages/projects-page"));
 const ProjectPage = lazy(() => import("@/production/pages/project-page"));
+const InventoryWorkspacePage = lazy(
+  () => import("@/production/pages/inventory-workspace-page"),
+);
+const StockPage = lazy(() => import("@/production/pages/stock-page"));
+const PurchaseRequisitionsPage = lazy(
+  () => import("@/production/pages/purchase-requisitions-page"),
+);
+const PurchaseOrdersPage = lazy(() => import("@/production/pages/purchase-orders-page"));
+const PanelJobPage = lazy(() => import("@/production/pages/panel-job-page"));
 const OwnerControlLayout = lazy(() => import("@/production/components/owner-control-layout"));
 const OwnerControlPage = lazy(() => import("@/production/pages/owner-control-page"));
 const OwnerWorkPage = lazy(() => import("@/production/pages/owner-work-page"));
@@ -181,6 +190,32 @@ export default function App() {
               <Route path="projects" element={<ProjectsPage />} />
               <Route path="projects/:projectId" element={<ProjectPage />} />
               <Route path="engineering/work" element={<ProjectsPage />} />
+
+              <Route path="inventory" element={<InventoryWorkspacePage />} />
+              <Route
+                path="inventory/products"
+                element={<ResourcePage resourceKey="products" />}
+              />
+              <Route
+                path="inventory/product-categories"
+                element={<ResourcePage resourceKey="product-categories" />}
+              />
+              <Route
+                path="inventory/suppliers"
+                element={<ResourcePage resourceKey="suppliers" />}
+              />
+              <Route path="inventory/stock" element={<StockPage />} />
+
+              <Route
+                path="purchasing/requisitions"
+                element={<PurchaseRequisitionsPage />}
+              />
+              <Route path="purchasing/orders" element={<PurchaseOrdersPage />} />
+
+              <Route
+                path="workshop/panel-jobs/:panelJobId"
+                element={<PanelJobPage />}
+              />
 
               <Route path="owner" element={<OwnerControlLayout />}>
                 <Route index element={<OwnerControlPage />} />

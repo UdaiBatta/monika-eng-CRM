@@ -72,6 +72,11 @@ class Command(BaseCommand):
             ("QUOTATION", "QUO-{year}-{number}", 4),
             ("SO", "SO-{year}-{number}", 4),
             ("PRJ", "PRJ-{year}-{number}", 4),
+            ("STK", "STK-{number}", 5),
+            ("PR", "PR-{year}-{number}", 4),
+            ("PO", "PO-{year}-{number}", 4),
+            ("GRN", "GRN-{year}-{number}", 4),
+            ("PANEL", "PANEL-{year}-{number}", 4),
         ):
             DocumentSequence.objects.get_or_create(
                 company=company,

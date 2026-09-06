@@ -10,6 +10,7 @@ import {
   FolderKanban,
   Files,
   Gauge,
+  LifeBuoy,
   ListTodo,
   LogOut,
   Menu,
@@ -101,6 +102,12 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
         to: "/app/workshop",
         icon: Wrench,
         permission: "engineering.feasibility.view",
+      },
+      {
+        label: "Service & Repair",
+        to: "/app/service/tickets",
+        icon: LifeBuoy,
+        permission: "service.ticket.view",
       },
       {
         label: "Projects",

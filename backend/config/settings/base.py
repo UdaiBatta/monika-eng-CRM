@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.purchasing.apps.PurchasingConfig",
     "apps.projects.apps.ProjectsConfig",
     "apps.workshop.apps.WorkshopConfig",
+    "apps.service.apps.ServiceConfig",
     "apps.realtime.apps.RealtimeConfig",
 ]
 

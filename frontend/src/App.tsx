@@ -81,6 +81,7 @@ const PurchaseRequisitionsPage = lazy(
 );
 const PurchaseOrdersPage = lazy(() => import("@/production/pages/purchase-orders-page"));
 const PanelJobPage = lazy(() => import("@/production/pages/panel-job-page"));
+const ServiceTicketsPage = lazy(() => import("@/production/pages/service-tickets-page"));
 const OwnerControlLayout = lazy(() => import("@/production/components/owner-control-layout"));
 const OwnerControlPage = lazy(() => import("@/production/pages/owner-control-page"));
 const OwnerWorkPage = lazy(() => import("@/production/pages/owner-work-page"));
@@ -215,6 +216,12 @@ export default function App() {
               <Route
                 path="workshop/panel-jobs/:panelJobId"
                 element={<PanelJobPage />}
+              />
+
+              <Route path="service/tickets" element={<ServiceTicketsPage />} />
+              <Route
+                path="service/equipment"
+                element={<ResourcePage resourceKey="equipment" />}
               />
 
               <Route path="owner" element={<OwnerControlLayout />}>

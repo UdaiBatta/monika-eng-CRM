@@ -77,6 +77,7 @@ class Command(BaseCommand):
             ("PO", "PO-{year}-{number}", 4),
             ("GRN", "GRN-{year}-{number}", 4),
             ("PANEL", "PANEL-{year}-{number}", 4),
+            ("SVC", "SVC-{year}-{number}", 4),
         ):
             DocumentSequence.objects.get_or_create(
                 company=company,

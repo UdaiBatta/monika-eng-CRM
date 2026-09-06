@@ -78,6 +78,7 @@ from apps.sales.views import (
     SalesOrderRevisionViewSet,
     SalesOrderViewSet,
 )
+from apps.service.views import EquipmentViewSet, ServiceTicketViewSet
 from apps.workshop.views import PanelJobViewSet
 
 router = DefaultRouter()
@@ -146,6 +147,8 @@ router.register(
 router.register("purchasing/orders", PurchaseOrderViewSet, basename="purchase-order")
 router.register("purchasing/goods-receipts", GoodsReceiptViewSet, basename="goods-receipt")
 router.register("workshop/panel-jobs", PanelJobViewSet, basename="panel-job")
+router.register("service/equipment", EquipmentViewSet)
+router.register("service/tickets", ServiceTicketViewSet, basename="service-ticket")
 router.register("projects", ProjectViewSet, basename="project")
 router.register("project-clarifications", ProjectClarificationViewSet, basename="project-clarification")
 router.register(

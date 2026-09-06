@@ -14,7 +14,7 @@ class Command(BaseCommand):
     help = "Create an explicit local-only administrator and linked employee for UI QA."
 
     def handle(self, *args, **options):
-        if not settings.DEBUG:
+        if not settings.DEBUG and not getattr(settings, "IS_DESKTOP_BUILD", False):
             raise CommandError("seed_development is disabled unless DEBUG=True")
         email = os.getenv("DEV_ADMIN_EMAIL")
         password = os.getenv("DEV_ADMIN_PASSWORD")

@@ -36,6 +36,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": {
+      "python-runtime": "python-runtime/",
+      "../../backend/apps": "backend/apps/",
+      "../../backend/config": "backend/config/",
+      "../../backend/manage.py": "backend/manage.py",
+      "../../backend/desktop_server.py": "backend/desktop_server.py"
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }

@@ -39,6 +39,13 @@ backend/private_storage/
 # Rust / Tauri
 frontend/src-tauri/target/
 frontend/src-tauri/gen/
+frontend/src-tauri/python-runtime/
+
+# Bundled desktop backend's own SQLite database and files
+backend/desktop-data/
+
+# Built installers (produced by `tauri build`, not source)
+dist-installers/
 
 # Editor directories and files
 .vscode/*

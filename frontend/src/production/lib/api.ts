@@ -86,9 +86,12 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   const body = (await response.json().catch(() => ({}))) as ApiErrorBody | T
   if (!response.ok) {
     const error = (body as ApiErrorBody).error
+    const fallbackMessage = response.status === 403
+      ? "The secure session was rejected. Close and reopen the app, then try again."
+      : "The request could not be completed."
     throw new ApiError(
       response.status,
-      error?.message ?? "The request could not be completed.",
+      error?.message ?? fallbackMessage,
       error?.details,
       error?.code,
     )

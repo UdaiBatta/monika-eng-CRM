@@ -22,6 +22,8 @@ FIRST_RUN_ADMIN_PASSWORD = "ChangeMe-First-Login"
 
 
 def main():
+    data_dir = Path(os.getenv("MONIKA_DESKTOP_DATA_DIR", Path(__file__).resolve().parent / "desktop-data"))
+    data_dir.mkdir(parents=True, exist_ok=True)
     django.setup()
     from django.conf import settings
     from django.db import connection

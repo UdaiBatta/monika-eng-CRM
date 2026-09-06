@@ -13,6 +13,7 @@ import {
   ListTodo,
   LogOut,
   Menu,
+  Package,
   Settings2,
   ShieldCheck,
   Wrench,
@@ -82,6 +83,17 @@ const navigation: Array<{ label: string; items: NavItem[] }> = [
           "crm.quotation.view",
           "sales.customer_po.view",
           "sales.sales_order.view",
+        ],
+      },
+      {
+        label: "Inventory & Purchase",
+        to: "/app/inventory",
+        icon: Package,
+        anyPermission: [
+          "inventory.product.view",
+          "inventory.stock.view",
+          "purchasing.requisition.view",
+          "purchasing.purchase_order.view",
         ],
       },
       {

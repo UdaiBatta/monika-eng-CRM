@@ -11,9 +11,12 @@ from .base import BASE_DIR
 DEBUG = False
 IS_DESKTOP_BUILD = True
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+# Tauri serves packaged assets from this origin on Windows and its HTTP
+# plugin forwards that origin to Django. Trust only the packaged-app origin;
+# the API remains bound to loopback in desktop_server.py.
+CSRF_TRUSTED_ORIGINS = ["http://tauri.localhost"]
 
 DATA_DIR = Path(os.getenv("MONIKA_DESKTOP_DATA_DIR", BASE_DIR / "desktop-data"))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DATABASES = {
     "default": {

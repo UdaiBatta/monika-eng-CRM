@@ -46,12 +46,22 @@ function cookie(name: string) {
   return item ? decodeURIComponent(item.split("=")[1]) : undefined
 }
 
+// The desktop build's requests are issued by Tauri's HTTP plugin from the
+// Rust process, so any Set-Cookie it receives lands in that process's own
+// cookie jar, not document.cookie — the webview never sees it. The CSRF
+// endpoint also returns the token in its JSON body for exactly this reason,
+// so that's the source of truth here; the cookie read is only a fast path
+// that works in the browser build.
+let cachedCsrfToken: string | undefined
+
 async function ensureCsrfToken() {
-  if (!cookie("csrftoken")) {
-    const response = await platformFetch(`${API_BASE_URL}/api/v1/auth/csrf/`, { credentials: "include" })
-    if (!response.ok) throw new ApiError(response.status, "Could not establish a secure session.")
-  }
-  return cookie("csrftoken")
+  const existing = cookie("csrftoken") ?? cachedCsrfToken
+  if (existing) return existing
+  const response = await platformFetch(`${API_BASE_URL}/api/v1/auth/csrf/`, { credentials: "include" })
+  if (!response.ok) throw new ApiError(response.status, "Could not establish a secure session.")
+  const body = (await response.json().catch(() => ({}))) as { csrfToken?: string }
+  cachedCsrfToken = cookie("csrftoken") ?? body.csrfToken
+  return cachedCsrfToken
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {

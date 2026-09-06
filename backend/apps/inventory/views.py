@@ -1,5 +1,4 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Sum
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -20,7 +19,7 @@ from .serializers import (
     StockMovementSerializer,
     SupplierSerializer,
 )
-from .services import record_movement
+from .services import low_stock_products, record_movement
 
 
 class InventoryImportUploadSerializer(TabularImportUploadSerializer):
@@ -84,26 +83,18 @@ class ProductViewSet(FoundationModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="low-stock")
     def low_stock(self, request):
-        queryset = self.filter_queryset(self.get_queryset()).filter(is_active=True, reorder_level__gt=0)
-        rows = []
-        for product in queryset:
-            available = (
-                product.stock_items.filter(condition=StockItem.Condition.AVAILABLE).aggregate(
-                    total=Sum("quantity")
-                )["total"]
-                or 0
-            )
-            if available <= product.reorder_level:
-                rows.append(
-                    {
-                        "product_id": str(product.pk),
-                        "internal_code": product.internal_code,
-                        "description": product.description,
-                        "available_quantity": str(available),
-                        "reorder_level": str(product.reorder_level),
-                        "reorder_quantity": str(product.reorder_quantity),
-                    }
-                )
+        queryset = self.filter_queryset(self.get_queryset())
+        rows = [
+            {
+                "product_id": str(product.pk),
+                "internal_code": product.internal_code,
+                "description": product.description,
+                "available_quantity": str(available),
+                "reorder_level": str(product.reorder_level),
+                "reorder_quantity": str(product.reorder_quantity),
+            }
+            for product, available in low_stock_products(queryset=queryset)
+        ]
         return Response(rows)
 
 

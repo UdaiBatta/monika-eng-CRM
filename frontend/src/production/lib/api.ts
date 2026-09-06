@@ -7,6 +7,26 @@ export type ApiErrorBody = {
   }
 }
 
+// The browser build talks to its own origin via a relative path (Vite's dev
+// proxy, or a same-origin reverse proxy in production). The packaged desktop
+// app has no such origin to be relative to, so its build injects an absolute
+// backend URL here. See src-tauri and VITE_API_BASE_URL.
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "")
+
+// The desktop app's webview origin differs from the backend's, so the
+// browser's own fetch() enforces CORS even though same-origin session
+// cookies are otherwise fine on a trusted internal network. Tauri's HTTP
+// plugin issues the request from the Rust process instead of the webview,
+// which is not subject to that browser-side CORS check.
+const desktopFetch: Promise<typeof fetch> | undefined = API_BASE_URL
+  ? import("@tauri-apps/plugin-http").then((module) => module.fetch)
+  : undefined
+
+function platformFetch(input: RequestInfo | URL, init?: RequestInit) {
+  if (desktopFetch) return desktopFetch.then((fetchImpl) => fetchImpl(input, init))
+  return fetch(input, init)
+}
+
 export class ApiError extends Error {
   status: number
   details: unknown
@@ -28,7 +48,7 @@ function cookie(name: string) {
 
 async function ensureCsrfToken() {
   if (!cookie("csrftoken")) {
-    const response = await fetch("/api/v1/auth/csrf/", { credentials: "include" })
+    const response = await platformFetch(`${API_BASE_URL}/api/v1/auth/csrf/`, { credentials: "include" })
     if (!response.ok) throw new ApiError(response.status, "Could not establish a secure session.")
   }
   return cookie("csrftoken")
@@ -39,7 +59,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   const unsafe = !["GET", "HEAD", "OPTIONS"].includes(method)
   const csrfToken = unsafe ? await ensureCsrfToken() : undefined
   const isFormData = init.body instanceof FormData
-  const response = await fetch(`/api/v1${path}`, {
+  const response = await platformFetch(`${API_BASE_URL}/api/v1${path}`, {
     ...init,
     credentials: "include",
     headers: {
@@ -48,6 +68,8 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
       ...init.headers,
     },
+  }).catch((cause) => {
+    throw new ApiError(0, "Could not reach the server. Check your connection and try again.", cause)
   })
 
   if (response.status === 204) return undefined as T
@@ -85,7 +107,7 @@ export function apiUpload<T>(path: string, body: FormData) {
 }
 
 export async function apiDownload(path: string, fallbackFilename: string) {
-  const response = await fetch(`/api/v1${path}`, {
+  const response = await platformFetch(`${API_BASE_URL}/api/v1${path}`, {
     credentials: "include",
     headers: { Accept: "application/octet-stream" },
   })

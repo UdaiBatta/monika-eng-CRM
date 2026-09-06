@@ -36,6 +36,10 @@ venv/
 private_storage/
 backend/private_storage/
 
+# Rust / Tauri
+frontend/src-tauri/target/
+frontend/src-tauri/gen/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

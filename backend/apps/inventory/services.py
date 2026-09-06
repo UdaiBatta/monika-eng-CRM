@@ -2,12 +2,13 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Sum
 
 from apps.audit.models import AuditEvent
 from apps.audit.services import record_event
 from apps.numbering.services import allocate_company_number
 
-from .models import StockItem, StockLocation, StockMovement
+from .models import Product, StockItem, StockLocation, StockMovement
 
 REQUIRES_FROM = {
     StockMovement.MovementType.OUTWARD,
@@ -108,3 +109,18 @@ def record_movement(
         },
     )
     return movement
+
+
+def low_stock_products(company=None, queryset=None):
+    products = queryset if queryset is not None else Product.objects.filter(company=company)
+    rows = []
+    for product in products.filter(is_active=True, reorder_level__gt=0):
+        available = (
+            product.stock_items.filter(condition=StockItem.Condition.AVAILABLE).aggregate(total=Sum("quantity"))[
+                "total"
+            ]
+            or 0
+        )
+        if available <= product.reorder_level:
+            rows.append((product, available))
+    return rows

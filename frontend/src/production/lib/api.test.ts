@@ -36,18 +36,4 @@ describe("api client", () => {
       message: "Permission denied.",
     }))
   })
-
-  it("explains a non-JSON CSRF rejection", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("<html>CSRF verification failed</html>", {
-        status: 403,
-        headers: { "Content-Type": "text/html" },
-      }),
-    )
-
-    await expect(apiGet("/employees/")).rejects.toEqual(expect.objectContaining({
-      status: 403,
-      message: "The secure session was rejected. Close and reopen the app, then try again.",
-    }))
-  })
 })

@@ -102,8 +102,6 @@ class SalesOrderLineInputSerializer(serializers.Serializer):
 
 
 class SalesOrderLineSerializer(serializers.ModelSerializer):
-    product_code = serializers.CharField(source="product.internal_code", read_only=True, default="")
-
     class Meta:
         model = SalesOrderLine
         fields = "__all__"

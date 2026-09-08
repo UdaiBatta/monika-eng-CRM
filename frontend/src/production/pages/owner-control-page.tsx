@@ -151,6 +151,29 @@ export default function OwnerControlPage() {
         </Card>
       </div>
 
+      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <Card size="sm">
+          <CardHeader><CardTitle>Stock shortages</CardTitle><CardDescription>Products at or below reorder level</CardDescription><CardAction><Badge variant={overview.operations.stock_shortages ? "destructive" : "secondary"}>{overview.operations.stock_shortages}</Badge></CardAction></CardHeader>
+          <CardContent><Button variant="outline" size="sm" nativeButton={false} render={<Link to="/app/inventory/stock" />}>Open stock register</Button></CardContent>
+        </Card>
+        <Card size="sm">
+          <CardHeader><CardTitle>Delayed Purchase Orders</CardTitle><CardDescription>Past expected delivery, not yet fully received</CardDescription><CardAction><Badge variant={overview.operations.delayed_purchase_orders ? "destructive" : "secondary"}>{overview.operations.delayed_purchase_orders}</Badge></CardAction></CardHeader>
+          <CardContent><Button variant="outline" size="sm" nativeButton={false} render={<Link to="/app/purchasing/orders" />}>Open Purchase Orders</Button></CardContent>
+        </Card>
+        <Card size="sm">
+          <CardHeader><CardTitle>Panel Jobs in progress</CardTitle><CardDescription>Workshop Review through Handover</CardDescription><CardAction><Badge variant="secondary">{overview.operations.panel_jobs_in_progress}</Badge></CardAction></CardHeader>
+          <CardContent><Button variant="outline" size="sm" nativeButton={false} render={<Link to="/app/projects" />}>Open Projects</Button></CardContent>
+        </Card>
+        <Card size="sm">
+          <CardHeader><CardTitle>Open Service Tickets</CardTitle><CardDescription>Not yet closed or cancelled</CardDescription><CardAction><Badge variant="secondary">{overview.operations.open_service_tickets}</Badge></CardAction></CardHeader>
+          <CardContent><Button variant="outline" size="sm" nativeButton={false} render={<Link to="/app/service/tickets" />}>Open Service & Repair</Button></CardContent>
+        </Card>
+        <Card size="sm">
+          <CardHeader><CardTitle>Overdue payables</CardTitle><CardDescription>Supplier payments past due date</CardDescription><CardAction><Badge variant={overview.operations.overdue_payables ? "destructive" : "secondary"}>{overview.operations.overdue_payables}</Badge></CardAction></CardHeader>
+          <CardContent><p className="text-xs text-muted-foreground">Receivables are not yet tracked on Sales Orders.</p></CardContent>
+        </Card>
+      </div>
+
       <Card size="sm">
         <CardHeader><CardTitle>Find a control</CardTitle><CardDescription>Search in business language, such as Rahul, numbering, warehouse, role or Audit.</CardDescription></CardHeader>
         <CardContent><div className="relative max-w-xl"><Search className="pointer-events-none absolute left-3 top-2.5 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search Owner Control…" className="pl-9" /></div></CardContent>

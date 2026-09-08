@@ -28,6 +28,15 @@ from apps.external_enquiries.views import (
     ExternalEnquirySubmissionViewSet,
     WebsiteEnquiryIntakeView,
 )
+from apps.inventory.reservations import SalesOrderLineReservationViewSet
+from apps.inventory.views import (
+    ProductCategoryViewSet,
+    ProductViewSet,
+    StockItemViewSet,
+    StockLocationViewSet,
+    StockMovementViewSet,
+    SupplierViewSet,
+)
 from apps.masters.views import (
     CurrencyViewSet,
     DeliveryTermViewSet,
@@ -46,6 +55,11 @@ from apps.organization.views import (
     WarehouseViewSet,
 )
 from apps.projects.views import ProjectClarificationViewSet, ProjectViewSet
+from apps.purchasing.views import (
+    GoodsReceiptViewSet,
+    PurchaseOrderViewSet,
+    PurchaseRequisitionViewSet,
+)
 from apps.quotations.views import (
     QuotationRevisionViewSet,
     QuotationTemplateViewSet,
@@ -64,6 +78,8 @@ from apps.sales.views import (
     SalesOrderRevisionViewSet,
     SalesOrderViewSet,
 )
+from apps.service.views import EquipmentViewSet, ServiceTicketViewSet
+from apps.workshop.views import PanelJobViewSet
 
 router = DefaultRouter()
 router.register("users", UserViewSet)
@@ -114,6 +130,25 @@ router.register("quotation-text-templates", QuotationTextTemplateViewSet)
 router.register("sales/customer-pos", CustomerPurchaseOrderViewSet, basename="customer-purchase-order")
 router.register("sales/orders", SalesOrderViewSet, basename="sales-order")
 router.register("sales/order-revisions", SalesOrderRevisionViewSet, basename="sales-order-revision")
+router.register("inventory/product-categories", ProductCategoryViewSet)
+router.register("inventory/suppliers", SupplierViewSet)
+router.register("inventory/products", ProductViewSet)
+router.register("inventory/stock-locations", StockLocationViewSet)
+router.register("inventory/stock-items", StockItemViewSet, basename="stock-item")
+router.register("inventory/stock-movements", StockMovementViewSet, basename="stock-movement")
+router.register(
+    "inventory/sales-order-lines",
+    SalesOrderLineReservationViewSet,
+    basename="sales-order-line-reservation",
+)
+router.register(
+    "purchasing/requisitions", PurchaseRequisitionViewSet, basename="purchase-requisition"
+)
+router.register("purchasing/orders", PurchaseOrderViewSet, basename="purchase-order")
+router.register("purchasing/goods-receipts", GoodsReceiptViewSet, basename="goods-receipt")
+router.register("workshop/panel-jobs", PanelJobViewSet, basename="panel-job")
+router.register("service/equipment", EquipmentViewSet)
+router.register("service/tickets", ServiceTicketViewSet, basename="service-ticket")
 router.register("projects", ProjectViewSet, basename="project")
 router.register("project-clarifications", ProjectClarificationViewSet, basename="project-clarification")
 router.register(

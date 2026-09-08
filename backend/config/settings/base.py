@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "apps.organization",
     "apps.rbac",
     "apps.masters",
+    "apps.inventory.apps.InventoryConfig",
     "apps.configuration",
     "apps.numbering",
     "apps.audit.apps.AuditConfig",
@@ -43,7 +44,10 @@ INSTALLED_APPS = [
     "apps.estimation.apps.EstimationConfig",
     "apps.quotations.apps.QuotationsConfig",
     "apps.sales.apps.SalesConfig",
+    "apps.purchasing.apps.PurchasingConfig",
     "apps.projects.apps.ProjectsConfig",
+    "apps.workshop.apps.WorkshopConfig",
+    "apps.service.apps.ServiceConfig",
     "apps.realtime.apps.RealtimeConfig",
 ]
 

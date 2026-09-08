@@ -1,0 +1,8 @@
+Django==5.2.17
+djangorestframework==3.18.0
+django-filter==26.1
+celery==5.6.3
+channels[daphne]==4.3.2
+docxtpl==0.20.2
+openpyxl==3.1.5
+defusedxml==0.7.1

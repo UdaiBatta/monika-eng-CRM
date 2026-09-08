@@ -78,7 +78,6 @@ class ProjectViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyModelViewSet):
         "hold": "projects.project.hold",
         "resume": "projects.project.hold",
         "cancel": "projects.project.cancel",
-        "create_panel_job": "workshop.panel_job.create",
         "default": "projects.project.view",
     }
     search_fields = [
@@ -187,37 +186,6 @@ class ProjectViewSet(ScopedQuerysetMixin, viewsets.ReadOnlyModelViewSet):
     def acknowledge_commercial_change(self, request, pk=None):
         project = acknowledge_commercial_change(project_id=self.get_object().pk, actor=request.user)
         return Response(ProjectSerializer(project, context={"request": request}).data)
-
-    @action(detail=True, methods=["post"], url_path="create-panel-job")
-    def create_panel_job(self, request, pk=None):
-        from apps.inventory.models import Product
-        from apps.organization.models import Employee, Warehouse
-        from apps.workshop.serializers import PanelJobCreateSerializer, PanelJobSerializer
-        from apps.workshop.services import create_panel_job_from_project
-
-        serializer = PanelJobCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        validated = dict(serializer.validated_data)
-        material_lines = validated.pop("material_lines")
-        owner_id = validated.pop("workshop_owner", None)
-
-        warehouse = Warehouse.objects.get(pk=validated.pop("warehouse"))
-        workshop_owner = Employee.objects.get(pk=owner_id) if owner_id else None
-        resolved_lines = [
-            {
-                "product": Product.objects.get(pk=line["product"]),
-                "required_quantity": line["required_quantity"],
-                "notes": line.get("notes", ""),
-            }
-            for line in material_lines
-        ]
-        panel_job = create_panel_job_from_project(
-            project_id=self.get_object().pk,
-            actor=request.user,
-            data={**validated, "warehouse": warehouse, "workshop_owner": workshop_owner},
-            material_lines=resolved_lines,
-        )
-        return Response(PanelJobSerializer(panel_job).data, status=201)
 
     @action(detail=True, methods=["post"])
     def hold(self, request, pk=None):

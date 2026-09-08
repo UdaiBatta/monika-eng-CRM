@@ -20,12 +20,9 @@ from apps.enquiries.models import Enquiry
 from apps.external_enquiries.models import ExternalEnquirySubmission, IntegrationCredential
 from apps.organization.models import Company, Employee
 from apps.projects.models import Project, ProjectEngineeringHandoff
-from apps.purchasing.models import PurchaseOrder
 from apps.quotations.models import Quotation
 from apps.rbac.models import Role
 from apps.sales.models import CustomerPurchaseOrder, SalesOrder
-from apps.service.models import ServiceTicket
-from apps.workshop.models import PanelJob
 
 
 @dataclass(frozen=True)
@@ -123,28 +120,6 @@ WORK_SPECS = (
         "status",
         ("ENGINEERING_ACCEPTED", "CANCELLED"),
         "/app/projects",
-    ),
-    WorkSpec(
-        "panel_job",
-        "Panel Job",
-        PanelJob,
-        "workshop_owner",
-        "panel_job_number",
-        "panel_name",
-        "status",
-        ("CLOSED", "CANCELLED"),
-        "/app/projects",
-    ),
-    WorkSpec(
-        "service_ticket",
-        "Service Ticket",
-        ServiceTicket,
-        "technician",
-        "ticket_number",
-        "complaint",
-        "status",
-        ("CLOSED", "CANCELLED"),
-        "/app/service/tickets",
     ),
 )
 
@@ -431,44 +406,6 @@ def data_quality_issues(company):
     return issues
 
 
-def operations_overview(company):
-    from apps.inventory.services import low_stock_products
-
-    low_stock_count = len(low_stock_products(company=company))
-    delayed_purchase_orders = PurchaseOrder.objects.filter(
-        company=company,
-        status__in=[
-            PurchaseOrder.Status.ORDERED,
-            PurchaseOrder.Status.PART_RECEIVED,
-            PurchaseOrder.Status.DELAYED,
-        ],
-        expected_delivery_date__lt=timezone.localdate(),
-    ).count()
-    overdue_payables = PurchaseOrder.objects.filter(
-        company=company,
-        payment_status__in=[PurchaseOrder.PaymentStatus.NOT_DUE, PurchaseOrder.PaymentStatus.PART_PAID],
-        payment_due_date__lt=timezone.localdate(),
-    ).count()
-    panel_jobs_in_progress = (
-        PanelJob.objects.filter(company=company)
-        .exclude(status__in=[PanelJob.Status.CLOSED, PanelJob.Status.CANCELLED, PanelJob.Status.ON_HOLD])
-        .count()
-    )
-    open_service_tickets = (
-        ServiceTicket.objects.filter(company=company)
-        .exclude(status__in=[ServiceTicket.Status.CLOSED, ServiceTicket.Status.CANCELLED])
-        .count()
-    )
-    return {
-        "stock_shortages": low_stock_count,
-        "delayed_purchase_orders": delayed_purchase_orders,
-        "overdue_payables": overdue_payables,
-        "panel_jobs_in_progress": panel_jobs_in_progress,
-        "open_service_tickets": open_service_tickets,
-        "receivables_tracked": False,
-    }
-
-
 def owner_overview(company):
     counts = work_counts(company)
     issues = data_quality_issues(company)
@@ -486,7 +423,6 @@ def owner_overview(company):
             "unassigned": sum(item["unassigned"] for item in counts),
             "by_type": counts,
         },
-        "operations": operations_overview(company),
         "attention": {
             "data_quality": sum(item["count"] for item in issues),
             "pending_approvals": ApprovalRequest.objects.filter(

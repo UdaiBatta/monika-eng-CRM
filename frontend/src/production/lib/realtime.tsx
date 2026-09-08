@@ -88,11 +88,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     const connect = () => {
       if (closed) return;
       setStatus(attempt ? "reconnecting" : "connecting");
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
-      const wsUrl = apiBaseUrl
-        ? `${apiBaseUrl.replace(/^http/, "ws").replace(/\/$/, "")}/ws/workspace/`
-        : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws/workspace/`;
-      const next = new WebSocket(wsUrl);
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const next = new WebSocket(`${protocol}//${window.location.host}/ws/workspace/`);
       socket.current = next;
       next.addEventListener("open", () => {
         attempt = 0;

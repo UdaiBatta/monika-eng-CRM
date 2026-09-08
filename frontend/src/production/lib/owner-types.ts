@@ -11,14 +11,6 @@ export type OwnerOverview = {
   company: { id: Identifier; name: string; code: string }
   people: { active_employees: number; active_accounts: number; roles: number }
   work: { open: number; unassigned: number; by_type: OwnerWorkSummary[] }
-  operations: {
-    stock_shortages: number
-    delayed_purchase_orders: number
-    overdue_payables: number
-    panel_jobs_in_progress: number
-    open_service_tickets: number
-    receivables_tracked: boolean
-  }
   attention: { data_quality: number; pending_approvals: number }
   recent_admin_activity: Array<{
     id: Identifier

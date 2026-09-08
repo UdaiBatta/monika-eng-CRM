@@ -3,7 +3,6 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.rbac.models import Role, RoleAssignment, ScopeType
-from config.settings import desktop as desktop_settings
 
 
 @pytest.mark.django_db
@@ -25,22 +24,6 @@ def test_login_requires_csrf_and_uses_session(user):
     me = client.get(reverse("me"))
     assert me.status_code == 200
     assert me.data["permissions"] == []
-
-
-@pytest.mark.django_db
-def test_desktop_login_accepts_the_packaged_tauri_origin(user, settings):
-    settings.CSRF_TRUSTED_ORIGINS = desktop_settings.CSRF_TRUSTED_ORIGINS
-    client = APIClient(enforce_csrf_checks=True)
-    token = client.get(reverse("csrf")).cookies["csrftoken"].value
-
-    response = client.post(
-        reverse("login"),
-        {"identifier": user.email, "password": "SafePassword-2741"},
-        HTTP_X_CSRFTOKEN=token,
-        HTTP_ORIGIN="http://tauri.localhost",
-    )
-
-    assert response.status_code == 200
 
 
 @pytest.mark.django_db

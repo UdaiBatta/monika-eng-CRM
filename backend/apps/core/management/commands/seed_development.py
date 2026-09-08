@@ -14,7 +14,7 @@ class Command(BaseCommand):
     help = "Create an explicit local-only administrator and linked employee for UI QA."
 
     def handle(self, *args, **options):
-        if not settings.DEBUG:
+        if not settings.DEBUG and not getattr(settings, "IS_DESKTOP_BUILD", False):
             raise CommandError("seed_development is disabled unless DEBUG=True")
         email = os.getenv("DEV_ADMIN_EMAIL")
         password = os.getenv("DEV_ADMIN_PASSWORD")
@@ -72,6 +72,12 @@ class Command(BaseCommand):
             ("QUOTATION", "QUO-{year}-{number}", 4),
             ("SO", "SO-{year}-{number}", 4),
             ("PRJ", "PRJ-{year}-{number}", 4),
+            ("STK", "STK-{number}", 5),
+            ("PR", "PR-{year}-{number}", 4),
+            ("PO", "PO-{year}-{number}", 4),
+            ("GRN", "GRN-{year}-{number}", 4),
+            ("PANEL", "PANEL-{year}-{number}", 4),
+            ("SVC", "SVC-{year}-{number}", 4),
         ):
             DocumentSequence.objects.get_or_create(
                 company=company,

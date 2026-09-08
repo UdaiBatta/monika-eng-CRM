@@ -1,6 +1,8 @@
 export type SalesOrderLine = {
   id: string;
   line_number: number;
+  product: string | null;
+  product_code?: string;
   description: string;
   quantity: string;
   unit_of_measure: string;

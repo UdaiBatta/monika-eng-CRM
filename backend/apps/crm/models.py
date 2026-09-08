@@ -290,6 +290,13 @@ class CrmActivity(ValidatedModel):
         null=True,
         blank=True,
     )
+    service_ticket = models.ForeignKey(
+        "service.ServiceTicket",
+        on_delete=models.PROTECT,
+        related_name="activities",
+        null=True,
+        blank=True,
+    )
     contact = models.ForeignKey(
         CustomerContact,
         on_delete=models.PROTECT,
@@ -357,6 +364,11 @@ class CrmActivity(ValidatedModel):
             or self.enquiry.customer_id != self.customer_id
         ):
             errors["enquiry"] = "Enquiry must belong to this customer and company."
+        if self.service_ticket_id and (
+            self.service_ticket.company_id != self.company_id
+            or self.service_ticket.customer_id != self.customer_id
+        ):
+            errors["service_ticket"] = "Service ticket must belong to this customer and company."
         if self.follow_up_owner_id and self.follow_up_owner.company_id != self.company_id:
             errors["follow_up_owner"] = "Follow-up owner must belong to the selected company."
         if self.follow_up_owner_id and (
